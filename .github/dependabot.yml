@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      lint-and-format:
+        patterns: ["eslint", "@eslint/*", "typescript-eslint", "prettier"]
+      test:
+        patterns: ["vitest", "@vitest/*", "@cloudflare/vitest-plugin"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
