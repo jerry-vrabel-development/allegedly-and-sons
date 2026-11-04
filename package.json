@@ -1,0 +1,37 @@
+{
+  "name": "allegedly-and-sons",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Allegedly & Sons, Purveyors of Rare Objects. A comedy shop with serious engineering underneath.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types src/worker-configuration.d.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.5.1",
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-istanbul": "^5.1.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.157.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.4"
+  }
+}
