@@ -49,6 +49,7 @@ npm run check   # format, lint, types, tests with coverage: the same checks CI r
 
 - [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
+- [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
 
 ## Branch flow
 
