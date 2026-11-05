@@ -33,15 +33,15 @@ twelve visits is worse than no answer.
 Every event is one row with a fixed, typed shape, validated in the Worker.
 Anything that fails validation is dropped and counted, never stored.
 
-| Event              | Sent from        | Extra fields                    |
-| ------------------ | ---------------- | ------------------------------- |
-| `item_viewed`      | browser → Worker | —                               |
-| `lore_expanded`    | browser → Worker | `section`                       |
-| `share_clicked`    | browser → Worker | `channel`, `ref`                |
-| `shared_visit`     | Worker (on `?r=`)| `ref`                           |
-| `add_to_cart`      | browser → Worker | `tier`                          |
-| `checkout_started` | Worker           | `tier`, `stripe_session_id`     |
-| `purchased`        | Stripe webhook   | `tier`, `amount_cents`, `stripe_session_id` |
+| Event              | Sent from         | Extra fields                                |
+| ------------------ | ----------------- | ------------------------------------------- |
+| `item_viewed`      | browser → Worker  | —                                           |
+| `lore_expanded`    | browser → Worker  | `section`                                   |
+| `share_clicked`    | browser → Worker  | `channel`, `ref`                            |
+| `shared_visit`     | Worker (on `?r=`) | `ref`                                       |
+| `add_to_cart`      | browser → Worker  | `tier`                                      |
+| `checkout_started` | Worker            | `tier`, `stripe_session_id`                 |
+| `purchased`        | Stripe webhook    | `tier`, `amount_cents`, `stripe_session_id` |
 
 Common fields: `event`, `item_id`, `ts`, `visitor_day_id`, `referrer_host`
 (host only, no path or query).

@@ -15,7 +15,27 @@ built on serious engineering underneath.
 
 ## Status
 
-Planning. No application code yet.
+Prototype in progress: the collection, three item pages and the fine print. No checkout yet.
+
+## Getting started
+
+Needs Node 22 (see `.nvmrc`).
+
+```sh
+npm ci
+npm run dev     # local Worker at http://localhost:8787
+npm run check   # format, lint, types, tests with coverage: the same checks CI runs
+```
+
+| Script                  | What it does                                                           |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`           | Run the Worker locally with Wrangler                                   |
+| `npm test`              | Run the tests inside the Workers runtime (Vitest + Cloudflare plugin)  |
+| `npm run test:coverage` | Tests plus coverage; fails below the floors in `vitest.config.ts`      |
+| `npm run lint`          | ESLint with type-aware `typescript-eslint` strict rules, zero warnings |
+| `npm run typecheck`     | Strict TypeScript for app and tests                                    |
+| `npm run cf-typegen`    | Regenerate Worker types after changing `wrangler.jsonc`                |
+| `npm run deploy`        | Deploy the Worker (after changes reach `main`)                         |
 
 ## Planned stack
 
@@ -28,6 +48,7 @@ Planning. No application code yet.
 ## Design notes
 
 - [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
+- [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
 
 ## Branch flow
 
