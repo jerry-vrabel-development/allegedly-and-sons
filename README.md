@@ -15,7 +15,7 @@ built on serious engineering underneath.
 
 ## Status
 
-Early days: tooling, CI and a placeholder Worker. No shop features yet.
+Prototype in progress: the collection, three item pages and the fine print. No checkout yet.
 
 ## Getting started
 

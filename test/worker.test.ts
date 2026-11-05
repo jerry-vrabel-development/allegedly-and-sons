@@ -1,5 +1,6 @@
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { CATALOG } from "../src/core/catalog";
 
 const BASE = "https://allegedly.example";
 
@@ -8,11 +9,32 @@ function get(path: string, init?: RequestInit): Promise<Response> {
 }
 
 describe("Worker", () => {
-  it("serves the placeholder home page", async () => {
+  it("serves the home page as HTML", async () => {
     const response = await get("/");
     expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
-    expect(await response.text()).toContain("Allegedly & Sons");
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(await response.text()).toContain("The Collection");
+  });
+
+  it("serves every item page", async () => {
+    for (const item of CATALOG) {
+      const response = await get(`/items/${item.slug}`);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain(item.exhibit);
+    }
+  });
+
+  it("serves the fine print", async () => {
+    const response = await get("/disclaimer");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("The Fine Print");
+  });
+
+  it("serves the stylesheet as CSS", async () => {
+    const response = await get("/assets/site.css");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/css; charset=utf-8");
+    expect(await response.text()).toContain("prefers-reduced-motion");
   });
 
   it("reports health as JSON and is never cached", async () => {
@@ -27,10 +49,18 @@ describe("Worker", () => {
     expect(response.status).toBe(200);
   });
 
-  it("returns 404 for unknown paths", async () => {
-    const response = await get("/the-other-three-xenoclips");
-    expect(response.status).toBe(404);
-    expect(await response.text()).toContain("Not found");
+  it("returns a friendly HTML 404 for unknown paths and items", async () => {
+    for (const path of [
+      "/the-other-three-xenoclips",
+      "/items/xenoclip",
+      "/items/ALIEN",
+      "/items/",
+    ]) {
+      const response = await get(path);
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+      expect(await response.text()).toContain("The Bureau is still looking.");
+    }
   });
 
   it("rejects non-GET methods with 405 and an Allow header", async () => {
@@ -45,7 +75,9 @@ describe("Worker", () => {
       await get("/nope"),
       await get("/", { method: "DELETE" }),
     ]) {
-      expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'none'");
+      const csp = response.headers.get("Content-Security-Policy");
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).toContain("style-src 'self'");
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     }
   });

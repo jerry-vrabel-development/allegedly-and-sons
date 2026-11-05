@@ -1,6 +1,22 @@
+import { findItem } from "../core/catalog";
+import type { SafeHtml } from "./html";
+import { disclaimerPage, homePage, itemPage, notFoundPage, STYLESHEET_PATH } from "./pages";
 import { withSecurityHeaders } from "./security-headers";
+import { SITE_CSS } from "./styles";
 
 const TEXT = "text/plain; charset=utf-8";
+const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
+
+/** Pages may change often while the shop is a prototype, so browsers revalidate. */
+function page(body: SafeHtml, status = 200): Response {
+  return new Response(body.value, {
+    status,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  });
+}
 
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export function route(request: Request): Response {
@@ -15,18 +31,25 @@ export function route(request: Request): Response {
 
   switch (pathname) {
     case "/":
-      return new Response(
-        'Allegedly & Sons, Purveyors of Rare Objects. Est. "a long time ago."\nOpening soon. Allegedly.\n',
-        { headers: { "Content-Type": TEXT } },
-      );
+      return page(homePage());
+    case "/disclaimer":
+      return page(disclaimerPage());
+    case STYLESHEET_PATH:
+      return new Response(SITE_CSS, {
+        headers: {
+          "Content-Type": "text/css; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-    default:
-      return new Response("Not found. The Bureau is still looking.\n", {
-        status: 404,
-        headers: { "Content-Type": TEXT },
-      });
   }
+
+  const slug = ITEM_PATH.exec(pathname)?.[1];
+  const item = slug === undefined ? undefined : findItem(slug);
+  if (item) return page(itemPage(item));
+
+  return page(notFoundPage(), 404);
 }
 
 export default {
