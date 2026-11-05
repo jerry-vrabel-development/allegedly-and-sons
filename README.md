@@ -15,7 +15,7 @@ built on serious engineering underneath.
 
 ## Status
 
-Prototype in progress: the collection, three item pages and the fine print. No checkout yet.
+Prototype in progress: the collection with a featured exhibit, three item pages with illustrated art, share links and the fine print. No checkout yet.
 
 ## Getting started
 
@@ -27,15 +27,19 @@ npm run dev     # local Worker at http://localhost:8787
 npm run check   # format, lint, types, tests with coverage: the same checks CI runs
 ```
 
-| Script                  | What it does                                                           |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `npm run dev`           | Run the Worker locally with Wrangler                                   |
-| `npm test`              | Run the tests inside the Workers runtime (Vitest + Cloudflare plugin)  |
-| `npm run test:coverage` | Tests plus coverage; fails below the floors in `vitest.config.ts`      |
-| `npm run lint`          | ESLint with type-aware `typescript-eslint` strict rules, zero warnings |
-| `npm run typecheck`     | Strict TypeScript for app and tests                                    |
-| `npm run cf-typegen`    | Regenerate Worker types after changing `wrangler.jsonc`                |
-| `npm run deploy`        | Deploy the Worker (after changes reach `main`)                         |
+| Script                  | What it does                                                               |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `npm run dev`           | Run the Worker locally with Wrangler                                       |
+| `npm test`              | Run the tests inside the Workers runtime (Vitest + Cloudflare plugin)      |
+| `npm run test:coverage` | Tests plus coverage; fails below the floors in `vitest.config.ts`          |
+| `npm run test:e2e`      | Browser tests (Playwright) on desktop, Android and iPhone, with axe checks |
+| `npm run lint`          | ESLint with type-aware `typescript-eslint` strict rules, zero warnings     |
+| `npm run typecheck`     | Strict TypeScript for app and tests                                        |
+| `npm run cf-typegen`    | Regenerate Worker types after changing `wrangler.jsonc`                    |
+| `npm run deploy`        | Deploy the Worker (after changes reach `main`)                             |
+
+Before your first `npm run test:e2e`, install the browsers once:
+`npx playwright install --with-deps chromium webkit`
 
 ## Planned stack
 
@@ -49,6 +53,7 @@ npm run check   # format, lint, types, tests with coverage: the same checks CI r
 
 - [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
+- [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
 
 ## Branch flow
 

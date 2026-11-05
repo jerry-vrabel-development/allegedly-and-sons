@@ -4,3 +4,5 @@ coverage/
 dist/
 package-lock.json
 src/worker-configuration.d.ts
+playwright-report/
+test-results/

@@ -17,14 +17,14 @@ function squish(page: SafeHtml): string {
 }
 
 function firstItem(): Item {
-  const [item] = CATALOG;
-  if (!item) throw new Error("The catalog is empty.");
-  return item;
+  return CATALOG[0];
 }
+
+const ORIGIN = "https://allegedly.example";
 
 const pages = {
   home: squish(homePage()),
-  item: squish(itemPage(firstItem())),
+  item: squish(itemPage(firstItem(), ORIGIN)),
   disclaimer: squish(disclaimerPage()),
   notFound: squish(notFoundPage()),
 };
@@ -85,14 +85,20 @@ describe("home page", () => {
 describe("item page", () => {
   for (const item of CATALOG) {
     it(`shows ${item.slug}: name, price, story, byline, specs and certificate`, () => {
-      const page = squish(itemPage(item));
+      const page = squish(itemPage(item, ORIGIN));
       expect(page).toContain(formatPrice(item.priceCents));
       expect(page).toContain(`Exhibit ${item.exhibit}`);
       expect(page).toContain(`Bureau Certificate No. ${item.exhibit}`);
       expect(page).toContain("Authenticity:</strong> Allegedly.");
+      expect(page).toContain(item.hook);
+      expect(page).toContain(item.estimatedValue);
+      expect(page).toContain(`alt="${item.artAlt}"`);
+      expect(page).toContain(`src="/assets/art/${item.slug}.svg"`);
+      expect(page).toContain(encodeURIComponent(`${ORIGIN}/items/${item.slug}`));
       expect(page).toContain(item.story.author.title);
       expect(count(page, /<p>/g)).toBeGreaterThanOrEqual(item.story.paragraphs.length);
-      expect(count(page, /<dt>/g)).toBe(item.specs.length);
+      for (const spec of item.specs)
+        expect(page).toContain(`<dt>${spec.label}</dt> <dd>${spec.value}</dd>`);
     });
   }
 
@@ -103,10 +109,47 @@ describe("item page", () => {
       name: "Clip <b>",
       story: { ...base.story, paragraphs: ["<img src=x onerror=alert(1)>"] },
     };
-    const page = squish(itemPage(sneaky));
+    const page = squish(itemPage(sneaky, ORIGIN));
     expect(page).toContain("Clip &lt;b&gt;");
     expect(page).toContain("&lt;img src=x onerror=alert(1)&gt;");
-    expect(page).not.toContain("<img");
+    expect(page).not.toContain("<img src=x");
+  });
+});
+
+describe("item page details", () => {
+  it('hides all but the first paragraph behind "keep reading"', () => {
+    const page = squish(itemPage(firstItem(), ORIGIN));
+    const [first, second] = firstItem().story.paragraphs;
+    expect(page.indexOf(first)).toBeLessThan(page.indexOf("<details>"));
+    expect(page.indexOf(second ?? "")).toBeGreaterThan(page.indexOf("<details>"));
+  });
+
+  it('skips "keep reading" when the story is a single paragraph', () => {
+    const base = firstItem();
+    const short: Item = { ...base, story: { ...base.story, paragraphs: ["Just one."] } };
+    const page = squish(itemPage(short, ORIGIN));
+    expect(page).toContain("<p>Just one.</p>");
+    expect(page).not.toContain("<details>");
+  });
+
+  it("cross-sells every other item, but not itself", () => {
+    const item = firstItem();
+    const page = squish(itemPage(item, ORIGIN));
+    const more = page.slice(page.indexOf("Other recent acquisitions"));
+    for (const other of CATALOG) {
+      expect(more.includes(`href="/items/${other.slug}"`)).toBe(other.slug !== item.slug);
+    }
+  });
+});
+
+describe("home page hero", () => {
+  it("features the first item with a call to action", () => {
+    const item = firstItem();
+    expect(pages.home).toContain("Now on display");
+    expect(pages.home).toContain(item.hook);
+    expect(pages.home).toContain(
+      `<a class="button" href="/items/${item.slug}">View the exhibit</a>`,
+    );
   });
 });
 
@@ -115,5 +158,6 @@ describe("disclaimer page", () => {
     expect(pages.disclaimer).toContain("That is what ships.");
     expect(pages.disclaimer).toContain("not appraisals or proof of authenticity");
     expect(pages.disclaimer).toContain("Nothing here is an investment.");
+    expect(pages.disclaimer).toContain("not a real price, a former price or an appraisal");
   });
 });

@@ -9,6 +9,8 @@ export default defineConfig(
     ".wrangler/",
     "coverage/",
     "dist/",
+    "playwright-report/",
+    "test-results/",
     "src/worker-configuration.d.ts",
   ]),
   eslint.configs.recommended,
@@ -18,7 +20,7 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.js", "vitest.config.ts"],
+          allowDefaultProject: ["eslint.config.js", "vitest.config.ts", "playwright.config.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },
