@@ -52,7 +52,8 @@ jobs:
   e2e:
     name: Browser tests (desktop, Android, iPhone)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # System libraries come from Ubuntu mirrors, which are sometimes slow.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -65,8 +66,26 @@ jobs:
 
       - run: npm ci
 
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+
+      # Browsers are cached per Playwright version; system libraries can't be
+      # cached, so those are installed every run.
+      - name: Cache Playwright browsers
+        id: browser-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium webkit
+
+      - name: Install system libraries for the browsers
+        timeout-minutes: 20
+        run: npx playwright install-deps chromium webkit
 
       - name: Browser tests with axe accessibility checks
         run: npm run test:e2e
