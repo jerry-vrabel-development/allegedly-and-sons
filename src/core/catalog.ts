@@ -18,7 +18,8 @@ export interface Author {
 
 export interface Story {
   readonly headline: string;
-  readonly paragraphs: readonly string[];
+  /** At least one paragraph; the first is shown before "keep reading". */
+  readonly paragraphs: readonly [string, ...string[]];
   readonly author: Author;
 }
 
@@ -35,6 +36,15 @@ export interface Item {
   /** Exhibit number, also printed on the Bureau certificate. */
   readonly exhibit: string;
   readonly tagline: string;
+  /** One gripping line shown above the fold, before the full story. */
+  readonly hook: string;
+  /**
+   * A comedic "estimated value", shown next to the real price as a joke anchor.
+   * It must be obviously absurd (never a real former price): see the lore rule.
+   */
+  readonly estimatedValue: string;
+  /** Alt text for the item's illustration. */
+  readonly artAlt: string;
   /** Price in US cents, to avoid floating-point money. */
   readonly priceCents: number;
   readonly specs: readonly Spec[];
@@ -46,12 +56,17 @@ export const THE_BUREAU: Author = {
   title: "Field Office, Bureau of Improbable Acquisitions",
 };
 
-export const CATALOG: readonly Item[] = [
+/** At least one item; the first is featured on the home page. */
+export const CATALOG: readonly [Item, ...Item[]] = [
   {
     slug: "alien-paperclip",
     name: "The Alien Paperclip",
     exhibit: "AS-0001",
     tagline: "Recovered from a crash site. Still holds paper.",
+    hook: "A UFO crossed a soybean field in 1973. This is what fell out.",
+    estimatedValue: "4 billion Zorbian credits",
+    artAlt:
+      "Illustration of a silver paperclip glowing on a dark evidence board, with a small flying saucer overhead.",
     priceCents: 49_900,
     specs: [
       { label: "Material", value: "Steel wire" },
@@ -73,6 +88,9 @@ export const CATALOG: readonly Item[] = [
     name: "The Second-Best Quill",
     exhibit: "AS-0002",
     tagline: "Present at nearly everything important.",
+    hook: "Every great signature in history had a backup. Meet it.",
+    estimatedValue: "One slightly disputed goose",
+    artAlt: "Illustration of a cream-colored feather quill resting at an angle beside an ink blot.",
     priceCents: 34_900,
     specs: [
       { label: "Material", value: "Feather with a metal nib" },
@@ -94,6 +112,9 @@ export const CATALOG: readonly Item[] = [
     name: "The Viking Participation Trophy",
     exhibit: "AS-0003",
     tagline: "Awarded for showing up to the raid.",
+    hook: "Found in the grave of Bjorn the Adequate. His saga: “He was there.”",
+    estimatedValue: "Three longships and a sandwich",
+    artAlt: "Illustration of a small bronze-colored trophy cup with Viking horns on its lid.",
     priceCents: 27_500,
     specs: [
       { label: "Material", value: "Bronze-colored plastic" },

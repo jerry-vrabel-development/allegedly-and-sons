@@ -49,6 +49,26 @@ describe("Worker", () => {
     expect(response.status).toBe(200);
   });
 
+  it("serves each item's art as SVG", async () => {
+    for (const item of CATALOG) {
+      const response = await get(`/assets/art/${item.slug}.svg`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toBe("image/svg+xml; charset=utf-8");
+      expect(await response.text()).toContain(item.exhibit);
+    }
+  });
+
+  it("returns 404 for art that doesn't exist", async () => {
+    for (const path of ["/assets/art/xenoclip.svg", "/assets/art/alien-paperclip.png"]) {
+      expect((await get(path)).status).toBe(404);
+    }
+  });
+
+  it("builds share links from the request's own origin", async () => {
+    const page = await (await get("/items/alien-paperclip")).text();
+    expect(page).toContain(encodeURIComponent(`${BASE}/items/alien-paperclip`));
+  });
+
   it("returns a friendly HTML 404 for unknown paths and items", async () => {
     for (const path of [
       "/the-other-three-xenoclips",
@@ -78,6 +98,8 @@ describe("Worker", () => {
       const csp = response.headers.get("Content-Security-Policy");
       expect(csp).toContain("default-src 'none'");
       expect(csp).toContain("style-src 'self'");
+      expect(csp).toContain("img-src 'self'");
+      expect(csp).not.toContain("script-src");
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     }
   });
