@@ -270,7 +270,20 @@ export function thanksPage(): SafeHtml {
   });
 }
 
-/** Shown when checkout can't start, so the buyer is never left on a blank error. */
+/** Shown while checkout is switched off on purpose (no Stripe key yet), so nobody is told to retry. */
+export function checkoutClosedPage(item: Item): SafeHtml {
+  return layout({
+    title: "Acquisitions open soon",
+    description: "The Bureau isn't taking acquisitions yet.",
+    body: html` <div class="prose">
+      <h1>Acquisitions open soon</h1>
+      <p>The Bureau is still preparing the vault. Nothing was charged.</p>
+      <p><a href="${itemPath(item)}">Back to ${item.name}</a></p>
+    </div>`,
+  });
+}
+
+/** Shown when checkout fails unexpectedly (Stripe or network trouble), so the buyer is never left on a blank error. */
 export function checkoutUnavailablePage(item: Item): SafeHtml {
   return layout({
     title: "Checkout unavailable",

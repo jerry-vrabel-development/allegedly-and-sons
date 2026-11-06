@@ -3,6 +3,7 @@ import { checkoutSessionForm, THANKS_PATH } from "../core/checkout";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
+  checkoutClosedPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
@@ -55,7 +56,7 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
     return new Response("Forbidden.\n", { status: 403, headers: { "Content-Type": TEXT } });
   }
 
-  if (deps.stripeKey === undefined) return page(checkoutUnavailablePage(item), 503);
+  if (deps.stripeKey === undefined) return page(checkoutClosedPage(item), 503);
 
   const result = await createCheckoutSession(
     deps.stripeKey,
