@@ -15,7 +15,7 @@ built on serious engineering underneath.
 
 ## Status
 
-Prototype in progress: the collection with a featured exhibit, three item pages with illustrated art, share links and the fine print. No checkout yet.
+Prototype in progress: the collection with a featured exhibit, three item pages with illustrated art, share links and the fine print. Checkout works through Stripe-hosted Checkout (tested in Stripe's sandbox); orders aren't recorded by the shop yet, which needs verified webhooks.
 
 ## Getting started
 
@@ -37,6 +37,30 @@ npm run check   # format, lint, types, tests with coverage: the same checks CI r
 | `npm run typecheck`     | Strict TypeScript for app and tests                                        |
 | `npm run cf-typegen`    | Regenerate Worker types after changing `wrangler.jsonc`                    |
 | `npm run deploy`        | Deploy the Worker (after changes reach `main`)                             |
+
+### Stripe checkout
+
+The **Acquire this exhibit** button posts to `/checkout/<item>`. The Worker
+prices the item from the catalog (never from the browser), asks Stripe for a
+hosted Checkout page and redirects there. Card details never touch this code.
+Without a key, checkout shows a friendly "couldn't open" page and charges
+nothing.
+
+Local testing, with a **test-mode** key from the Stripe dashboard (sandbox →
+Developers → API keys):
+
+```sh
+echo 'STRIPE_SECRET_KEY=sk_test_...' > .dev.vars   # gitignored; never commit keys
+npm run dev
+```
+
+Pay with Stripe's test card `4242 4242 4242 4242`, any future date, any CVC.
+
+Deployed Worker:
+
+```sh
+npx wrangler secret put STRIPE_SECRET_KEY   # paste the key at the prompt
+```
 
 Before your first `npm run test:e2e`, install the browsers once:
 `npx playwright install --with-deps chromium webkit`

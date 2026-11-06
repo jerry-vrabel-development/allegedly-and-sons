@@ -1,4 +1,5 @@
 import { CATALOG, formatPrice, type Item } from "../core/catalog";
+import { checkoutPath } from "../core/checkout";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
 import { html, type SafeHtml } from "./html";
@@ -141,7 +142,10 @@ export function itemPage(item: Item, origin: string): SafeHtml {
               <dt>Your price</dt>
               <dd class="price">${formatPrice(item.priceCents)}</dd>
             </dl>
-            <p class="cta-soon">Acquisitions open soon</p>
+            <form class="acquire" method="post" action="${checkoutPath(item)}">
+              <button class="button" type="submit">Acquire this exhibit</button>
+            </form>
+            <p class="secure-note">Secure checkout by Stripe. US shipping only, for now.</p>
             <p class="hook">${item.hook}</p>
             <h2 class="small">Included</h2>
             <ul class="included">
@@ -246,6 +250,35 @@ export function notFoundPage(): SafeHtml {
       <h1>Not found</h1>
       <p>Not found. The Bureau is still looking.</p>
       <p><a href="/">Back to the collection</a></p>
+    </div>`,
+  });
+}
+
+export function thanksPage(): SafeHtml {
+  return layout({
+    title: "Acquisition recorded",
+    description: "Thank you for your acquisition.",
+    body: html` <div class="prose">
+      <h1>Acquisition recorded</h1>
+      <p class="tagline">The Bureau thanks you for your discretion.</p>
+      <p>
+        Thank you. Stripe will email your receipt. Your exhibit will be packed with its Bureau
+        Certificate and shipped to the address you gave at checkout.
+      </p>
+      <p><a href="/">Back to the collection</a></p>
+    </div>`,
+  });
+}
+
+/** Shown when checkout can't start, so the buyer is never left on a blank error. */
+export function checkoutUnavailablePage(item: Item): SafeHtml {
+  return layout({
+    title: "Checkout unavailable",
+    description: "Checkout couldn't open just now.",
+    body: html` <div class="prose">
+      <h1>Checkout couldn’t open</h1>
+      <p>The vault is stuck. Nothing was charged. Please try again in a few minutes.</p>
+      <p><a href="${itemPath(item)}">Back to ${item.name}</a></p>
     </div>`,
   });
 }
