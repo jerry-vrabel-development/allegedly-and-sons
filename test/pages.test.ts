@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, formatPrice, type Item } from "../src/core/catalog";
 import {
+  checkoutClosedPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
+  MAX_SHIP_DAYS,
+  REFUND_WINDOW_HOURS,
+  saleTerms,
   itemPage,
   itemPath,
   layout,
@@ -11,7 +15,7 @@ import {
   SITE_NAME,
   thanksPage,
 } from "../src/worker/pages";
-import { html, type SafeHtml } from "../src/worker/html";
+import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
 
 /** Collapses whitespace, since Prettier is free to reflow the HTML templates. */
 function squish(page: SafeHtml): string {
@@ -31,6 +35,7 @@ const pages = {
   notFound: squish(notFoundPage()),
   thanks: squish(thanksPage()),
   checkoutUnavailable: squish(checkoutUnavailablePage(firstItem())),
+  checkoutClosed: squish(checkoutClosedPage(firstItem())),
 };
 
 function count(haystack: string, needle: RegExp): number {
@@ -166,6 +171,53 @@ describe("disclaimer page", () => {
   });
 });
 
+describe("terms of sale", () => {
+  it("gives every themed term a plain-language line", () => {
+    const terms = saleTerms();
+    expect(terms.length).toBeGreaterThanOrEqual(5);
+    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(terms.length);
+    for (const term of terms) {
+      expect(pages.disclaimer).toContain(`<h3>${escapeHtml(term.heading)}</h3>`);
+      expect(term.plainly.value.trim()).not.toBe("");
+    }
+  });
+
+  it("states the refund window, damaged-item refunds, shipping and ship time plainly", () => {
+    expect(REFUND_WINDOW_HOURS).toBe(24);
+    expect(MAX_SHIP_DAYS).toBe(30);
+    expect(pages.disclaimer).toContain(
+      "You can cancel for a full refund within 24 hours of purchase.",
+    );
+    expect(pages.disclaimer).toContain("arrives damaged or never arrives, you get a full refund.");
+    expect(pages.disclaimer).toContain("Shipping is included in the price.");
+    expect(pages.disclaimer).toContain("Orders ship within 30 days of purchase.");
+    expect(pages.disclaimer).toContain("you can cancel for a full refund.");
+  });
+
+  it("no longer promises details later, now that they're here", () => {
+    expect(pages.disclaimer).not.toContain("Refund and shipping details will be posted");
+  });
+
+  it("says plainly that contact details are coming while none is set", () => {
+    expect(pages.disclaimer).toContain(
+      "Contact details will be posted here before the shop takes real orders.",
+    );
+    expect(pages.disclaimer).not.toContain("mailto:");
+  });
+
+  it("shows a mailto link once a contact email is set, escaped", () => {
+    const page = squish(disclaimerPage("orders@bureau.example"));
+    expect(page).toContain('<a href="mailto:orders@bureau.example">orders@bureau.example</a>');
+    expect(page).not.toContain("Contact details will be posted");
+    const sneaky = squish(disclaimerPage('x"><script>@evil.example'));
+    expect(sneaky).not.toContain("<script>");
+  });
+
+  it("keeps the comedy obviously comedy: no real contraband words", () => {
+    expect(pages.disclaimer).not.toMatch(/\b(drugs?|weapons?|guns?|stolen|narcotics?)\b/i);
+  });
+});
+
 describe("buying", () => {
   for (const item of CATALOG) {
     it(`${item.slug} has a labeled button that posts to its own checkout`, () => {
@@ -185,6 +237,14 @@ describe("buying", () => {
   it("thanks the buyer and says what happens next", () => {
     expect(pages.thanks).toContain("Acquisition recorded");
     expect(pages.thanks).toContain("Stripe will email your receipt");
+  });
+
+  it("says acquisitions open soon while checkout is off, without asking anyone to retry", () => {
+    const item = firstItem();
+    expect(pages.checkoutClosed).toContain("<h1>Acquisitions open soon</h1>");
+    expect(pages.checkoutClosed).toContain("Nothing was charged.");
+    expect(pages.checkoutClosed).not.toMatch(/try again/i);
+    expect(pages.checkoutClosed).toContain(`href="/items/${item.slug}"`);
   });
 
   it("explains a failed checkout plainly and links back to the item", () => {

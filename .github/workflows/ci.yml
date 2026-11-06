@@ -52,8 +52,15 @@ jobs:
   e2e:
     name: Browser tests (desktop, Android, iPhone)
     runs-on: ubuntu-latest
-    # System libraries come from Ubuntu mirrors, which are sometimes slow.
-    timeout-minutes: 30
+    # Playwright's official image has the browsers and every system library
+    # they need, so no slow apt installs. Keep its version equal to
+    # @playwright/test in package-lock.json (the first step checks).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
+    env:
+      PLAYWRIGHT_IMAGE_VERSION: 1.64.1
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -66,26 +73,13 @@ jobs:
 
       - run: npm ci
 
-      - name: Read the Playwright version
-        id: playwright
-        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
-
-      # Browsers are cached per Playwright version; system libraries can't be
-      # cached, so those are installed every run.
-      - name: Cache Playwright browsers
-        id: browser-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-
-      - name: Install Playwright browsers
-        if: steps.browser-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium webkit
-
-      - name: Install system libraries for the browsers
-        timeout-minutes: 20
-        run: npx playwright install-deps chromium webkit
+      - name: Playwright matches the container image
+        run: |
+          installed=$(node -p 'require("@playwright/test/package.json").version')
+          if [ "$installed" != "$PLAYWRIGHT_IMAGE_VERSION" ]; then
+            echo "::error::@playwright/test is $installed but the CI image is $PLAYWRIGHT_IMAGE_VERSION. Update both version numbers in the e2e job of .github/workflows/ci.yml."
+            exit 1
+          fi
 
       - name: Browser tests with axe accessibility checks
         run: npm run test:e2e
