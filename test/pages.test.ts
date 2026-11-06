@@ -4,6 +4,9 @@ import {
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
+  MAX_SHIP_DAYS,
+  REFUND_WINDOW_HOURS,
+  saleTerms,
   itemPage,
   itemPath,
   layout,
@@ -11,7 +14,7 @@ import {
   SITE_NAME,
   thanksPage,
 } from "../src/worker/pages";
-import { html, type SafeHtml } from "../src/worker/html";
+import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
 
 /** Collapses whitespace, since Prettier is free to reflow the HTML templates. */
 function squish(page: SafeHtml): string {
@@ -163,6 +166,53 @@ describe("disclaimer page", () => {
     expect(pages.disclaimer).toContain("not appraisals or proof of authenticity");
     expect(pages.disclaimer).toContain("Nothing here is an investment.");
     expect(pages.disclaimer).toContain("not a real price, a former price or an appraisal");
+  });
+});
+
+describe("terms of sale", () => {
+  it("gives every themed term a plain-language line", () => {
+    const terms = saleTerms();
+    expect(terms.length).toBeGreaterThanOrEqual(5);
+    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(terms.length);
+    for (const term of terms) {
+      expect(pages.disclaimer).toContain(`<h3>${escapeHtml(term.heading)}</h3>`);
+      expect(term.plainly.value.trim()).not.toBe("");
+    }
+  });
+
+  it("states the refund window, damaged-item refunds, shipping and ship time plainly", () => {
+    expect(REFUND_WINDOW_HOURS).toBe(24);
+    expect(MAX_SHIP_DAYS).toBe(30);
+    expect(pages.disclaimer).toContain(
+      "You can cancel for a full refund within 24 hours of purchase.",
+    );
+    expect(pages.disclaimer).toContain("arrives damaged or never arrives, you get a full refund.");
+    expect(pages.disclaimer).toContain("Shipping is included in the price.");
+    expect(pages.disclaimer).toContain("Orders ship within 30 days of purchase.");
+    expect(pages.disclaimer).toContain("you can cancel for a full refund.");
+  });
+
+  it("no longer promises details later, now that they're here", () => {
+    expect(pages.disclaimer).not.toContain("Refund and shipping details will be posted");
+  });
+
+  it("says plainly that contact details are coming while none is set", () => {
+    expect(pages.disclaimer).toContain(
+      "Contact details will be posted here before the shop takes real orders.",
+    );
+    expect(pages.disclaimer).not.toContain("mailto:");
+  });
+
+  it("shows a mailto link once a contact email is set, escaped", () => {
+    const page = squish(disclaimerPage("orders@bureau.example"));
+    expect(page).toContain('<a href="mailto:orders@bureau.example">orders@bureau.example</a>');
+    expect(page).not.toContain("Contact details will be posted");
+    const sneaky = squish(disclaimerPage('x"><script>@evil.example'));
+    expect(sneaky).not.toContain("<script>");
+  });
+
+  it("keeps the comedy obviously comedy: no real contraband words", () => {
+    expect(pages.disclaimer).not.toMatch(/\b(drugs?|weapons?|guns?|stolen|narcotics?)\b/i);
   });
 });
 
