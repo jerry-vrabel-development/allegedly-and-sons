@@ -30,4 +30,10 @@ describe("withSecurityHeaders", () => {
   it("starts the CSP locked down", () => {
     expect(SECURITY_HEADERS["Content-Security-Policy"]).toContain("default-src 'none'");
   });
+
+  it("allows forms to post only to us and redirect only to Stripe Checkout", () => {
+    expect(SECURITY_HEADERS["Content-Security-Policy"]).toMatch(
+      /form-action 'self' https:\/\/checkout\.stripe\.com(;|$)/,
+    );
+  });
 });

@@ -3,10 +3,12 @@
  *
  * The CSP starts as strict as possible ("default-src 'none'") and gets loosened
  * deliberately, one directive at a time, as the shop grows real pages.
+ * form-action allows our own checkout form and the redirect it gets to
+ * Stripe-hosted Checkout (browsers check redirects after a form post too).
  */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "Content-Security-Policy":
-    "default-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    "default-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https://checkout.stripe.com",
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",

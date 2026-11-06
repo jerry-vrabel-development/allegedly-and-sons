@@ -7,6 +7,7 @@ const PAGES = [
   { name: "second-best quill", path: "/items/second-best-quill" },
   { name: "viking trophy", path: "/items/viking-participation-trophy" },
   { name: "fine print", path: "/disclaimer" },
+  { name: "thank you", path: "/thanks" },
   { name: "not found", path: "/items/the-other-three-xenoclips" },
 ] as const;
 
@@ -107,7 +108,7 @@ test.describe("item page", () => {
     for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
       await page.goto(`/items/${slug}`);
       await expect(page.locator(".buybox .price")).toBeInViewport();
-      await expect(page.getByText("Acquisitions open soon")).toBeInViewport();
+      await expect(page.getByRole("button", { name: "Acquire this exhibit" })).toBeInViewport();
     }
   });
 

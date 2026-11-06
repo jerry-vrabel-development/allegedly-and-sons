@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, formatPrice, type Item } from "../src/core/catalog";
 import {
+  checkoutUnavailablePage,
   disclaimerPage,
   homePage,
   itemPage,
@@ -8,6 +9,7 @@ import {
   layout,
   notFoundPage,
   SITE_NAME,
+  thanksPage,
 } from "../src/worker/pages";
 import { html, type SafeHtml } from "../src/worker/html";
 
@@ -27,6 +29,8 @@ const pages = {
   item: squish(itemPage(firstItem(), ORIGIN)),
   disclaimer: squish(disclaimerPage()),
   notFound: squish(notFoundPage()),
+  thanks: squish(thanksPage()),
+  checkoutUnavailable: squish(checkoutUnavailablePage(firstItem())),
 };
 
 function count(haystack: string, needle: RegExp): number {
@@ -159,5 +163,33 @@ describe("disclaimer page", () => {
     expect(pages.disclaimer).toContain("not appraisals or proof of authenticity");
     expect(pages.disclaimer).toContain("Nothing here is an investment.");
     expect(pages.disclaimer).toContain("not a real price, a former price or an appraisal");
+  });
+});
+
+describe("buying", () => {
+  for (const item of CATALOG) {
+    it(`${item.slug} has a labeled button that posts to its own checkout`, () => {
+      const page = squish(itemPage(item, ORIGIN));
+      expect(page).toContain(
+        `<form class="acquire" method="post" action="/checkout/${item.slug}"> <button class="button" type="submit">Acquire this exhibit</button> </form>`,
+      );
+      expect(page).not.toContain("Acquisitions open soon");
+    });
+  }
+
+  it("never puts a price in the form, so the browser can't choose what to pay", () => {
+    const form = pages.item.slice(pages.item.indexOf("<form"), pages.item.indexOf("</form>"));
+    expect(form).not.toContain("<input");
+  });
+
+  it("thanks the buyer and says what happens next", () => {
+    expect(pages.thanks).toContain("Acquisition recorded");
+    expect(pages.thanks).toContain("Stripe will email your receipt");
+  });
+
+  it("explains a failed checkout plainly and links back to the item", () => {
+    const item = firstItem();
+    expect(pages.checkoutUnavailable).toContain("Nothing was charged.");
+    expect(pages.checkoutUnavailable).toContain(`href="/items/${item.slug}"`);
   });
 });
