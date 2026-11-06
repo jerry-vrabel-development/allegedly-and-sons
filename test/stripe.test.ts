@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutUrlFrom, createCheckoutSession } from "../src/worker/stripe";
+import { checkoutUrlFrom, createCheckoutSession, STRIPE_API_VERSION } from "../src/worker/stripe";
 
 const KEY = "sk_test_fake";
 const GOOD_URL = "https://checkout.stripe.com/c/pay/cs_test_123";
@@ -28,6 +28,7 @@ describe("createCheckoutSession", () => {
     const headers = new Headers(call?.init?.headers);
     expect(headers.get("Authorization")).toBe(`Bearer ${KEY}`);
     expect(headers.get("Content-Type")).toBe("application/x-www-form-urlencoded");
+    expect(headers.get("Stripe-Version")).toBe(STRIPE_API_VERSION);
     const body = call?.init?.body;
     expect(body instanceof URLSearchParams ? body.toString() : body).toBe("mode=payment");
   });
@@ -79,5 +80,12 @@ describe("checkoutUrlFrom", () => {
     ]) {
       expect(checkoutUrlFrom(body)).toBeUndefined();
     }
+  });
+});
+
+describe("STRIPE_API_VERSION", () => {
+  it("is pinned to a version that supports Checkout branding_settings", () => {
+    expect(STRIPE_API_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}\.[a-z]+$/);
+    expect(STRIPE_API_VERSION.slice(0, 10).localeCompare("2025-09-30")).toBeGreaterThanOrEqual(0);
   });
 });
