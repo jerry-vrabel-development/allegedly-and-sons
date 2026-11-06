@@ -1,7 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
+import worker, { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
 
 const BASE = "https://allegedly.example";
 
@@ -175,10 +175,13 @@ describe("checkout", () => {
   });
 
   it("shows a friendly 503 page when no Stripe key is set (the deployed Worker without the secret)", async () => {
-    const response = await get(`/checkout/${ITEM.slug}`, {
+    // Call the Worker with an explicitly empty environment. Going through `exports.default`
+    // would pick up a developer's local .dev.vars key and call the real Stripe sandbox.
+    const request = new Request(`${BASE}/checkout/${ITEM.slug}`, {
       method: "POST",
       headers: { Origin: BASE },
     });
+    const response = await worker.fetch(request, {});
     expect(response.status).toBe(503);
     expect(await response.text()).toContain("Nothing was charged.");
     expect(response.headers.get("Content-Security-Policy")).toContain(

@@ -137,7 +137,7 @@ export function stripeKeyFrom(env: Secrets): string | undefined {
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request: Request, env: Env & Secrets): Promise<Response> {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
       fetch: globalFetch,
