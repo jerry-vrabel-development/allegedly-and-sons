@@ -1,7 +1,12 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import { checkoutPath, checkoutSessionForm, THANKS_PATH } from "../src/core/checkout";
+import {
+  checkoutPath,
+  checkoutSessionForm,
+  paymentDescription,
+  THANKS_PATH,
+} from "../src/core/checkout";
 
 const ORIGIN = "https://allegedly.example";
 
@@ -26,6 +31,21 @@ describe("checkoutSessionForm", () => {
     expect(form.get("cancel_url")).toBe(`${ORIGIN}/items/${item.slug}`);
   });
 
+  for (const item of CATALOG) {
+    it(`labels the ${item.slug} payment so the dashboard reads as an order list`, () => {
+      const form = checkoutSessionForm(item, ORIGIN);
+      expect(form.get("payment_intent_data[description]")).toBe(
+        `${item.name} (Exhibit ${item.exhibit})`,
+      );
+      expect(form.get("payment_intent_data[metadata][slug]")).toBe(item.slug);
+      expect(form.get("payment_intent_data[metadata][exhibit]")).toBe(item.exhibit);
+    });
+  }
+
+  it("always creates a customer, so name and email show beside each payment", () => {
+    expect(checkoutSessionForm(CATALOG[0], ORIGIN).get("customer_creation")).toBe("always");
+  });
+
   it("collects a US shipping address, since real objects ship", () => {
     const form = checkoutSessionForm(CATALOG[0], ORIGIN);
     expect(form.get("shipping_address_collection[allowed_countries][0]")).toBe("US");
@@ -44,5 +64,12 @@ describe("checkoutSessionForm", () => {
 describe("checkoutPath", () => {
   it("is /checkout/<slug>", () => {
     expect(checkoutPath(CATALOG[0])).toBe(`/checkout/${CATALOG[0].slug}`);
+  });
+});
+
+describe("paymentDescription", () => {
+  it("names the item and its exhibit number", () => {
+    const item = CATALOG[0];
+    expect(paymentDescription(item)).toBe(`${item.name} (Exhibit ${item.exhibit})`);
   });
 });
