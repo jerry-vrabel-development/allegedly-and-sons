@@ -211,78 +211,10 @@ export function itemPage(item: Item, origin: string): SafeHtml {
   });
 }
 
-/**
- * Where buyers ask for refunds or about an order. Shown publicly on The Fine Print.
- * Unset until the founder sets one up; the page says so plainly until then, and
- * real orders shouldn't open without it.
- */
-export const ORDER_CONTACT_EMAIL: string | undefined = undefined;
-
-/** Refunds: how long a buyer has to change their mind, in Earth hours. */
-export const REFUND_WINDOW_HOURS = 24;
-
-/** The longest we take to ship, in days. */
-export const MAX_SHIP_DAYS = 30;
-
-interface Term {
-  /** The black-market heading. */
-  readonly heading: string;
-  /** Flavor, in the Bureau's voice. */
-  readonly flavor: string;
-  /** What it actually means, said plainly. Every term has one. */
-  readonly plainly: SafeHtml;
-}
-
-function contactTerm(email: string | undefined): Term {
-  return {
-    heading: "Reaching the Bureau",
-    flavor: "Don't call us. Don't follow the courier. Use the drop below.",
-    plainly:
-      email === undefined
-        ? html`Contact details will be posted here before the shop takes real orders.`
-        : html`Email <a href="mailto:${email}">${email}</a> for refunds or anything about an order.`,
-  };
-}
-
-/**
- * The terms of sale, themed as back-room dealings. The voice is shady; the
- * terms are not. Each one ends with a plain sentence saying exactly what it means.
- */
-export function saleTerms(email: string | undefined = ORDER_CONTACT_EMAIL): readonly Term[] {
-  return [
-    {
-      heading: "No Take-Backs After Twelve Orbits",
-      flavor:
-        "Cold feet? Speak up within twelve orbits of the Naxous star. After that the deal is done, and the Bureau never saw you.",
-      plainly: html`You can cancel for a full refund within ${String(REFUND_WINDOW_HOURS)} hours of
-      purchase. Ask through the contact below.`,
-    },
-    {
-      heading: "Ambushed Couriers and Misfiring Wormholes",
-      flavor: "Couriers get waylaid. Wormholes misfire. In this line of work, it happens.",
-      plainly: html`If your item arrives damaged or never arrives, you get a full refund.`,
-    },
-    {
-      heading: "The Courier's Cut Is Covered",
-      flavor: "The courier's fee is baked into the price. Nobody asks the courier questions.",
-      plainly: html`Shipping is included in the price. We ship to US addresses only.`,
-    },
-    {
-      heading: "Rare Goods Travel Slowly",
-      flavor:
-        "False-bottomed crates. Decoy routes. Packaging that has to be talked into it. The rarer the object, the longer the road, and some exhibits insist on special handling.",
-      plainly: html`Orders ship within ${String(MAX_SHIP_DAYS)} days of purchase. If yours will take
-      longer, we'll email you and you can cancel for a full refund.`,
-    },
-    contactTerm(email),
-  ];
-}
-
-export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL): SafeHtml {
+export function disclaimerPage(): SafeHtml {
   return layout({
     title: "The Fine Print",
-    description:
-      "What you actually receive from Allegedly & Sons, and the terms of sale, said plainly.",
+    description: "What you actually receive from Allegedly & Sons, said plainly.",
     body: html` <div class="prose">
       <h1>The Fine Print</h1>
       <p class="tagline">Said plainly, for once.</p>
@@ -303,18 +235,8 @@ export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL):
           authenticity, history or value.
         </li>
         <li>Nothing here is an investment. Your paperclip will not go up in value.</li>
+        <li>Refund and shipping details will be posted here before the shop takes orders.</li>
       </ul>
-
-      <section aria-labelledby="terms-heading">
-        <h2 id="terms-heading">The Terms of the Arrangement</h2>
-        <p class="tagline">Keep your voice down. Here is how the Bureau does business.</p>
-        ${saleTerms(email).map(
-          (term) =>
-            html`<h3>${term.heading}</h3>
-              <p>${term.flavor}</p>
-              <p><strong>Plainly:</strong> ${term.plainly}</p>`,
-        )}
-      </section>
       <p><a href="/">Back to the collection</a></p>
     </div>`,
   });
