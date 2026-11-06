@@ -79,6 +79,7 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
 - [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
+- [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md)
 
 ## Branch flow
 
