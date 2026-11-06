@@ -1,7 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
+import { SITE_CSS } from "../src/worker/styles";
 import {
+  CHECKOUT_BRANDING,
   checkoutPath,
   checkoutSessionForm,
   paymentDescription,
@@ -44,6 +46,27 @@ describe("checkoutSessionForm", () => {
 
   it("always creates a customer, so name and email show beside each payment", () => {
     expect(checkoutSessionForm(CATALOG[0], ORIGIN).get("customer_creation")).toBe("always");
+  });
+
+  it("brands Stripe's Checkout page to match the shop", () => {
+    const form = checkoutSessionForm(CATALOG[0], ORIGIN);
+    expect(form.get("branding_settings[display_name]")).toBe("Allegedly & Sons");
+    expect(form.get("branding_settings[background_color]")).toBe("#fbf7ef");
+    expect(form.get("branding_settings[button_color]")).toBe("#7a1f1f");
+    expect(form.get("branding_settings[border_style]")).toBe("rounded");
+    expect(form.get("branding_settings[font_family]")).toBe("pt_serif");
+  });
+
+  it("uses the shop's own light-theme colors, so the two can't drift apart", () => {
+    expect(SITE_CSS).toContain(`--bg: ${CHECKOUT_BRANDING.background_color};`);
+    expect(SITE_CSS).toContain(`--accent: ${CHECKOUT_BRANDING.button_color};`);
+  });
+
+  it("only uses values Stripe accepts", () => {
+    expect(["rounded", "rectangular", "pill"]).toContain(CHECKOUT_BRANDING.border_style);
+    for (const color of [CHECKOUT_BRANDING.background_color, CHECKOUT_BRANDING.button_color]) {
+      expect(color).toMatch(/^#[0-9a-f]{6}$/);
+    }
   });
 
   it("collects a US shipping address, since real objects ship", () => {

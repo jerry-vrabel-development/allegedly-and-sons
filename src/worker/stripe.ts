@@ -5,6 +5,13 @@
 
 const CHECKOUT_SESSIONS_URL = "https://api.stripe.com/v1/checkout/sessions";
 
+/**
+ * The Stripe API version this code is written against. Pinned so the account's
+ * default version can't change behavior under us; branding_settings needs
+ * 2025-09-30.clover or later.
+ */
+export const STRIPE_API_VERSION = "2025-09-30.clover";
+
 /** Stripe-hosted Checkout pages always live here; anything else is refused. */
 export const STRIPE_CHECKOUT_ORIGIN = "https://checkout.stripe.com";
 
@@ -36,6 +43,7 @@ export async function createCheckoutSession(
       headers: {
         Authorization: `Bearer ${secretKey}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        "Stripe-Version": STRIPE_API_VERSION,
       },
       body: form,
     });

@@ -13,6 +13,20 @@ export const THANKS_PATH = "/thanks";
 /** Countries the shop ships to. The founder fulfills orders himself, so US only for now. */
 export const SHIPPING_COUNTRIES = ["US"] as const;
 
+/**
+ * How Stripe's hosted Checkout page should look, so it matches the shop instead
+ * of jarring buyers. Colors are the shop's light theme (see styles.ts; a test
+ * keeps them in step). Stripe offers a fixed font list; PT Serif is the closest
+ * to the shop's Georgia.
+ */
+export const CHECKOUT_BRANDING = {
+  display_name: "Allegedly & Sons",
+  background_color: "#fbf7ef",
+  button_color: "#7a1f1f",
+  border_style: "rounded",
+  font_family: "pt_serif",
+} as const;
+
 export function checkoutPath(item: Item): string {
   return `/checkout/${item.slug}`;
 }
@@ -45,6 +59,9 @@ export function checkoutSessionForm(item: Item, origin: string): URLSearchParams
     success_url: `${origin}${THANKS_PATH}`,
     cancel_url: `${origin}/items/${item.slug}`,
   });
+  for (const [key, value] of Object.entries(CHECKOUT_BRANDING)) {
+    form.set(`branding_settings[${key}]`, value);
+  }
   SHIPPING_COUNTRIES.forEach((country, index) => {
     form.set(`shipping_address_collection[allowed_countries][${String(index)}]`, country);
   });
