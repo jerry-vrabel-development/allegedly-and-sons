@@ -17,6 +17,11 @@ export function checkoutPath(item: Item): string {
   return `/checkout/${item.slug}`;
 }
 
+/** How a payment is described in Stripe, e.g. "The Alien Paperclip (Exhibit AS-0001)". */
+export function paymentDescription(item: Item): string {
+  return `${item.name} (Exhibit ${item.exhibit})`;
+}
+
 /**
  * The form fields for Stripe's "create a Checkout Session" call, for one item.
  * `origin` is the shop's own origin (for example https://allegedly.example).
@@ -31,6 +36,12 @@ export function checkoutSessionForm(item: Item, origin: string): URLSearchParams
     "line_items[0][price_data][product_data][description]": item.tagline,
     "metadata[slug]": item.slug,
     "metadata[exhibit]": item.exhibit,
+    // The payment itself says what was bought, so the Transactions list reads as an order list.
+    "payment_intent_data[description]": paymentDescription(item),
+    "payment_intent_data[metadata][slug]": item.slug,
+    "payment_intent_data[metadata][exhibit]": item.exhibit,
+    // A customer record per buyer, so name and email show up beside each payment.
+    customer_creation: "always",
     success_url: `${origin}${THANKS_PATH}`,
     cancel_url: `${origin}/items/${item.slug}`,
   });
