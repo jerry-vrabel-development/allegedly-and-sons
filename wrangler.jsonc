@@ -3,6 +3,9 @@
   "name": "allegedly-and-sons",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-11-01",
+  // The shop's own domain. Cloudflare creates the DNS record and certificate on
+  // deploy. The workers.dev address keeps working too.
+  "routes": [{ "pattern": "allegedlyandsons.com", "custom_domain": true }],
   "observability": {
     "enabled": true,
   },
