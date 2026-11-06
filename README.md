@@ -10,8 +10,9 @@ A comedy shop of ordinary objects with extraordinary, completely unverifiable
 lore (alien paperclips, the second-best quill, Viking participation trophies),
 built on serious engineering underneath.
 
-> Every item is exactly what it looks like. The stories are jokes. Refunds are
-> cheerful and no-questions-asked.
+> Every item is exactly what it looks like. The stories are jokes. Change your
+> mind within 24 hours for a full refund. The terms are on The Fine Print page,
+> in the Bureau's voice, each with a plain-language line.
 
 ## Status
 
