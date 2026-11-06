@@ -90,18 +90,12 @@ dl.pricing { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem
 dl.pricing dt { color: var(--muted); }
 dl.pricing dd { margin: 0; }
 dl.pricing .anchor { font-style: italic; }
-.cta-soon {
-  display: block;
-  text-align: center;
-  font-weight: bold;
-  padding: 0.85rem 1rem;
-  border: 2px dashed var(--accent);
-  border-radius: 8px;
-  margin: 0.5rem 0 0;
-}
+form.acquire { margin: 0.5rem 0 0; }
+form.acquire .button { display: block; width: 100%; border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+.secure-note { color: var(--muted); font-size: 0.9rem; text-align: center; margin: 0.4rem 0 0; }
 .included { margin: 0; padding-left: 1.25rem; }
 
-/* Buttons are links styled as buttons, labeled in words */
+/* Buttons, and links styled as buttons, are labeled in words */
 .button {
   display: inline-block;
   background: var(--accent);
