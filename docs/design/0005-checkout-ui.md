@@ -1,6 +1,6 @@
 # 0005 — Hosted or embedded checkout
 
-- **Status:** Draft
+- **Status:** Accepted (2026-11-06): Option B
 - **Date:** 2026-11-06
 - **Author:** Jerry Vrabel
 
@@ -78,11 +78,14 @@ ourselves, with Stripe's secure fields inside.
 
 ## Decision
 
-**Undecided between A and B.** Both need the shop on its own domain first, so
-that comes before either. Once the shop is on its own domain, try the hosted
-page under `checkout.<domain>` and decide whether it still feels jarring.
+**Option B: the embedded page**, decided 2026-11-06.
 
-If B wins, it should be scoped tightly:
+The shop is now on its own domain (`allegedlyandsons.com`), so embedding keeps
+the buyer on our address and inside our page, without Stripe's USD 10 a month
+custom-domain add-on. Before the shop has sales, the extra code is a better
+trade than a monthly fee.
+
+Scoped tightly, as planned:
 
 - **Stripe.js loads only on the checkout page.** Every other page stays
   script-free with today's strict CSP; only `/checkout/<item>` gets a looser
@@ -96,18 +99,15 @@ If B wins, it should be scoped tightly:
   Stripe may collect device information to prevent fraud, and no other page
   runs any script.
 
-Option C is ruled out for now.
+Option A stays the fallback. Option C is ruled out for now.
 
-### What would decide it
+### What would change my mind
 
-- **A still feels jarring on our own domain:** go with B.
 - **The per-page CSP can't be kept tight**, for example if Stripe.js needs
   broad sources that would effectively loosen the whole site. Then stay with
   Option A.
 - **Accessibility regressions** (axe failures or keyboard traps) that we can't
   fix from our side. Then Option A.
-- **USD 10 a month matters more than the extra code** before the shop has
-  sales. Then B, which needs no add-on.
 - **Real buyers say hosted checkout is fine**, or buy at the same rate. The
   data from 0001 should decide this once there's enough of it, not taste.
 
@@ -141,8 +141,5 @@ Option C is ruled out for now.
 
 ## Open questions
 
-- Domain: `allegedlyandsons.com` (registered 2026-11-06, wired up in #20).
-- Is the jarring part mostly "I left the shop" (which B fixes) or Stripe's
-  layout itself (which only C fixes)?
 - Should B wait until after webhooks (0004), so the return page and order
   recording land together?
