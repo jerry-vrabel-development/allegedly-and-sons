@@ -174,7 +174,7 @@ describe("checkout", () => {
     expect(errors).toEqual(["checkout failed: stripe status 500"]);
   });
 
-  it("shows a friendly 503 page when no Stripe key is set (the deployed Worker without the secret)", async () => {
+  it("says acquisitions open soon (503) when no Stripe key is set, without asking anyone to retry", async () => {
     // Call the Worker with an explicitly empty environment. Going through `exports.default`
     // would pick up a developer's local .dev.vars key and call the real Stripe sandbox.
     const request = new Request(`${BASE}/checkout/${ITEM.slug}`, {
@@ -183,7 +183,9 @@ describe("checkout", () => {
     });
     const response = await worker.fetch(request, {});
     expect(response.status).toBe(503);
-    expect(await response.text()).toContain("Nothing was charged.");
+    const text = await response.text();
+    expect(text).toContain("Acquisitions open soon");
+    expect(text).not.toMatch(/try again/i);
     expect(response.headers.get("Content-Security-Policy")).toContain(
       "form-action 'self' https://checkout.stripe.com",
     );

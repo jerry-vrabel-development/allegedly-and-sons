@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, formatPrice, type Item } from "../src/core/catalog";
 import {
+  checkoutClosedPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
@@ -31,6 +32,7 @@ const pages = {
   notFound: squish(notFoundPage()),
   thanks: squish(thanksPage()),
   checkoutUnavailable: squish(checkoutUnavailablePage(firstItem())),
+  checkoutClosed: squish(checkoutClosedPage(firstItem())),
 };
 
 function count(haystack: string, needle: RegExp): number {
@@ -185,6 +187,14 @@ describe("buying", () => {
   it("thanks the buyer and says what happens next", () => {
     expect(pages.thanks).toContain("Acquisition recorded");
     expect(pages.thanks).toContain("Stripe will email your receipt");
+  });
+
+  it("says acquisitions open soon while checkout is off, without asking anyone to retry", () => {
+    const item = firstItem();
+    expect(pages.checkoutClosed).toContain("<h1>Acquisitions open soon</h1>");
+    expect(pages.checkoutClosed).toContain("Nothing was charged.");
+    expect(pages.checkoutClosed).not.toMatch(/try again/i);
+    expect(pages.checkoutClosed).toContain(`href="/items/${item.slug}"`);
   });
 
   it("explains a failed checkout plainly and links back to the item", () => {
