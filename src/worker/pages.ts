@@ -328,6 +328,18 @@ export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL):
               <p><strong>Plainly:</strong> ${term.plainly}</p>`,
         )}
       </section>
+
+      <section aria-labelledby="scripts-heading">
+        <h2 id="scripts-heading">What Runs in Your Browser</h2>
+        <p>
+          Only the checkout page runs any script: Stripe’s, which shows the payment form, and a
+          small one of ours that loads it. Stripe may collect information about your device to help
+          prevent fraud; see
+          <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight
+          to Stripe and never touch our servers. No other page runs any script, and the shop uses no
+          trackers.
+        </p>
+      </section>
       <p><a href="/">Back to the collection</a></p>
     </div>`,
   });
@@ -345,20 +357,86 @@ export function notFoundPage(): SafeHtml {
   });
 }
 
-export function thanksPage(): SafeHtml {
-  return layout({
-    title: "Acquisition recorded",
-    description: "Thank you for your acquisition.",
-    body: html` <div class="prose">
-      <h1>Acquisition recorded</h1>
-      <p class="tagline">The Bureau thanks you for your discretion.</p>
-      <p>
-        Thank you. Stripe will email your receipt. Your exhibit will be packed with its Bureau
-        Certificate and shipped to the address you gave at checkout.
-      </p>
-      <p><a href="/">Back to the collection</a></p>
-    </div>`,
-  });
+/** What the return page says, decided by asking Stripe (see returnOutcome). */
+export type ReturnView =
+  | { readonly kind: "paid" | "processing" | "incomplete"; readonly item: Item | undefined }
+  | { readonly kind: "unchecked" };
+
+/**
+ * The return page, after checkout. It only says "recorded" once Stripe has
+ * confirmed the session was paid; anyone can open /thanks, so it never takes
+ * the visit itself as proof. Orders are recorded by the webhook, not here.
+ */
+export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
+  const item = view.kind === "unchecked" ? undefined : view.item;
+  const back = html`<p><a href="/">Back to the collection</a></p>`;
+
+  switch (view.kind) {
+    case "paid":
+      return layout({
+        title: "Acquisition recorded",
+        description: "Thank you for your acquisition.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Acquisition recorded</h1>
+          <p class="tagline">The Bureau thanks you for your discretion.</p>
+          <p>
+            Payment confirmed${item === undefined ? html`` : html` for ${item.name}`}. Stripe will
+            email your receipt. Your exhibit will be packed with its Bureau Certificate and shipped
+            to the address you gave at checkout.
+          </p>
+          ${back}
+        </div>`,
+      });
+    case "processing":
+      return layout({
+        title: "Payment processing",
+        description: "Stripe is still confirming your payment.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Payment processing</h1>
+          <p class="tagline">The Bureau is counting the coins.</p>
+          <p>
+            Stripe is still confirming your
+            payment${item === undefined ? html`` : html` for ${item.name}`}. Some payment methods
+            take a little while. Stripe will email you once it clears, and we ship after that.
+          </p>
+          ${back}
+        </div>`,
+      });
+    case "incomplete":
+      return layout({
+        title: "Acquisition not completed",
+        description: "This checkout wasn't completed.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Acquisition not completed</h1>
+          <p class="tagline">The vault door is still closed.</p>
+          <p>This checkout wasn’t finished, so nothing was charged.</p>
+          ${
+            item === undefined
+              ? back
+              : html`<p><a href="${checkoutPath(item)}">Try again: ${item.name}</a></p>
+                  ${back}`
+          }
+        </div>`,
+      });
+    case "unchecked":
+      return layout({
+        title: "Thank you",
+        description: "Thank you for visiting the Bureau.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Thank you</h1>
+          <p class="tagline">The Bureau thanks you for your discretion.</p>
+          <p>
+            We couldn’t look up an acquisition from here. If you just paid, Stripe will email your
+            receipt, and nothing is charged twice.
+          </p>
+          ${back}
+        </div>`,
+      });
+  }
 }
 
 /**

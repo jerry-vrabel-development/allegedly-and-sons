@@ -10,6 +10,51 @@ import type { Item } from "./catalog";
 /** Where buyers land after paying. */
 export const THANKS_PATH = "/thanks";
 
+/**
+ * Where Stripe sends buyers back, from both the hosted and embedded checkout.
+ * Stripe replaces {CHECKOUT_SESSION_ID}, so the return page can ask Stripe
+ * whether that session was really paid before saying so.
+ */
+export function returnUrl(origin: string): string {
+  return `${origin}${THANKS_PATH}?session_id={CHECKOUT_SESSION_ID}`;
+}
+
+/** A Checkout Session id as Stripe sends it back, e.g. cs_test_a1B2... */
+export const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{1,200}$/;
+
+/** What the return page can honestly say about a session. */
+export type ReturnOutcome =
+  | { readonly kind: "paid"; readonly slug: string | undefined }
+  | { readonly kind: "processing"; readonly slug: string | undefined }
+  | { readonly kind: "incomplete"; readonly slug: string | undefined }
+  | { readonly kind: "unchecked" };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reads a Checkout Session (as Stripe returns it, still `unknown`) into what
+ * the return page may say. Only a complete, paid session counts as paid; a
+ * complete but unpaid one is still processing (delayed payment methods); an
+ * open or expired one was never finished, so nothing was charged.
+ */
+export function returnOutcome(session: unknown): ReturnOutcome {
+  if (!isRecord(session)) return { kind: "unchecked" };
+  const { status, payment_status, metadata } = session;
+  const raw = isRecord(metadata) ? metadata["slug"] : undefined;
+  const slug = typeof raw === "string" && /^[a-z0-9-]{1,64}$/.test(raw) ? raw : undefined;
+
+  if (status === "complete") {
+    if (payment_status === "paid" || payment_status === "no_payment_required") {
+      return { kind: "paid", slug };
+    }
+    if (payment_status === "unpaid") return { kind: "processing", slug };
+  }
+  if (status === "open" || status === "expired") return { kind: "incomplete", slug };
+  return { kind: "unchecked" };
+}
+
 /** Countries the shop ships to. The founder fulfills orders himself, so US only for now. */
 export const SHIPPING_COUNTRIES = ["US"] as const;
 
@@ -81,7 +126,7 @@ function baseSessionForm(item: Item): URLSearchParams {
  */
 export function checkoutSessionForm(item: Item, origin: string): URLSearchParams {
   const form = baseSessionForm(item);
-  form.set("success_url", `${origin}${THANKS_PATH}`);
+  form.set("success_url", returnUrl(origin));
   form.set("cancel_url", `${origin}/items/${item.slug}`);
   return form;
 }
@@ -96,6 +141,6 @@ export function checkoutSessionForm(item: Item, origin: string): URLSearchParams
 export function embeddedCheckoutSessionForm(item: Item, origin: string): URLSearchParams {
   const form = baseSessionForm(item);
   form.set("ui_mode", "embedded");
-  form.set("return_url", `${origin}${THANKS_PATH}?session_id={CHECKOUT_SESSION_ID}`);
+  form.set("return_url", returnUrl(origin));
   return form;
 }

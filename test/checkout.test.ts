@@ -29,7 +29,9 @@ describe("checkoutSessionForm", () => {
   it("sends buyers back to our own origin, and to the item if they cancel", () => {
     const item = CATALOG[0];
     const form = checkoutSessionForm(item, ORIGIN);
-    expect(form.get("success_url")).toBe(`${ORIGIN}${THANKS_PATH}`);
+    expect(form.get("success_url")).toBe(
+      `${ORIGIN}${THANKS_PATH}?session_id={CHECKOUT_SESSION_ID}`,
+    );
     expect(form.get("cancel_url")).toBe(`${ORIGIN}/items/${item.slug}`);
   });
 

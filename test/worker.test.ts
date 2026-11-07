@@ -185,7 +185,7 @@ describe("checkout", () => {
     expect(response.headers.get("Location")).toBe(STRIPE_URL);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(sent[0]?.get("line_items[0][price_data][unit_amount]")).toBe(String(ITEM.priceCents));
-    expect(sent[0]?.get("success_url")).toBe(`${BASE}/thanks`);
+    expect(sent[0]?.get("success_url")).toBe(`${BASE}/thanks?session_id={CHECKOUT_SESSION_ID}`);
   });
 
   it("allows a post with no Origin header (older browsers, curl)", async () => {
@@ -247,10 +247,12 @@ describe("checkout", () => {
     expect((await route(post("/items/alien-paperclip"), d)).status).toBe(405);
   });
 
-  it("serves the thank-you page", async () => {
+  it("never claims an acquisition on a bare /thanks (anyone can open it)", async () => {
     const response = await get("/thanks");
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain("Acquisition recorded");
+    const text = await response.text();
+    expect(text).toContain("<h1>Thank you</h1>");
+    expect(text).not.toContain("Acquisition recorded");
   });
 });
 

@@ -119,3 +119,34 @@ export async function createEmbeddedCheckoutSession(
     ? { ok: false, reason: "no client secret" }
     : { ok: true, clientSecret };
 }
+
+export type SessionLookup =
+  | { readonly ok: true; readonly session: unknown }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * Reads one Checkout Session from Stripe, for the return page. `id` must
+ * already match SESSION_ID. Never throws; reasons are safe to log (a status
+ * code, never the key, the id or anything about the buyer).
+ */
+export async function retrieveCheckoutSession(
+  secretKey: string,
+  id: string,
+  fetcher: typeof fetch,
+): Promise<SessionLookup> {
+  let response: Response;
+  try {
+    response = await fetcher(`${CHECKOUT_SESSIONS_URL}/${encodeURIComponent(id)}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${secretKey}`, "Stripe-Version": STRIPE_API_VERSION },
+    });
+  } catch {
+    return { ok: false, reason: "network error" };
+  }
+  if (!response.ok) return { ok: false, reason: `stripe status ${String(response.status)}` };
+  try {
+    return { ok: true, session: await response.json() };
+  } catch {
+    return { ok: false, reason: "unreadable reply" };
+  }
+}
