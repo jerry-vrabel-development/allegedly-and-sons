@@ -70,7 +70,9 @@ describe("every page", () => {
       });
 
       it("uses no inline styles or scripts (the CSP would block them)", () => {
-        expect(page).not.toMatch(/<script|<style|style="/);
+        expect(page).not.toMatch(/<style|style="/);
+        // Any script must be an external file; an inline one would be blocked.
+        expect(page).not.toMatch(/<script(?![^>]*\ssrc=)/);
       });
     });
   }
@@ -78,6 +80,38 @@ describe("every page", () => {
 
 describe("checkout page", () => {
   const item = firstItem();
+  const KEY = "pk_test_abc123";
+  const embedded = squish(checkoutPage(item, KEY));
+
+  it("loads Stripe.js (clover) and then our script, both deferred, only with a publishable key", () => {
+    expect(embedded).toContain(
+      '<script src="https://js.stripe.com/clover/stripe.js" defer></script><script src="/assets/checkout.js" defer></script>',
+    );
+    expect(count(embedded, /<script/g)).toBe(2);
+    expect(pages.checkout).not.toContain("<script");
+  });
+
+  it("is the only page with any script", () => {
+    for (const [name, page] of Object.entries(pages)) {
+      expect(page.includes("<script"), name).toBe(false);
+    }
+  });
+
+  it("hands the script its publishable key and session URL, escaped", () => {
+    expect(embedded).toContain(`data-session-url="/checkout/${item.slug}/session"`);
+    expect(embedded).toContain(`data-publishable-key="${KEY}"`);
+    expect(squish(checkoutPage(item, 'pk_"x'))).toContain('data-publishable-key="pk_&quot;x"');
+  });
+
+  it("has a polite status line for the script to talk through", () => {
+    expect(embedded).toContain(
+      '<p id="checkout-status" class="checkout-status" role="status"></p>',
+    );
+  });
+
+  it("keeps the hosted fallback with the embedded checkout", () => {
+    expect(embedded).toContain("Continue on Stripe’s secure page");
+  });
 
   it("is kept out of search results; no other page is", () => {
     for (const [name, page] of Object.entries(pages)) {
@@ -255,17 +289,27 @@ describe("terms of sale", () => {
 
 describe("buying", () => {
   for (const item of CATALOG) {
-    it(`${item.slug} has a labeled button that posts to its own checkout`, () => {
+    it(`${item.slug} links to its own checkout page`, () => {
+      // A plain link: it only navigates, and the checkout page creates nothing at Stripe
+      // until the buyer is there, so a crawler following it is harmless (nofollow anyway).
       const page = squish(itemPage(item, ORIGIN));
       expect(page).toContain(
-        `<form class="acquire" method="post" action="/checkout/${item.slug}"> <button class="button" type="submit">Acquire this exhibit</button> </form>`,
+        `<p class="acquire"> <a class="button" href="/checkout/${item.slug}" rel="nofollow">Acquire this exhibit</a> </p>`,
       );
       expect(page).not.toContain("Acquisitions open soon");
     });
   }
 
-  it("never puts a price in the form, so the browser can't choose what to pay", () => {
-    const form = pages.item.slice(pages.item.indexOf("<form"), pages.item.indexOf("</form>"));
+  it("has no form or input on the item page, so the browser can't choose what to pay", () => {
+    expect(pages.item).not.toMatch(/<form|<input/);
+  });
+
+  it("never puts a price in the checkout page's fallback form either", () => {
+    const form = pages.checkout.slice(
+      pages.checkout.indexOf("<form"),
+      pages.checkout.indexOf("</form>"),
+    );
+    expect(form).toContain('method="post"');
     expect(form).not.toContain("<input");
   });
 

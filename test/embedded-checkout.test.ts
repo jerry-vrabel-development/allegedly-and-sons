@@ -13,6 +13,7 @@ import {
   createEmbeddedCheckoutSession,
   MAX_CLIENT_SECRET_LENGTH,
 } from "../src/worker/stripe";
+import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
 const ITEM = CATALOG[0];
@@ -145,18 +146,16 @@ describe("GET /checkout/<item>", () => {
   });
 
   it("is the one page the deployed Worker serves with the Stripe checkout policy", async () => {
-    const response = await worker.fetch(new Request(`${BASE}/checkout/${ITEM.slug}`), {
-      DB: env.DB,
-      STRIPE_SECRET_KEY: "sk_test_fake",
-    });
+    const response = await worker.fetch(
+      new Request(`${BASE}/checkout/${ITEM.slug}`),
+      testEnv({ STRIPE_SECRET_KEY: "sk_test_fake" }),
+    );
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Security-Policy")).toBe(CHECKOUT_CSP);
   });
 
   it("says acquisitions open soon (503, strict policy) when no Stripe key is set", async () => {
-    const response = await worker.fetch(new Request(`${BASE}/checkout/${ITEM.slug}`), {
-      DB: env.DB,
-    });
+    const response = await worker.fetch(new Request(`${BASE}/checkout/${ITEM.slug}`), testEnv());
     expect(response.status).toBe(503);
     expect(await response.text()).toContain("Acquisitions open soon");
     expect(response.headers.get("Content-Security-Policy")).toBe(STRICT_CSP);
@@ -218,7 +217,7 @@ describe("POST /checkout/<item>/session", () => {
   });
 
   it("gets the strict policy from the deployed Worker (it's JSON, not the checkout page)", async () => {
-    const response = await worker.fetch(postSession(), { DB: env.DB });
+    const response = await worker.fetch(postSession(), testEnv());
     expect(response.status).toBe(503);
     expect(response.headers.get("Content-Security-Policy")).toBe(STRICT_CSP);
   });

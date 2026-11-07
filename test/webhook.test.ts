@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { route, type Deps } from "../src/worker/index";
 import { MAX_WEBHOOK_BYTES, WEBHOOK_PATH } from "../src/worker/webhook";
 import { stripeSignatureHeader } from "./stripe-test-signing";
+import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
 const SECRET = "whsec_test_webhook";
@@ -252,7 +253,7 @@ describe(`POST ${WEBHOOK_PATH}`, () => {
 
 describe("the deployed Worker", () => {
   it("routes the webhook with the env's secret and database", async () => {
-    const secured = { DB: env.DB, STRIPE_WEBHOOK_SECRET: ` ${SECRET} ` };
+    const secured = testEnv({ STRIPE_WEBHOOK_SECRET: ` ${SECRET} ` });
     const now = Math.floor(Date.now() / 1000);
     const response = await worker.fetch(
       await signedRequest(completedEvent(), SECRET, now),
@@ -264,7 +265,7 @@ describe("the deployed Worker", () => {
   });
 
   it("answers 503 when the env has no signing secret", async () => {
-    const response = await worker.fetch(await signedRequest(completedEvent()), { DB: env.DB });
+    const response = await worker.fetch(await signedRequest(completedEvent()), testEnv());
     expect(response.status).toBe(503);
   });
 });
