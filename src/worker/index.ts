@@ -1,5 +1,5 @@
 import { findItem } from "../core/catalog";
-import { checkoutSessionForm, THANKS_PATH } from "../core/checkout";
+import { CHECKOUT_PATH, checkoutSessionForm, THANKS_PATH } from "../core/checkout";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -15,14 +15,20 @@ import {
 import { withSecurityHeaders } from "./security-headers";
 import { createCheckoutSession } from "./stripe";
 import { SITE_CSS } from "./styles";
+import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
-/** Secrets the Worker reads. Set with `npx wrangler secret put STRIPE_SECRET_KEY`. */
+/**
+ * Secrets the Worker reads. Set each with `npx wrangler secret put <NAME>`, and
+ * locally in .dev.vars.
+ */
 export interface Secrets {
   readonly STRIPE_SECRET_KEY?: string;
+  /** The webhook endpoint's signing secret (whsec_...), from the Stripe dashboard. */
+  readonly STRIPE_WEBHOOK_SECRET?: string;
 }
 
 /** What `route` needs from the outside world, so tests can swap in fakes. */
-export interface Deps {
+export interface Deps extends WebhookDeps {
   /** Stripe secret key, or undefined when checkout isn't configured. */
   readonly stripeKey: string | undefined;
   readonly fetch: typeof fetch;
@@ -30,7 +36,6 @@ export interface Deps {
 
 const TEXT = "text/plain; charset=utf-8";
 const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
-const CHECKOUT_PATH = /^\/checkout\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
@@ -76,6 +81,7 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
+    if (new URL(request.url).pathname === WEBHOOK_PATH) return stripeWebhook(request, deps);
     const slug = CHECKOUT_PATH.exec(new URL(request.url).pathname)?.[1];
     if (slug !== undefined) return checkout(request, slug, deps);
   }
@@ -131,10 +137,24 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
  */
 export const globalFetch: typeof fetch = (input, init) => fetch(input, init);
 
+/** A secret's value, trimmed, or undefined when it's missing or blank. */
+function secretValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
 /** Reads the Stripe key from the environment, treating blank as unset. */
 export function stripeKeyFrom(env: Secrets): string | undefined {
-  const key = env.STRIPE_SECRET_KEY;
-  return typeof key === "string" && key.trim() !== "" ? key.trim() : undefined;
+  return secretValue(env.STRIPE_SECRET_KEY);
+}
+
+/** Reads the webhook signing secret from the environment, treating blank as unset. */
+export function webhookSecretFrom(env: Secrets): string | undefined {
+  return secretValue(env.STRIPE_WEBHOOK_SECRET);
+}
+
+/** The current time in whole Unix seconds. */
+export function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
 }
 
 export default {
@@ -142,7 +162,10 @@ export default {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
       fetch: globalFetch,
+      webhookSecret: webhookSecretFrom(env),
+      db: env.DB,
+      nowSeconds,
     });
-    return withSecurityHeaders(response);
+    return withSecurityHeaders(response, new URL(request.url).pathname);
   },
 } satisfies ExportedHandler<Env & Secrets>;

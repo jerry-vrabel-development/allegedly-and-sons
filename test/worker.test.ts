@@ -1,9 +1,19 @@
-import { exports } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import worker, { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
+import worker, {
+  globalFetch,
+  nowSeconds,
+  route,
+  stripeKeyFrom,
+  webhookSecretFrom,
+} from "../src/worker/index";
+import { STRICT_CSP } from "../src/worker/security-headers";
 
 const BASE = "https://allegedly.example";
+
+/** The real bindings but no Stripe key, so checkout can never reach a real Stripe sandbox. */
+const NO_STRIPE_ENV = { DB: env.DB };
 
 function get(path: string, init?: RequestInit): Promise<Response> {
   return exports.default.fetch(new Request(`${BASE}${path}`, init));
@@ -104,6 +114,36 @@ describe("Worker", () => {
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     }
   });
+
+  it("sends the strict policy (no script-src) on every page that exists today", async () => {
+    // There's no GET checkout page yet (PR 2 adds it), so nothing should get the Stripe policy.
+    // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
+    const responses = [
+      ...(await Promise.all(
+        [
+          "/",
+          "/disclaimer",
+          "/thanks",
+          "/nope",
+          "/assets/site.css",
+          ...CATALOG.map((i) => `/items/${i.slug}`),
+        ].map((path) => get(path)),
+      )),
+      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), NO_STRIPE_ENV),
+      await worker.fetch(
+        new Request(`${BASE}/checkout/${CATALOG[0].slug}`, {
+          method: "POST",
+          headers: { Origin: BASE },
+        }),
+        NO_STRIPE_ENV,
+      ),
+    ];
+    for (const response of responses) {
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      expect(csp, response.url).toBe(STRICT_CSP);
+      expect(csp).not.toContain("script-src");
+    }
+  });
 });
 
 describe("checkout", () => {
@@ -125,7 +165,16 @@ describe("checkout", () => {
       sent.push(body);
       return reply();
     };
-    return { deps: { stripeKey, fetch: fetcher }, sent };
+    return {
+      deps: {
+        stripeKey,
+        fetch: fetcher,
+        webhookSecret: undefined,
+        db: env.DB,
+        nowSeconds: () => 0,
+      },
+      sent,
+    };
   }
 
   it("redirects to Stripe Checkout with a 303, priced from the catalog", async () => {
@@ -175,13 +224,13 @@ describe("checkout", () => {
   });
 
   it("says acquisitions open soon (503) when no Stripe key is set, without asking anyone to retry", async () => {
-    // Call the Worker with an explicitly empty environment. Going through `exports.default`
+    // Call the Worker with no Stripe key (NO_STRIPE_ENV). Going through `exports.default`
     // would pick up a developer's local .dev.vars key and call the real Stripe sandbox.
     const request = new Request(`${BASE}/checkout/${ITEM.slug}`, {
       method: "POST",
       headers: { Origin: BASE },
     });
-    const response = await worker.fetch(request, {});
+    const response = await worker.fetch(request, NO_STRIPE_ENV);
     expect(response.status).toBe(503);
     const text = await response.text();
     expect(text).toContain("Acquisitions open soon");
@@ -209,6 +258,24 @@ describe("stripeKeyFrom", () => {
     expect(stripeKeyFrom({})).toBeUndefined();
     expect(stripeKeyFrom({ STRIPE_SECRET_KEY: "  " })).toBeUndefined();
     expect(stripeKeyFrom({ STRIPE_SECRET_KEY: " sk_test_x\n" })).toBe("sk_test_x");
+  });
+});
+
+describe("webhookSecretFrom", () => {
+  it("treats a missing or blank secret as unset, and trims stray whitespace", () => {
+    expect(webhookSecretFrom({})).toBeUndefined();
+    expect(webhookSecretFrom({ STRIPE_WEBHOOK_SECRET: " " })).toBeUndefined();
+    expect(webhookSecretFrom({ STRIPE_WEBHOOK_SECRET: " whsec_x\n" })).toBe("whsec_x");
+  });
+});
+
+describe("nowSeconds", () => {
+  it("is the current time in whole seconds", () => {
+    const before = Math.floor(Date.now() / 1000);
+    const now = nowSeconds();
+    expect(Number.isInteger(now)).toBe(true);
+    expect(now).toBeGreaterThanOrEqual(before);
+    expect(now).toBeLessThanOrEqual(before + 1);
   });
 });
 

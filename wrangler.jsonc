@@ -4,8 +4,21 @@
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-11-01",
   // The shop's own domain. Cloudflare creates the DNS record and certificate on
-  // deploy. The workers.dev address keeps working too.
+  // deploy. It's the only public address: the workers.dev address and preview
+  // URLs are off, so links, search results and analytics all point one place.
   "routes": [{ "pattern": "allegedlyandsons.com", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+  // Orders and processed Stripe events (design note 0004). Schema lives in
+  // migrations/; apply with `npx wrangler d1 migrations apply DB --remote`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "allegedly-and-sons",
+      "database_id": "cbe53d82-8709-4a40-90c8-d5defc600fae",
+      "migrations_dir": "migrations",
+    },
+  ],
   "observability": {
     "enabled": true,
   },
