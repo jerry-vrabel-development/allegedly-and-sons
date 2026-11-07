@@ -2,6 +2,7 @@ import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
+import { STRICT_CSP } from "../src/worker/security-headers";
 
 const BASE = "https://allegedly.example";
 
@@ -102,6 +103,36 @@ describe("Worker", () => {
       expect(csp).toContain("img-src 'self'");
       expect(csp).not.toContain("script-src");
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    }
+  });
+
+  it("sends the strict policy (no script-src) on every page that exists today", async () => {
+    // There's no GET checkout page yet (PR 2 adds it), so nothing should get the Stripe policy.
+    // An explicitly empty environment keeps the checkout POST away from a real Stripe key.
+    const responses = [
+      ...(await Promise.all(
+        [
+          "/",
+          "/disclaimer",
+          "/thanks",
+          "/nope",
+          "/assets/site.css",
+          ...CATALOG.map((i) => `/items/${i.slug}`),
+        ].map((path) => get(path)),
+      )),
+      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), {}),
+      await worker.fetch(
+        new Request(`${BASE}/checkout/${CATALOG[0].slug}`, {
+          method: "POST",
+          headers: { Origin: BASE },
+        }),
+        {},
+      ),
+    ];
+    for (const response of responses) {
+      const csp = response.headers.get("Content-Security-Policy") ?? "";
+      expect(csp, response.url).toBe(STRICT_CSP);
+      expect(csp).not.toContain("script-src");
     }
   });
 });

@@ -1,5 +1,5 @@
 import { findItem } from "../core/catalog";
-import { checkoutSessionForm, THANKS_PATH } from "../core/checkout";
+import { CHECKOUT_PATH, checkoutSessionForm, THANKS_PATH } from "../core/checkout";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -30,7 +30,6 @@ export interface Deps {
 
 const TEXT = "text/plain; charset=utf-8";
 const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
-const CHECKOUT_PATH = /^\/checkout\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
@@ -143,6 +142,6 @@ export default {
       stripeKey: stripeKeyFrom(env),
       fetch: globalFetch,
     });
-    return withSecurityHeaders(response);
+    return withSecurityHeaders(response, new URL(request.url).pathname);
   },
 } satisfies ExportedHandler<Env & Secrets>;

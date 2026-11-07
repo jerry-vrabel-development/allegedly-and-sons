@@ -27,6 +27,9 @@ export const CHECKOUT_BRANDING = {
   font_family: "pt_serif",
 } as const;
 
+/** Matches /checkout/<slug> and captures the slug. Shared by the router and the security headers. */
+export const CHECKOUT_PATH = /^\/checkout\/([a-z0-9-]+)$/;
+
 export function checkoutPath(item: Item): string {
   return `/checkout/${item.slug}`;
 }
