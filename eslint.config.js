@@ -21,6 +21,10 @@ export default defineConfig(
       parserOptions: {
         projectService: {
           allowDefaultProject: ["eslint.config.js", "vitest.config.ts", "playwright.config.ts"],
+          // Config files outside src/ and test/ are linted with Node's types. Without
+          // this, playwright.config.ts got no `process` type unless the e2e project
+          // happened to load first, so lint failed intermittently.
+          defaultProject: "./e2e/tsconfig.json",
         },
         tsconfigRootDir: import.meta.dirname,
       },

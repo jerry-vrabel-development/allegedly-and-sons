@@ -1,7 +1,13 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import worker, { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
+import worker, {
+  globalFetch,
+  nowSeconds,
+  route,
+  stripeKeyFrom,
+  webhookSecretFrom,
+} from "../src/worker/index";
 import { STRICT_CSP } from "../src/worker/security-headers";
 
 const BASE = "https://allegedly.example";
@@ -159,7 +165,16 @@ describe("checkout", () => {
       sent.push(body);
       return reply();
     };
-    return { deps: { stripeKey, fetch: fetcher }, sent };
+    return {
+      deps: {
+        stripeKey,
+        fetch: fetcher,
+        webhookSecret: undefined,
+        db: env.DB,
+        nowSeconds: () => 0,
+      },
+      sent,
+    };
   }
 
   it("redirects to Stripe Checkout with a 303, priced from the catalog", async () => {
@@ -243,6 +258,24 @@ describe("stripeKeyFrom", () => {
     expect(stripeKeyFrom({})).toBeUndefined();
     expect(stripeKeyFrom({ STRIPE_SECRET_KEY: "  " })).toBeUndefined();
     expect(stripeKeyFrom({ STRIPE_SECRET_KEY: " sk_test_x\n" })).toBe("sk_test_x");
+  });
+});
+
+describe("webhookSecretFrom", () => {
+  it("treats a missing or blank secret as unset, and trims stray whitespace", () => {
+    expect(webhookSecretFrom({})).toBeUndefined();
+    expect(webhookSecretFrom({ STRIPE_WEBHOOK_SECRET: " " })).toBeUndefined();
+    expect(webhookSecretFrom({ STRIPE_WEBHOOK_SECRET: " whsec_x\n" })).toBe("whsec_x");
+  });
+});
+
+describe("nowSeconds", () => {
+  it("is the current time in whole seconds", () => {
+    const before = Math.floor(Date.now() / 1000);
+    const now = nowSeconds();
+    expect(Number.isInteger(now)).toBe(true);
+    expect(now).toBeGreaterThanOrEqual(before);
+    expect(now).toBeLessThanOrEqual(before + 1);
   });
 });
 
