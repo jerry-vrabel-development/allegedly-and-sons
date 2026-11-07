@@ -91,14 +91,18 @@ describe("the checkout policy", () => {
     ]);
   });
 
-  it("allows frames and connections only to Stripe", () => {
+  it("allows frames only to Stripe, and connections only to us and Stripe", () => {
     expect(csp["frame-src"]).toEqual([
       "https://js.stripe.com",
       "https://*.js.stripe.com",
       "https://hooks.stripe.com",
       "https://checkout.stripe.com",
     ]);
-    expect(csp["connect-src"]).toEqual(["https://api.stripe.com", "https://checkout.stripe.com"]);
+    expect(csp["connect-src"]).toEqual([
+      "'self'",
+      "https://api.stripe.com",
+      "https://checkout.stripe.com",
+    ]);
   });
 
   it("allows images from us and Stripe only", () => {

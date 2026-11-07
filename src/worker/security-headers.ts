@@ -27,7 +27,9 @@ const STRICT_DIRECTIVES: Directives = {
 /**
  * The strict policy plus only the sources Stripe's security guide lists for
  * Stripe.js and for Checkout (checked 2026-11-07). 'self' in script-src is for
- * our own small mount script (PR 3), served from our origin, never inline.
+ * our own small mount script (PR 3), served from our origin, never inline;
+ * 'self' in connect-src lets that script ask our session endpoint for a
+ * client secret.
  * hooks.stripe.com is where 3D Secure challenges run; without it they fail.
  */
 const CHECKOUT_DIRECTIVES: Directives = {
@@ -44,7 +46,7 @@ const CHECKOUT_DIRECTIVES: Directives = {
     "https://hooks.stripe.com",
     "https://checkout.stripe.com",
   ],
-  "connect-src": ["https://api.stripe.com", "https://checkout.stripe.com"],
+  "connect-src": ["'self'", "https://api.stripe.com", "https://checkout.stripe.com"],
   "img-src": ["'self'", "https://*.stripe.com"],
 };
 

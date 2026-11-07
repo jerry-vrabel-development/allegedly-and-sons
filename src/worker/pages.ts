@@ -1,5 +1,5 @@
 import { CATALOG, formatPrice, type Item } from "../core/catalog";
-import { checkoutPath } from "../core/checkout";
+import { checkoutPath, checkoutSessionPath } from "../core/checkout";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
 import { html, type SafeHtml } from "./html";
@@ -11,10 +11,12 @@ interface PageOptions {
   readonly title: string;
   readonly description: string;
   readonly body: SafeHtml;
+  /** Keep the page out of search results (checkout pages). */
+  readonly noindex?: boolean;
 }
 
 /** The shared page shell: landmarks, skip link, header nav and footer. */
-export function layout({ title, description, body }: PageOptions): SafeHtml {
+export function layout({ title, description, body, noindex = false }: PageOptions): SafeHtml {
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
   return html`<!doctype html>
     <html lang="en">
@@ -24,6 +26,7 @@ export function layout({ title, description, body }: PageOptions): SafeHtml {
         <meta name="color-scheme" content="light dark" />
         <title>${fullTitle}</title>
         <meta name="description" content="${description}" />
+        ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
       </head>
       <body>
@@ -344,6 +347,34 @@ export function thanksPage(): SafeHtml {
         Certificate and shipped to the address you gave at checkout.
       </p>
       <p><a href="/">Back to the collection</a></p>
+    </div>`,
+  });
+}
+
+/**
+ * The embedded checkout page (design note 0005, Option B). Stripe's Checkout
+ * mounts into #checkout once our small script loads (PR 3); until then, and
+ * whenever JavaScript or Stripe.js isn't available, the hosted-checkout button
+ * below still works, so nobody gets stuck. The page itself creates nothing at
+ * Stripe: the script asks `data-session-url` for a session when it runs.
+ */
+export function checkoutPage(item: Item): SafeHtml {
+  return layout({
+    title: `Acquire ${item.name}`,
+    description: `Checkout for ${item.name}.`,
+    noindex: true,
+    body: html` <div class="prose checkout">
+      <p class="kicker">Exhibit ${item.exhibit}</p>
+      <h1>Acquire ${item.name}</h1>
+      <p class="price">${formatPrice(item.priceCents)}</p>
+      <div id="checkout" data-session-url="${checkoutSessionPath(item)}"></div>
+      <form class="acquire" method="post" action="${checkoutPath(item)}">
+        <button class="button" type="submit">Continue on Stripe’s secure page</button>
+      </form>
+      <p class="secure-note">
+        Card details go straight to Stripe and never touch our servers. US shipping only, for now.
+      </p>
+      <p><a href="${itemPath(item)}">Back to ${item.name}</a></p>
     </div>`,
   });
 }

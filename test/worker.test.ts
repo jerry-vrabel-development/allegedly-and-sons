@@ -116,7 +116,7 @@ describe("Worker", () => {
   });
 
   it("sends the strict policy (no script-src) on every page that exists today", async () => {
-    // There's no GET checkout page yet (PR 2 adds it), so nothing should get the Stripe policy.
+    // Without a Stripe key the checkout page is closed (503), so nothing gets the Stripe policy.
     // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
     const responses = [
       ...(await Promise.all(
@@ -240,9 +240,9 @@ describe("checkout", () => {
     );
   });
 
-  it("still rejects GET on the checkout path and POST elsewhere", async () => {
+  it("still rejects POST elsewhere, and GET for items that don't exist", async () => {
     const { deps: d } = deps(() => Response.json({ url: STRIPE_URL }));
-    expect((await route(new Request(`${BASE}/checkout/${ITEM.slug}`), d)).status).toBe(404);
+    expect((await route(new Request(`${BASE}/checkout/xenoclip`), d)).status).toBe(404);
     expect((await route(post("/items/alien-paperclip"), d)).status).toBe(405);
   });
 

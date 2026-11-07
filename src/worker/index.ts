@@ -1,9 +1,16 @@
 import { findItem } from "../core/catalog";
-import { CHECKOUT_PATH, checkoutSessionForm, THANKS_PATH } from "../core/checkout";
+import {
+  CHECKOUT_PATH,
+  CHECKOUT_SESSION_PATH,
+  checkoutSessionForm,
+  embeddedCheckoutSessionForm,
+  THANKS_PATH,
+} from "../core/checkout";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
   checkoutClosedPage,
+  checkoutPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
@@ -13,7 +20,7 @@ import {
   thanksPage,
 } from "./pages";
 import { withSecurityHeaders } from "./security-headers";
-import { createCheckoutSession } from "./stripe";
+import { createCheckoutSession, createEmbeddedCheckoutSession } from "./stripe";
 import { SITE_CSS } from "./styles";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
@@ -78,11 +85,44 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
   });
 }
 
+function json(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * Creates an embedded Checkout Session for one item: POST /checkout/<slug>/session
+ * → { clientSecret }. Called by our own checkout page's script, so the Origin
+ * header is required and must be ours (browsers always send it on fetch POSTs).
+ */
+async function embeddedSession(request: Request, slug: string, deps: Deps): Promise<Response> {
+  const item = findItem(slug);
+  if (!item) return json({ error: "not found" }, 404);
+
+  const { origin } = new URL(request.url);
+  if (request.headers.get("Origin") !== origin) return json({ error: "forbidden" }, 403);
+
+  if (deps.stripeKey === undefined) return json({ error: "closed" }, 503);
+
+  const result = await createEmbeddedCheckoutSession(
+    deps.stripeKey,
+    embeddedCheckoutSessionForm(item, origin),
+    deps.fetch,
+  );
+  if (!result.ok) {
+    console.error(`embedded checkout failed: ${result.reason}`);
+    return json({ error: "unavailable" }, 502);
+  }
+  return json({ clientSecret: result.clientSecret });
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
-    if (new URL(request.url).pathname === WEBHOOK_PATH) return stripeWebhook(request, deps);
-    const slug = CHECKOUT_PATH.exec(new URL(request.url).pathname)?.[1];
+    const { pathname: postPath } = new URL(request.url);
+    if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
+    const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
+    if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
+    const slug = CHECKOUT_PATH.exec(postPath)?.[1];
     if (slug !== undefined) return checkout(request, slug, deps);
   }
 
@@ -116,6 +156,16 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   const slug = ITEM_PATH.exec(pathname)?.[1];
   const item = slug === undefined ? undefined : findItem(slug);
   if (item) return page(itemPage(item, origin));
+
+  // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
+  const checkoutSlug = CHECKOUT_PATH.exec(pathname)?.[1];
+  const checkoutItem = checkoutSlug === undefined ? undefined : findItem(checkoutSlug);
+  if (checkoutItem) {
+    if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
+    const response = page(checkoutPage(checkoutItem));
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
 
   const artSlug = ART_PATH.exec(pathname)?.[1];
   const svg = artSlug === undefined ? undefined : ART[artSlug];

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { CATALOG, formatPrice, type Item } from "../src/core/catalog";
 import {
   checkoutClosedPage,
+  checkoutPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
@@ -36,6 +37,7 @@ const pages = {
   thanks: squish(thanksPage()),
   checkoutUnavailable: squish(checkoutUnavailablePage(firstItem())),
   checkoutClosed: squish(checkoutClosedPage(firstItem())),
+  checkout: squish(checkoutPage(firstItem())),
 };
 
 function count(haystack: string, needle: RegExp): number {
@@ -72,6 +74,39 @@ describe("every page", () => {
       });
     });
   }
+});
+
+describe("checkout page", () => {
+  const item = firstItem();
+
+  it("is kept out of search results; no other page is", () => {
+    for (const [name, page] of Object.entries(pages)) {
+      expect(page.includes('<meta name="robots" content="noindex" />'), name).toBe(
+        name === "checkout",
+      );
+    }
+  });
+
+  it("names the item and price, and has a mount point that knows where to ask for a session", () => {
+    expect(pages.checkout).toContain(`<h1>Acquire ${item.name}</h1>`);
+    expect(pages.checkout).toContain(formatPrice(item.priceCents));
+    expect(pages.checkout).toContain(
+      `<div id="checkout" data-session-url="/checkout/${item.slug}/session"></div>`,
+    );
+  });
+
+  it("always offers the hosted checkout as a fallback, posting to today's checkout route", () => {
+    expect(pages.checkout).toMatch(
+      new RegExp(
+        `<form class="acquire" method="post" action="/checkout/${item.slug}">\\s*<button class="button" type="submit">Continue on Stripe’s secure page</button>`,
+      ),
+    );
+  });
+
+  it("says plainly where card details go, and links back to the item", () => {
+    expect(pages.checkout).toContain("Card details go straight to Stripe");
+    expect(pages.checkout).toContain(`href="${itemPath(item)}"`);
+  });
 });
 
 describe("layout", () => {
