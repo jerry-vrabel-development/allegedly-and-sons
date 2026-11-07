@@ -4,6 +4,8 @@ import {
   CHECKOUT_SESSION_PATH,
   checkoutSessionForm,
   embeddedCheckoutSessionForm,
+  returnOutcome,
+  SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
 import { ART } from "./art";
@@ -18,9 +20,14 @@ import {
   notFoundPage,
   STYLESHEET_PATH,
   thanksPage,
+  type ReturnView,
 } from "./pages";
 import { withSecurityHeaders } from "./security-headers";
-import { createCheckoutSession, createEmbeddedCheckoutSession } from "./stripe";
+import {
+  createCheckoutSession,
+  createEmbeddedCheckoutSession,
+  retrieveCheckoutSession,
+} from "./stripe";
 import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
@@ -124,6 +131,37 @@ async function embeddedSession(request: Request, slug: string, deps: Deps): Prom
   return json({ clientSecret: result.clientSecret });
 }
 
+/**
+ * The return page: GET /thanks?session_id=cs_... Asks Stripe about the session
+ * before saying anything, so opening /thanks by hand proves nothing. Without a
+ * usable session id or a Stripe key, it says only what it can.
+ */
+async function returnPage(url: URL, deps: Deps): Promise<Response> {
+  const id = url.searchParams.get("session_id");
+  let view: ReturnView = { kind: "unchecked" };
+
+  if (id !== null && SESSION_ID.test(id) && deps.stripeKey !== undefined) {
+    const lookup = await retrieveCheckoutSession(deps.stripeKey, id, deps.fetch);
+    if (lookup.ok) {
+      const outcome = returnOutcome(lookup.session);
+      view =
+        outcome.kind === "unchecked"
+          ? outcome
+          : {
+              kind: outcome.kind,
+              item: outcome.slug === undefined ? undefined : findItem(outcome.slug),
+            };
+    } else {
+      console.error(`return page: ${lookup.reason}`);
+    }
+  }
+
+  const response = page(thanksPage(view));
+  // The answer is about one buyer's session; never cache or share it.
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
@@ -150,7 +188,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     case "/disclaimer":
       return page(disclaimerPage());
     case THANKS_PATH:
-      return page(thanksPage());
+      return returnPage(new URL(request.url), deps);
     case CHECKOUT_SCRIPT_PATH:
       return new Response(CHECKOUT_JS, {
         headers: {

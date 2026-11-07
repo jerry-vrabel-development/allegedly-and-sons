@@ -113,10 +113,10 @@ describe("checkout page", () => {
     expect(embedded).toContain("Continue on Stripe’s secure page");
   });
 
-  it("is kept out of search results; no other page is", () => {
+  it("is kept out of search results, like the return page; no other page is", () => {
     for (const [name, page] of Object.entries(pages)) {
       expect(page.includes('<meta name="robots" content="noindex" />'), name).toBe(
-        name === "checkout",
+        name === "checkout" || name === "thanks",
       );
     }
   });
@@ -241,6 +241,14 @@ describe("disclaimer page", () => {
 });
 
 describe("terms of sale", () => {
+  it("says plainly what runs in the browser: only checkout, only Stripe and us, no trackers", () => {
+    expect(pages.disclaimer).toContain("What Runs in Your Browser");
+    expect(pages.disclaimer).toContain("Only the checkout page runs any script");
+    expect(pages.disclaimer).toContain("Stripe may collect information about your device");
+    expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');
+    expect(pages.disclaimer).toContain("the shop uses no trackers");
+  });
+
   it("gives every themed term a plain-language line", () => {
     const terms = saleTerms();
     expect(terms.length).toBeGreaterThanOrEqual(5);
@@ -313,9 +321,50 @@ describe("buying", () => {
     expect(form).not.toContain("<input");
   });
 
-  it("thanks the buyer and says what happens next", () => {
-    expect(pages.thanks).toContain("Acquisition recorded");
-    expect(pages.thanks).toContain("Stripe will email your receipt");
+  it("says 'recorded' only for a paid session, naming the item and what happens next", () => {
+    const item = firstItem();
+    const paid = squish(thanksPage({ kind: "paid", item }));
+    expect(paid).toContain("<h1>Acquisition recorded</h1>");
+    expect(paid).toContain(`Payment confirmed for ${item.name}`);
+    expect(paid).toContain("Stripe will email your receipt");
+    for (const view of [
+      { kind: "processing", item },
+      { kind: "incomplete", item },
+      { kind: "unchecked" },
+    ] as const) {
+      expect(squish(thanksPage(view)), view.kind).not.toContain("Acquisition recorded");
+    }
+  });
+
+  it("says a delayed payment is still processing, without promising it cleared", () => {
+    const page = squish(thanksPage({ kind: "processing", item: firstItem() }));
+    expect(page).toContain("<h1>Payment processing</h1>");
+    expect(page).toContain("Stripe is still confirming your payment");
+  });
+
+  it("says an unfinished checkout charged nothing, and offers the way back", () => {
+    const item = firstItem();
+    const page = squish(thanksPage({ kind: "incomplete", item }));
+    expect(page).toContain("<h1>Acquisition not completed</h1>");
+    expect(page).toContain("nothing was charged");
+    expect(page).toContain(`href="/checkout/${item.slug}"`);
+    expect(squish(thanksPage({ kind: "incomplete", item: undefined }))).not.toContain(
+      'href="/checkout/',
+    );
+  });
+
+  it("stays calm and claims nothing when it couldn't check", () => {
+    expect(pages.thanks).toContain("<h1>Thank you</h1>");
+    expect(pages.thanks).toContain("If you just paid, Stripe will email your receipt");
+  });
+
+  it("names the item only when it's known", () => {
+    expect(squish(thanksPage({ kind: "paid", item: undefined }))).toContain(
+      "Payment confirmed. Stripe",
+    );
+    expect(squish(thanksPage({ kind: "processing", item: undefined }))).toContain(
+      "Stripe is still confirming your payment. Some",
+    );
   });
 
   it("says acquisitions open soon while checkout is off, without asking anyone to retry", () => {
