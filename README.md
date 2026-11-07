@@ -16,7 +16,66 @@ built on serious engineering underneath.
 
 ## Status
 
-Prototype in progress: the collection with a featured exhibit, three item pages with illustrated art, share links and the fine print. Checkout works through Stripe-hosted Checkout (tested in Stripe's sandbox); orders aren't recorded by the shop yet, which needs verified webhooks.
+Live at **[allegedlyandsons.com](https://allegedlyandsons.com)**, taking payments
+in **Stripe's sandbox** (test cards only; no real money moves yet).
+
+- The collection, three illustrated item pages, share links and The Fine Print.
+- **Embedded checkout:** buyers pay inside the shop's own page, in Stripe's
+  embedded form, with Stripe's hosted page as a fallback.
+- **Orders recorded by verified Stripe webhooks** in D1, idempotently.
+- A return page that asks Stripe whether a session was really paid before
+  saying so.
+
+Not built yet: a private order list for fulfillment, and the privacy-first
+analytics in [0001](docs/design/0001-analytics.md).
+
+## How a purchase works
+
+1. **Acquire this exhibit** opens `/checkout/<item>`, a page in the shop. It
+   creates nothing at Stripe.
+2. Our small script (`/assets/checkout.js`) asks `POST /checkout/<item>/session`
+   for a Checkout Session. The Worker prices it from the catalog (never from the
+   browser) and returns only the client secret.
+3. Stripe.js mounts Stripe's embedded Checkout on the page. Card details go to
+   Stripe and never touch this code.
+4. Stripe sends a signed `checkout.session.completed` event to
+   `POST /webhooks/stripe`. The Worker verifies the signature, then records the
+   event id and the order in one D1 transaction; a repeated event changes
+   nothing, and a failure stores nothing so Stripe retries.
+5. Stripe returns the buyer to `/thanks?session_id=…`, which asks Stripe about
+   that session and says "recorded", "processing" or "not completed"
+   accordingly.
+
+If JavaScript or Stripe.js isn't available, the checkout page's "Continue on
+Stripe's secure page" button uses Stripe's hosted page instead, and steps 4–5
+are the same.
+
+## Security and privacy
+
+- **One page runs script.** Every other page sends a strict Content Security
+  Policy with no `script-src` at all; only the checkout page allows our own
+  script and Stripe's documented sources. Tests check both.
+- **No trackers.** No analytics scripts, no tracking cookies. Every HTML page
+  sends `Cache-Control: no-transform`, so nothing can be injected in transit.
+- **No personal data stored.** Orders hold Stripe ids, the item, the amount and
+  timestamps. Names, emails and addresses stay with Stripe, and logs carry event
+  types, ids and short reasons, never payloads.
+- **Secrets stay secret:** Stripe keys and the webhook signing secret are
+  Worker secrets, never in the repo. The publishable key is public by design.
+
+## Testing
+
+`npm run check` runs formatting, type-aware linting, strict types and 255
+Vitest tests inside the Workers runtime against the real D1 schema, with 100%
+coverage (CI floors: 95% lines, 90% branches). Property-based tests (fast-check)
+cover the signature check, order parsing and HTML escaping.
+
+`npm run test:e2e` runs 45 Playwright tests on desktop Chrome, Android and
+iPhone (WebKit), with axe WCAG 2.2 AA checks in light and dark mode. The checkout
+tests stub Stripe.js, so they need no keys.
+
+The checkout and webhook code was also checked by breaking it on purpose and
+confirming a test fails, and end to end against Stripe's sandbox before release.
 
 ## Getting started
 
@@ -39,48 +98,58 @@ npm run check   # format, lint, types, tests with coverage: the same checks CI r
 | `npm run cf-typegen`    | Regenerate Worker types after changing `wrangler.jsonc`                    |
 | `npm run deploy`        | Deploy the Worker (after changes reach `main`)                             |
 
-### Stripe checkout
+### Stripe setup
 
-The **Acquire this exhibit** button posts to `/checkout/<item>`. The Worker
-prices the item from the catalog (never from the browser), asks Stripe for a
-hosted Checkout page and redirects there. Card details never touch this code.
-Without a key, checkout shows a friendly "couldn't open" page and charges
-nothing.
-
-Local testing, with a **test-mode** key from the Stripe dashboard (sandbox →
-Developers → API keys):
+Local, with **sandbox** keys from the Stripe dashboard (sandbox → Developers →
+API keys). `.dev.vars` is gitignored; never commit keys.
 
 ```sh
-echo 'STRIPE_SECRET_KEY=sk_test_...' > .dev.vars   # gitignored; never commit keys
+echo 'STRIPE_SECRET_KEY=sk_test_...' > .dev.vars
 npm run dev
 ```
 
-Pay with Stripe's test card `4242 4242 4242 4242`, any future date, any CVC.
+The publishable key (`STRIPE_PUBLISHABLE_KEY`) is a public var in
+`wrangler.jsonc`. Pay with Stripe's test card `4242 4242 4242 4242`, any future
+date, any CVC. Without a secret key, checkout shows "Acquisitions open soon" and
+charges nothing.
 
-Deployed Worker:
+Deployed Worker, once:
 
 ```sh
-npx wrangler secret put STRIPE_SECRET_KEY   # paste the key at the prompt
+npx wrangler d1 migrations apply DB --remote       # create or update the tables
+npx wrangler secret put STRIPE_SECRET_KEY           # paste at the prompt
+npx wrangler secret put STRIPE_WEBHOOK_SECRET       # from the Stripe webhook endpoint
+```
+
+In Stripe (Workbench → Webhooks), add **one** endpoint per environment:
+`https://allegedlyandsons.com/webhooks/stripe`, event
+`checkout.session.completed`, snapshot payload. Its signing secret is
+`STRIPE_WEBHOOK_SECRET`.
+
+Check recorded orders:
+
+```sh
+npx wrangler d1 execute DB --remote --command "SELECT item_slug, amount_cents, status, paid_at FROM orders"
 ```
 
 Before your first `npm run test:e2e`, install the browsers once:
 `npx playwright install --with-deps chromium webkit`
 
-## Planned stack
+## Stack
 
-- Cloudflare Workers (strict TypeScript)
-- D1 for catalog, orders and analytics events
-- Stripe Checkout, with purchases confirmed by verified webhooks
-- Privacy-first analytics: no third-party trackers, no tracking cookies, no
-  personal data stored
+- Cloudflare Workers, strict TypeScript, no runtime dependencies (plain `fetch`
+  and Web Crypto instead of the Stripe SDK)
+- D1 for orders and processed Stripe events (analytics events planned)
+- Stripe Checkout, embedded, with purchases recorded by verified webhooks
+- Vitest in the Workers runtime, Playwright with axe, GitHub Actions CI
 
 ## Design notes
 
 - [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
 - [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
-- [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md)
-- [0005 — Hosted or embedded checkout](docs/design/0005-checkout-ui.md)
+- [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md) (built)
+- [0005 — Hosted or embedded checkout](docs/design/0005-checkout-ui.md) (built)
 
 ## Branch flow
 

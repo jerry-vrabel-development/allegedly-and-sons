@@ -1,6 +1,6 @@
 # 0004 — Recording orders with Stripe webhooks
 
-- **Status:** Draft (planning only; no code yet)
+- **Status:** Built (2026-11-07): steps 1–3, Option A. Step 4 (order list) not built yet
 - **Date:** 2026-11-06
 - **Author:** Jerry Vrabel
 
@@ -107,11 +107,31 @@ writer and by keeping Stripe as the authority for anything about money.
 ## Build plan (small PRs)
 
 1. D1 database, migrations for `orders` and `stripe_events`, wired into
-   `wrangler.jsonc` and the tests.
-2. Signature verification as a pure function, with its tests.
-3. The webhook route: verify, dedupe, record the order.
+   `wrangler.jsonc` and the tests. **Done: #26.**
+2. Signature verification as a pure function, with its tests. **Done: #25.**
+3. The webhook route: verify, dedupe, record the order. **Done: #27**,
+   released in #28.
 4. A minimal private order list for fulfillment (who to ship to still comes from
-   Stripe).
+   Stripe). **Not built yet.**
+
+Two deliberate changes from the plan above:
+
+- The event id and the order are written in **one** D1 batch (a transaction),
+  not "event id first". Recording the event first would let a crash between the
+  two writes mark the event as seen while losing the order, and Stripe's retry
+  would then be skipped as a duplicate.
+- The `purchased` analytics event (0001) waits until the analytics tables exist.
+
+## What building it taught us
+
+- **The retry path works in real life.** During the first embedded-checkout
+  test, the Worker's signing secret didn't match the endpoint's. The webhook
+  answered 400, stored nothing, and Stripe queued a retry; after the secret was
+  fixed, one "Resend" recorded the order. That's the failure mode the design
+  is built for.
+- **Two endpoints, one secret, one always fails.** Each Stripe endpoint has its
+  own signing secret, and the Worker holds one. Keep exactly one endpoint per
+  environment.
 
 ## Open questions
 

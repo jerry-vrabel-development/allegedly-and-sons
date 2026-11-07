@@ -116,6 +116,29 @@ describe("Worker", () => {
     }
   });
 
+  it("marks every HTML page no-transform, so nothing (like an analytics beacon) is injected", async () => {
+    const paths = [
+      "/",
+      "/disclaimer",
+      "/thanks",
+      "/nope",
+      ...CATALOG.map((i) => `/items/${i.slug}`),
+    ];
+    const responses = [
+      ...(await Promise.all(paths.map((path) => get(path)))),
+      // The checkout page itself (needs a key to render) and its closed version.
+      await worker.fetch(
+        new Request(`${BASE}/checkout/${CATALOG[0].slug}`),
+        testEnv({ STRIPE_SECRET_KEY: "sk_test_fake" }),
+      ),
+      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), NO_STRIPE_ENV),
+    ];
+    for (const response of responses) {
+      expect(response.headers.get("Content-Type"), response.url).toBe("text/html; charset=utf-8");
+      expect(response.headers.get("Cache-Control"), response.url).toMatch(/(^|, )no-transform$/);
+    }
+  });
+
   it("sends the strict policy (no script-src) on every page that exists today", async () => {
     // Without a Stripe key the checkout page is closed (503), so nothing gets the Stripe policy.
     // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
