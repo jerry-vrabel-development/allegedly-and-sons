@@ -1,10 +1,13 @@
-import { exports } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { globalFetch, route, stripeKeyFrom } from "../src/worker/index";
 import { STRICT_CSP } from "../src/worker/security-headers";
 
 const BASE = "https://allegedly.example";
+
+/** The real bindings but no Stripe key, so checkout can never reach a real Stripe sandbox. */
+const NO_STRIPE_ENV = { DB: env.DB };
 
 function get(path: string, init?: RequestInit): Promise<Response> {
   return exports.default.fetch(new Request(`${BASE}${path}`, init));
@@ -108,7 +111,7 @@ describe("Worker", () => {
 
   it("sends the strict policy (no script-src) on every page that exists today", async () => {
     // There's no GET checkout page yet (PR 2 adds it), so nothing should get the Stripe policy.
-    // An explicitly empty environment keeps the checkout POST away from a real Stripe key.
+    // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
     const responses = [
       ...(await Promise.all(
         [
@@ -120,13 +123,13 @@ describe("Worker", () => {
           ...CATALOG.map((i) => `/items/${i.slug}`),
         ].map((path) => get(path)),
       )),
-      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), {}),
+      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), NO_STRIPE_ENV),
       await worker.fetch(
         new Request(`${BASE}/checkout/${CATALOG[0].slug}`, {
           method: "POST",
           headers: { Origin: BASE },
         }),
-        {},
+        NO_STRIPE_ENV,
       ),
     ];
     for (const response of responses) {
@@ -206,13 +209,13 @@ describe("checkout", () => {
   });
 
   it("says acquisitions open soon (503) when no Stripe key is set, without asking anyone to retry", async () => {
-    // Call the Worker with an explicitly empty environment. Going through `exports.default`
+    // Call the Worker with no Stripe key (NO_STRIPE_ENV). Going through `exports.default`
     // would pick up a developer's local .dev.vars key and call the real Stripe sandbox.
     const request = new Request(`${BASE}/checkout/${ITEM.slug}`, {
       method: "POST",
       headers: { Origin: BASE },
     });
-    const response = await worker.fetch(request, {});
+    const response = await worker.fetch(request, NO_STRIPE_ENV);
     expect(response.status).toBe(503);
     const text = await response.text();
     expect(text).toContain("Acquisitions open soon");
