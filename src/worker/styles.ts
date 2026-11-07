@@ -90,8 +90,10 @@ dl.pricing { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem
 dl.pricing dt { color: var(--muted); }
 dl.pricing dd { margin: 0; }
 dl.pricing .anchor { font-style: italic; }
-form.acquire { margin: 0.5rem 0 0; }
-form.acquire .button { display: block; width: 100%; border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+.acquire { margin: 0.5rem 0 0; }
+.acquire .button { display: block; width: 100%; border: 0; font: inherit; font-weight: bold; cursor: pointer; text-align: center; }
+/* Once Stripe's embedded form (with its own Pay button) is on the page, the fallback steps back. */
+.checkout.embedded .acquire .button { background: transparent; color: var(--accent); border: 2px solid var(--accent); font-weight: normal; }
 .secure-note { color: var(--muted); font-size: 0.9rem; text-align: center; margin: 0.4rem 0 0; }
 .included { margin: 0; padding-left: 1.25rem; }
 

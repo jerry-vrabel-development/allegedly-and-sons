@@ -28,7 +28,9 @@ export default defineConfig({
     { name: "iphone", use: { ...devices["iPhone 14"] } },
   ],
   webServer: {
-    command: `npx wrangler dev --port ${String(PORT)}`,
+    // A fake Stripe key opens the checkout page; tests stub Stripe.js and the session
+    // request, so it never reaches Stripe.
+    command: `npx wrangler dev --port ${String(PORT)} --var STRIPE_SECRET_KEY:sk_test_e2e_not_a_real_key`,
     url: `http://localhost:${String(PORT)}/healthz`,
     reuseExistingServer: process.env["CI"] === undefined,
     timeout: 60_000,

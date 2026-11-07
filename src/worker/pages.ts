@@ -1,7 +1,8 @@
 import { CATALOG, formatPrice, type Item } from "../core/catalog";
-import { checkoutPath } from "../core/checkout";
+import { checkoutPath, checkoutSessionPath } from "../core/checkout";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
+import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
 import { html, type SafeHtml } from "./html";
 
 export const SITE_NAME = "Allegedly & Sons";
@@ -11,10 +12,20 @@ interface PageOptions {
   readonly title: string;
   readonly description: string;
   readonly body: SafeHtml;
+  /** Keep the page out of search results (checkout pages). */
+  readonly noindex?: boolean;
+  /** External scripts, loaded with `defer` in this order. Only the checkout page has any. */
+  readonly scripts?: readonly string[];
 }
 
 /** The shared page shell: landmarks, skip link, header nav and footer. */
-export function layout({ title, description, body }: PageOptions): SafeHtml {
+export function layout({
+  title,
+  description,
+  body,
+  noindex = false,
+  scripts = [],
+}: PageOptions): SafeHtml {
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
   return html`<!doctype html>
     <html lang="en">
@@ -24,7 +35,9 @@ export function layout({ title, description, body }: PageOptions): SafeHtml {
         <meta name="color-scheme" content="light dark" />
         <title>${fullTitle}</title>
         <meta name="description" content="${description}" />
+        ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
+        ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
       </head>
       <body>
         <a class="skip-link" href="#main">Skip to content</a>
@@ -142,9 +155,9 @@ export function itemPage(item: Item, origin: string): SafeHtml {
               <dt>Your price</dt>
               <dd class="price">${formatPrice(item.priceCents)}</dd>
             </dl>
-            <form class="acquire" method="post" action="${checkoutPath(item)}">
-              <button class="button" type="submit">Acquire this exhibit</button>
-            </form>
+            <p class="acquire">
+              <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
+            </p>
             <p class="secure-note">Secure checkout by Stripe. US shipping only, for now.</p>
             <p class="hook">${item.hook}</p>
             <h2 class="small">Included</h2>
@@ -315,6 +328,18 @@ export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL):
               <p><strong>Plainly:</strong> ${term.plainly}</p>`,
         )}
       </section>
+
+      <section aria-labelledby="scripts-heading">
+        <h2 id="scripts-heading">What Runs in Your Browser</h2>
+        <p>
+          Only the checkout page runs any script: Stripe’s, which shows the payment form, and a
+          small one of ours that loads it. Stripe may collect information about your device to help
+          prevent fraud; see
+          <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight
+          to Stripe and never touch our servers. No other page runs any script, and the shop uses no
+          trackers.
+        </p>
+      </section>
       <p><a href="/">Back to the collection</a></p>
     </div>`,
   });
@@ -332,18 +357,124 @@ export function notFoundPage(): SafeHtml {
   });
 }
 
-export function thanksPage(): SafeHtml {
+/** What the return page says, decided by asking Stripe (see returnOutcome). */
+export type ReturnView =
+  | { readonly kind: "paid" | "processing" | "incomplete"; readonly item: Item | undefined }
+  | { readonly kind: "unchecked" };
+
+/**
+ * The return page, after checkout. It only says "recorded" once Stripe has
+ * confirmed the session was paid; anyone can open /thanks, so it never takes
+ * the visit itself as proof. Orders are recorded by the webhook, not here.
+ */
+export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
+  const item = view.kind === "unchecked" ? undefined : view.item;
+  const back = html`<p><a href="/">Back to the collection</a></p>`;
+
+  switch (view.kind) {
+    case "paid":
+      return layout({
+        title: "Acquisition recorded",
+        description: "Thank you for your acquisition.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Acquisition recorded</h1>
+          <p class="tagline">The Bureau thanks you for your discretion.</p>
+          <p>
+            Payment confirmed${item === undefined ? html`` : html` for ${item.name}`}. Stripe will
+            email your receipt. Your exhibit will be packed with its Bureau Certificate and shipped
+            to the address you gave at checkout.
+          </p>
+          ${back}
+        </div>`,
+      });
+    case "processing":
+      return layout({
+        title: "Payment processing",
+        description: "Stripe is still confirming your payment.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Payment processing</h1>
+          <p class="tagline">The Bureau is counting the coins.</p>
+          <p>
+            Stripe is still confirming your
+            payment${item === undefined ? html`` : html` for ${item.name}`}. Some payment methods
+            take a little while. Stripe will email you once it clears, and we ship after that.
+          </p>
+          ${back}
+        </div>`,
+      });
+    case "incomplete":
+      return layout({
+        title: "Acquisition not completed",
+        description: "This checkout wasn't completed.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Acquisition not completed</h1>
+          <p class="tagline">The vault door is still closed.</p>
+          <p>This checkout wasn’t finished, so nothing was charged.</p>
+          ${
+            item === undefined
+              ? back
+              : html`<p><a href="${checkoutPath(item)}">Try again: ${item.name}</a></p>
+                  ${back}`
+          }
+        </div>`,
+      });
+    case "unchecked":
+      return layout({
+        title: "Thank you",
+        description: "Thank you for visiting the Bureau.",
+        noindex: true,
+        body: html` <div class="prose">
+          <h1>Thank you</h1>
+          <p class="tagline">The Bureau thanks you for your discretion.</p>
+          <p>
+            We couldn’t look up an acquisition from here. If you just paid, Stripe will email your
+            receipt, and nothing is charged twice.
+          </p>
+          ${back}
+        </div>`,
+      });
+  }
+}
+
+/**
+ * The embedded checkout page (design note 0005, Option B). With a publishable
+ * key, it loads Stripe.js and our small script (checkout-script.ts), which
+ * mounts Stripe's Checkout into #checkout. Without one, or whenever JavaScript
+ * or Stripe.js isn't available, the hosted-checkout button below still works,
+ * so nobody gets stuck. The page itself creates nothing at Stripe: the script
+ * asks `data-session-url` for a session when it runs.
+ */
+export function checkoutPage(item: Item, publishableKey?: string): SafeHtml {
+  const embedded = publishableKey !== undefined;
   return layout({
-    title: "Acquisition recorded",
-    description: "Thank you for your acquisition.",
-    body: html` <div class="prose">
-      <h1>Acquisition recorded</h1>
-      <p class="tagline">The Bureau thanks you for your discretion.</p>
-      <p>
-        Thank you. Stripe will email your receipt. Your exhibit will be packed with its Bureau
-        Certificate and shipped to the address you gave at checkout.
+    title: `Acquire ${item.name}`,
+    description: `Checkout for ${item.name}.`,
+    noindex: true,
+    scripts: embedded ? [STRIPE_JS_URL, CHECKOUT_SCRIPT_PATH] : [],
+    body: html` <div class="prose checkout">
+      <p class="kicker">Exhibit ${item.exhibit}</p>
+      <h1>Acquire ${item.name}</h1>
+      <p class="price">${formatPrice(item.priceCents)}</p>
+      <p id="checkout-status" class="checkout-status" role="status"></p>
+      ${
+        embedded
+          ? html`<div
+              id="checkout"
+              data-session-url="${checkoutSessionPath(item)}"
+              data-publishable-key="${publishableKey}"
+            ></div>`
+          : html`<div id="checkout" data-session-url="${checkoutSessionPath(item)}"></div>`
+      }
+      <form class="acquire" method="post" action="${checkoutPath(item)}">
+        <button class="button" type="submit">Continue on Stripe’s secure page</button>
+      </form>
+      <p class="secure-note">
+        Card details go straight to Stripe and never touch our servers. US shipping only, for now.
       </p>
-      <p><a href="/">Back to the collection</a></p>
+      <p><a href="${itemPath(item)}">Back to ${item.name}</a></p>
     </div>`,
   });
 }

@@ -1,9 +1,18 @@
 import { findItem } from "../core/catalog";
-import { CHECKOUT_PATH, checkoutSessionForm, THANKS_PATH } from "../core/checkout";
+import {
+  CHECKOUT_PATH,
+  CHECKOUT_SESSION_PATH,
+  checkoutSessionForm,
+  embeddedCheckoutSessionForm,
+  returnOutcome,
+  SESSION_ID,
+  THANKS_PATH,
+} from "../core/checkout";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
   checkoutClosedPage,
+  checkoutPage,
   checkoutUnavailablePage,
   disclaimerPage,
   homePage,
@@ -11,9 +20,15 @@ import {
   notFoundPage,
   STYLESHEET_PATH,
   thanksPage,
+  type ReturnView,
 } from "./pages";
 import { withSecurityHeaders } from "./security-headers";
-import { createCheckoutSession } from "./stripe";
+import {
+  createCheckoutSession,
+  createEmbeddedCheckoutSession,
+  retrieveCheckoutSession,
+} from "./stripe";
+import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
@@ -27,8 +42,16 @@ export interface Secrets {
   readonly STRIPE_WEBHOOK_SECRET?: string;
 }
 
+/** Public config. Not secret: Stripe publishable keys are meant to be in pages. */
+export interface PublicVars {
+  /** pk_test_... or pk_live_..., set in wrangler.jsonc "vars". */
+  readonly STRIPE_PUBLISHABLE_KEY?: string;
+}
+
 /** What `route` needs from the outside world, so tests can swap in fakes. */
 export interface Deps extends WebhookDeps {
+  /** Stripe publishable key for the embedded checkout, or undefined to use only the hosted flow. */
+  readonly publishableKey?: string | undefined;
   /** Stripe secret key, or undefined when checkout isn't configured. */
   readonly stripeKey: string | undefined;
   readonly fetch: typeof fetch;
@@ -78,11 +101,75 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
   });
 }
 
+function json(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * Creates an embedded Checkout Session for one item: POST /checkout/<slug>/session
+ * → { clientSecret }. Called by our own checkout page's script, so the Origin
+ * header is required and must be ours (browsers always send it on fetch POSTs).
+ */
+async function embeddedSession(request: Request, slug: string, deps: Deps): Promise<Response> {
+  const item = findItem(slug);
+  if (!item) return json({ error: "not found" }, 404);
+
+  const { origin } = new URL(request.url);
+  if (request.headers.get("Origin") !== origin) return json({ error: "forbidden" }, 403);
+
+  if (deps.stripeKey === undefined) return json({ error: "closed" }, 503);
+
+  const result = await createEmbeddedCheckoutSession(
+    deps.stripeKey,
+    embeddedCheckoutSessionForm(item, origin),
+    deps.fetch,
+  );
+  if (!result.ok) {
+    console.error(`embedded checkout failed: ${result.reason}`);
+    return json({ error: "unavailable" }, 502);
+  }
+  return json({ clientSecret: result.clientSecret });
+}
+
+/**
+ * The return page: GET /thanks?session_id=cs_... Asks Stripe about the session
+ * before saying anything, so opening /thanks by hand proves nothing. Without a
+ * usable session id or a Stripe key, it says only what it can.
+ */
+async function returnPage(url: URL, deps: Deps): Promise<Response> {
+  const id = url.searchParams.get("session_id");
+  let view: ReturnView = { kind: "unchecked" };
+
+  if (id !== null && SESSION_ID.test(id) && deps.stripeKey !== undefined) {
+    const lookup = await retrieveCheckoutSession(deps.stripeKey, id, deps.fetch);
+    if (lookup.ok) {
+      const outcome = returnOutcome(lookup.session);
+      view =
+        outcome.kind === "unchecked"
+          ? outcome
+          : {
+              kind: outcome.kind,
+              item: outcome.slug === undefined ? undefined : findItem(outcome.slug),
+            };
+    } else {
+      console.error(`return page: ${lookup.reason}`);
+    }
+  }
+
+  const response = page(thanksPage(view));
+  // The answer is about one buyer's session; never cache or share it.
+  response.headers.set("Cache-Control", "no-store");
+  return response;
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
-    if (new URL(request.url).pathname === WEBHOOK_PATH) return stripeWebhook(request, deps);
-    const slug = CHECKOUT_PATH.exec(new URL(request.url).pathname)?.[1];
+    const { pathname: postPath } = new URL(request.url);
+    if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
+    const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
+    if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
+    const slug = CHECKOUT_PATH.exec(postPath)?.[1];
     if (slug !== undefined) return checkout(request, slug, deps);
   }
 
@@ -101,7 +188,14 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     case "/disclaimer":
       return page(disclaimerPage());
     case THANKS_PATH:
-      return page(thanksPage());
+      return returnPage(new URL(request.url), deps);
+    case CHECKOUT_SCRIPT_PATH:
+      return new Response(CHECKOUT_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
     case STYLESHEET_PATH:
       return new Response(SITE_CSS, {
         headers: {
@@ -116,6 +210,16 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   const slug = ITEM_PATH.exec(pathname)?.[1];
   const item = slug === undefined ? undefined : findItem(slug);
   if (item) return page(itemPage(item, origin));
+
+  // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
+  const checkoutSlug = CHECKOUT_PATH.exec(pathname)?.[1];
+  const checkoutItem = checkoutSlug === undefined ? undefined : findItem(checkoutSlug);
+  if (checkoutItem) {
+    if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
+    const response = page(checkoutPage(checkoutItem, deps.publishableKey));
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
 
   const artSlug = ART_PATH.exec(pathname)?.[1];
   const svg = artSlug === undefined ? undefined : ART[artSlug];
@@ -152,15 +256,22 @@ export function webhookSecretFrom(env: Secrets): string | undefined {
   return secretValue(env.STRIPE_WEBHOOK_SECRET);
 }
 
+/** Reads the Stripe publishable key, accepting only pk_test_/pk_live_ keys. */
+export function publishableKeyFrom(vars: PublicVars): string | undefined {
+  const key = secretValue(vars.STRIPE_PUBLISHABLE_KEY);
+  return key !== undefined && /^pk_(test|live)_[A-Za-z0-9]+$/.test(key) ? key : undefined;
+}
+
 /** The current time in whole Unix seconds. */
 export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
 
 export default {
-  async fetch(request: Request, env: Env & Secrets): Promise<Response> {
+  async fetch(request: Request, env: Env & Secrets & PublicVars): Promise<Response> {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
+      publishableKey: publishableKeyFrom(env),
       fetch: globalFetch,
       webhookSecret: webhookSecretFrom(env),
       db: env.DB,
@@ -168,4 +279,4 @@ export default {
     });
     return withSecurityHeaders(response, new URL(request.url).pathname);
   },
-} satisfies ExportedHandler<Env & Secrets>;
+} satisfies ExportedHandler<Env & Secrets & PublicVars>;

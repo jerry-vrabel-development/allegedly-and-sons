@@ -108,7 +108,7 @@ test.describe("item page", () => {
     for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
       await page.goto(`/items/${slug}`);
       await expect(page.locator(".buybox .price")).toBeInViewport();
-      await expect(page.getByRole("button", { name: "Acquire this exhibit" })).toBeInViewport();
+      await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport();
     }
   });
 
