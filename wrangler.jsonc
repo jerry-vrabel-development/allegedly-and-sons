@@ -19,6 +19,11 @@
       "migrations_dir": "migrations",
     },
   ],
+  // Public config, safe to commit. The publishable key is meant to be in pages;
+  // it only lets Stripe.js mount the embedded checkout. Sandbox key for now.
+  "vars": {
+    "STRIPE_PUBLISHABLE_KEY": "pk_test_51OouIEIW6zj6eT7dhtWNnMeRy5DLAIuho1m7RhUuHgtcHJKtOX1Pnxlhrd9jHY8acsRljHpNvS9Bb5YLah3SIg6l004BAftm0Y",
+  },
   "observability": {
     "enabled": true,
   },

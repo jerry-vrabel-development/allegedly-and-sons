@@ -2,6 +2,7 @@ import { CATALOG, formatPrice, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath } from "../core/checkout";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
+import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
 import { html, type SafeHtml } from "./html";
 
 export const SITE_NAME = "Allegedly & Sons";
@@ -13,10 +14,18 @@ interface PageOptions {
   readonly body: SafeHtml;
   /** Keep the page out of search results (checkout pages). */
   readonly noindex?: boolean;
+  /** External scripts, loaded with `defer` in this order. Only the checkout page has any. */
+  readonly scripts?: readonly string[];
 }
 
 /** The shared page shell: landmarks, skip link, header nav and footer. */
-export function layout({ title, description, body, noindex = false }: PageOptions): SafeHtml {
+export function layout({
+  title,
+  description,
+  body,
+  noindex = false,
+  scripts = [],
+}: PageOptions): SafeHtml {
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
   return html`<!doctype html>
     <html lang="en">
@@ -28,6 +37,7 @@ export function layout({ title, description, body, noindex = false }: PageOption
         <meta name="description" content="${description}" />
         ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
+        ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
       </head>
       <body>
         <a class="skip-link" href="#main">Skip to content</a>
@@ -145,9 +155,9 @@ export function itemPage(item: Item, origin: string): SafeHtml {
               <dt>Your price</dt>
               <dd class="price">${formatPrice(item.priceCents)}</dd>
             </dl>
-            <form class="acquire" method="post" action="${checkoutPath(item)}">
-              <button class="button" type="submit">Acquire this exhibit</button>
-            </form>
+            <p class="acquire">
+              <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
+            </p>
             <p class="secure-note">Secure checkout by Stripe. US shipping only, for now.</p>
             <p class="hook">${item.hook}</p>
             <h2 class="small">Included</h2>
@@ -352,22 +362,34 @@ export function thanksPage(): SafeHtml {
 }
 
 /**
- * The embedded checkout page (design note 0005, Option B). Stripe's Checkout
- * mounts into #checkout once our small script loads (PR 3); until then, and
- * whenever JavaScript or Stripe.js isn't available, the hosted-checkout button
- * below still works, so nobody gets stuck. The page itself creates nothing at
- * Stripe: the script asks `data-session-url` for a session when it runs.
+ * The embedded checkout page (design note 0005, Option B). With a publishable
+ * key, it loads Stripe.js and our small script (checkout-script.ts), which
+ * mounts Stripe's Checkout into #checkout. Without one, or whenever JavaScript
+ * or Stripe.js isn't available, the hosted-checkout button below still works,
+ * so nobody gets stuck. The page itself creates nothing at Stripe: the script
+ * asks `data-session-url` for a session when it runs.
  */
-export function checkoutPage(item: Item): SafeHtml {
+export function checkoutPage(item: Item, publishableKey?: string): SafeHtml {
+  const embedded = publishableKey !== undefined;
   return layout({
     title: `Acquire ${item.name}`,
     description: `Checkout for ${item.name}.`,
     noindex: true,
+    scripts: embedded ? [STRIPE_JS_URL, CHECKOUT_SCRIPT_PATH] : [],
     body: html` <div class="prose checkout">
       <p class="kicker">Exhibit ${item.exhibit}</p>
       <h1>Acquire ${item.name}</h1>
       <p class="price">${formatPrice(item.priceCents)}</p>
-      <div id="checkout" data-session-url="${checkoutSessionPath(item)}"></div>
+      <p id="checkout-status" class="checkout-status" role="status"></p>
+      ${
+        embedded
+          ? html`<div
+              id="checkout"
+              data-session-url="${checkoutSessionPath(item)}"
+              data-publishable-key="${publishableKey}"
+            ></div>`
+          : html`<div id="checkout" data-session-url="${checkoutSessionPath(item)}"></div>`
+      }
       <form class="acquire" method="post" action="${checkoutPath(item)}">
         <button class="button" type="submit">Continue on Stripe’s secure page</button>
       </form>

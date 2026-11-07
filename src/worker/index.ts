@@ -21,6 +21,7 @@ import {
 } from "./pages";
 import { withSecurityHeaders } from "./security-headers";
 import { createCheckoutSession, createEmbeddedCheckoutSession } from "./stripe";
+import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
@@ -34,8 +35,16 @@ export interface Secrets {
   readonly STRIPE_WEBHOOK_SECRET?: string;
 }
 
+/** Public config. Not secret: Stripe publishable keys are meant to be in pages. */
+export interface PublicVars {
+  /** pk_test_... or pk_live_..., set in wrangler.jsonc "vars". */
+  readonly STRIPE_PUBLISHABLE_KEY?: string;
+}
+
 /** What `route` needs from the outside world, so tests can swap in fakes. */
 export interface Deps extends WebhookDeps {
+  /** Stripe publishable key for the embedded checkout, or undefined to use only the hosted flow. */
+  readonly publishableKey?: string | undefined;
   /** Stripe secret key, or undefined when checkout isn't configured. */
   readonly stripeKey: string | undefined;
   readonly fetch: typeof fetch;
@@ -142,6 +151,13 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       return page(disclaimerPage());
     case THANKS_PATH:
       return page(thanksPage());
+    case CHECKOUT_SCRIPT_PATH:
+      return new Response(CHECKOUT_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
     case STYLESHEET_PATH:
       return new Response(SITE_CSS, {
         headers: {
@@ -162,7 +178,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   const checkoutItem = checkoutSlug === undefined ? undefined : findItem(checkoutSlug);
   if (checkoutItem) {
     if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
-    const response = page(checkoutPage(checkoutItem));
+    const response = page(checkoutPage(checkoutItem, deps.publishableKey));
     response.headers.set("Cache-Control", "no-store");
     return response;
   }
@@ -202,15 +218,22 @@ export function webhookSecretFrom(env: Secrets): string | undefined {
   return secretValue(env.STRIPE_WEBHOOK_SECRET);
 }
 
+/** Reads the Stripe publishable key, accepting only pk_test_/pk_live_ keys. */
+export function publishableKeyFrom(vars: PublicVars): string | undefined {
+  const key = secretValue(vars.STRIPE_PUBLISHABLE_KEY);
+  return key !== undefined && /^pk_(test|live)_[A-Za-z0-9]+$/.test(key) ? key : undefined;
+}
+
 /** The current time in whole Unix seconds. */
 export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
 
 export default {
-  async fetch(request: Request, env: Env & Secrets): Promise<Response> {
+  async fetch(request: Request, env: Env & Secrets & PublicVars): Promise<Response> {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
+      publishableKey: publishableKeyFrom(env),
       fetch: globalFetch,
       webhookSecret: webhookSecretFrom(env),
       db: env.DB,
@@ -218,4 +241,4 @@ export default {
     });
     return withSecurityHeaders(response, new URL(request.url).pathname);
   },
-} satisfies ExportedHandler<Env & Secrets>;
+} satisfies ExportedHandler<Env & Secrets & PublicVars>;

@@ -9,11 +9,12 @@ import worker, {
   webhookSecretFrom,
 } from "../src/worker/index";
 import { STRICT_CSP } from "../src/worker/security-headers";
+import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
 
 /** The real bindings but no Stripe key, so checkout can never reach a real Stripe sandbox. */
-const NO_STRIPE_ENV = { DB: env.DB };
+const NO_STRIPE_ENV = testEnv();
 
 function get(path: string, init?: RequestInit): Promise<Response> {
   return exports.default.fetch(new Request(`${BASE}${path}`, init));
