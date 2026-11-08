@@ -138,7 +138,7 @@ describe("GET /checkout/<item>", () => {
     const { deps: d, sent } = deps();
     const response = await route(new Request(`${BASE}/checkout/${ITEM.slug}`), d);
     expect(response.status).toBe(200);
-    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Cache-Control")).toBe("no-store, no-transform");
     const text = await response.text();
     expect(text).toContain(`data-session-url="/checkout/${ITEM.slug}/session"`);
     expect(text).toContain("Continue on Stripe’s secure page");

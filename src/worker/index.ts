@@ -61,13 +61,24 @@ const TEXT = "text/plain; charset=utf-8";
 const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
+/**
+ * Every HTML page says no-transform: nothing between us and the browser may
+ * rewrite it. In particular Cloudflare won't inject its Web Analytics beacon,
+ * even if that setting is switched back on, so the Fine Print's "no trackers"
+ * stays true by construction.
+ */
+const PAGE_CACHE = "public, max-age=0, must-revalidate, no-transform";
+
+/** For pages about one buyer's checkout: never cached, never rewritten. */
+const PRIVATE_PAGE_CACHE = "no-store, no-transform";
+
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
 function page(body: SafeHtml, status = 200): Response {
   return new Response(body.value, {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Cache-Control": PAGE_CACHE,
     },
   });
 }
@@ -158,7 +169,7 @@ async function returnPage(url: URL, deps: Deps): Promise<Response> {
 
   const response = page(thanksPage(view));
   // The answer is about one buyer's session; never cache or share it.
-  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
   return response;
 }
 
@@ -217,7 +228,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   if (checkoutItem) {
     if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
     const response = page(checkoutPage(checkoutItem, deps.publishableKey));
-    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
     return response;
   }
 

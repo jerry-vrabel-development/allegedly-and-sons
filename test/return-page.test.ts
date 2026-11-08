@@ -145,7 +145,7 @@ describe("GET /thanks", () => {
     const { deps: d, looked } = deps();
     const page = await visit(`?session_id=${ID}`, d);
     expect(page.status).toBe(200);
-    expect(page.cache).toBe("no-store");
+    expect(page.cache).toBe("no-store, no-transform");
     expect(page.text).toContain("Acquisition recorded");
     expect(page.text).toContain("Payment confirmed for The Alien Paperclip");
     expect(looked).toEqual([`https://api.stripe.com/v1/checkout/sessions/${ID}`]);
