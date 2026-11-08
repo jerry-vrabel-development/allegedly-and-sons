@@ -5,6 +5,8 @@
  * field; anything personal in the event (name, email, address) is never read.
  */
 
+import { VISITOR_ID } from "./analytics";
+
 /** The event types the webhook acts on. Others are acknowledged and ignored. */
 export const CHECKOUT_COMPLETED = "checkout.session.completed";
 
@@ -25,6 +27,8 @@ export interface NewOrder {
   readonly amountCents: number;
   /** Unix seconds. */
   readonly paidAt: number;
+  /** The visitor cookie's id, from client_reference_id, or null when absent or malformed. */
+  readonly visitorId: string | null;
 }
 
 /** What to do with a completed Checkout Session. Reasons are short and safe to log. */
@@ -66,7 +70,15 @@ export function parseStripeEvent(body: unknown): StripeEvent | undefined {
  */
 export function orderFromCompletedSession(session: unknown, paidAt: number): SessionOutcome {
   if (!isRecord(session)) return { kind: "invalid", reason: "session is not an object" };
-  const { id, payment_status, amount_total, currency, payment_intent, metadata } = session;
+  const {
+    id,
+    payment_status,
+    amount_total,
+    currency,
+    payment_intent,
+    metadata,
+    client_reference_id,
+  } = session;
 
   if (!hasPrefix(id, "cs_")) return { kind: "invalid", reason: "no session id" };
   if (payment_status !== "paid") return { kind: "skip", reason: "not paid" };
@@ -82,6 +94,11 @@ export function orderFromCompletedSession(session: unknown, paidAt: number): Ses
       itemSlug: typeof slug === "string" && SLUG.test(slug) ? slug : UNKNOWN_ITEM,
       amountCents: amount_total,
       paidAt,
+      // Never drop a paid order over this: a missing or odd id just means no attribution.
+      visitorId:
+        typeof client_reference_id === "string" && VISITOR_ID.test(client_reference_id)
+          ? client_reference_id
+          : null,
     },
   };
 }

@@ -8,7 +8,7 @@ import {
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
-import { recordItemView, type AnalyticsDeps } from "./analytics";
+import { recordCheckoutStarted, recordItemView, type AnalyticsDeps } from "./analytics";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -31,6 +31,7 @@ import {
 } from "./stripe";
 import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
+import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
 /**
@@ -63,12 +64,13 @@ const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
 /**
- * Every HTML page says no-transform: nothing between us and the browser may
- * rewrite it. In particular Cloudflare won't inject its Web Analytics beacon,
- * even if that setting is switched back on, so the Fine Print's "no trackers"
- * stays true by construction.
+ * HTML pages are private: each one may carry this visitor's cookie, so no
+ * shared cache may keep one and hand it to someone else. They also say
+ * no-transform: nothing between us and the browser may rewrite them (for
+ * example, Cloudflare can't inject a script), so the Fine Print's account of
+ * what runs in your browser stays true.
  */
-const PAGE_CACHE = "public, max-age=0, must-revalidate, no-transform";
+const PAGE_CACHE = "private, max-age=0, must-revalidate, no-transform";
 
 /** For pages about one buyer's checkout: never cached, never rewritten. */
 const PRIVATE_PAGE_CACHE = "no-store, no-transform";
@@ -100,13 +102,14 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
 
   const result = await createCheckoutSession(
     deps.stripeKey,
-    checkoutSessionForm(item, origin),
+    checkoutSessionForm(item, origin, deps.visitorId),
     deps.fetch,
   );
   if (!result.ok) {
     console.error(`checkout failed: ${result.reason}`);
     return page(checkoutUnavailablePage(item), 502);
   }
+  recordCheckoutStarted(request, item, deps);
   return new Response(null, {
     status: 303,
     headers: { Location: result.url, "Cache-Control": "no-store" },
@@ -133,13 +136,14 @@ async function embeddedSession(request: Request, slug: string, deps: Deps): Prom
 
   const result = await createEmbeddedCheckoutSession(
     deps.stripeKey,
-    embeddedCheckoutSessionForm(item, origin),
+    embeddedCheckoutSessionForm(item, origin, deps.visitorId),
     deps.fetch,
   );
   if (!result.ok) {
     console.error(`embedded checkout failed: ${result.reason}`);
     return json({ error: "unavailable" }, 502);
   }
+  recordCheckoutStarted(request, item, deps);
   return json({ clientSecret: result.clientSecret });
 }
 
@@ -288,7 +292,9 @@ export default {
     env: Env & Secrets & PublicVars,
     ctx: ExecutionContext,
   ): Promise<Response> {
+    const visitorId = visitorIdFor(request);
     const response = await route(request, {
+      visitorId,
       stripeKey: stripeKeyFrom(env),
       publishableKey: publishableKeyFrom(env),
       fetch: globalFetch,
@@ -299,6 +305,9 @@ export default {
         ctx.waitUntil(promise);
       },
     });
-    return withSecurityHeaders(response, new URL(request.url).pathname);
+    return withVisitorCookie(
+      withSecurityHeaders(response, new URL(request.url).pathname),
+      visitorId,
+    );
   },
 } satisfies ExportedHandler<Env & Secrets & PublicVars>;

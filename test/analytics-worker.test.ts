@@ -9,6 +9,7 @@ import { testEnv } from "./test-env";
 const BASE = "https://allegedly.example";
 const NOW = 1762531200;
 const ITEM = CATALOG[0];
+const VISITOR = "0123456789abcdef0123456789abcdef";
 const BROWSER = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0";
 
 type Row = Record<string, string | number | null>;
@@ -39,6 +40,7 @@ function deps(db: D1Database = env.DB): { deps: Deps; settled: () => Promise<unk
       waitUntil: (promise) => {
         pending.push(promise);
       },
+      visitorId: VISITOR,
     },
     settled: () => Promise.all(pending),
   };
@@ -81,7 +83,7 @@ describe("item views", () => {
         event: "item_viewed",
         item_slug: ITEM.slug,
         ts: NOW,
-        visitor_id: null,
+        visitor_id: VISITOR,
         referrer_host: "bsky.app",
         country: "US",
         utm_source: "bluesky",
@@ -94,7 +96,7 @@ describe("item views", () => {
     const { deps: d, settled } = deps();
     await route(visit(`/items/${ITEM.slug}`), d);
     await settled();
-    expect((await rows())[0]).toMatchObject(EMPTY);
+    expect((await rows())[0]).toMatchObject({ ...EMPTY, visitor_id: VISITOR });
   });
 
   it.each([

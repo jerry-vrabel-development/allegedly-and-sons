@@ -208,6 +208,7 @@ describe("checkout", () => {
         db: env.DB,
         nowSeconds: () => 0,
         waitUntil: () => undefined,
+        visitorId: null,
       },
       sent,
     };

@@ -19,6 +19,7 @@ function deps(overrides: Partial<Deps> = {}): Deps {
     db: env.DB,
     nowSeconds: () => NOW,
     waitUntil: () => undefined,
+    visitorId: null,
     ...overrides,
   };
 }
@@ -105,6 +106,7 @@ describe(`POST ${WEBHOOK_PATH}`, () => {
           status: "paid",
           paid_at: NOW - 2,
           shipped_at: null,
+          visitor_id: null,
         },
       ],
     });
@@ -112,6 +114,15 @@ describe(`POST ${WEBHOOK_PATH}`, () => {
       results: [{ id: "evt_test_1", type: "checkout.session.completed", received_at: NOW }],
     });
     expect(logs).toEqual(["webhook checkout.session.completed evt_test_1: order cs_test_a1"]);
+  });
+
+  it("stores the visitor id Stripe hands back, linking the order to the visits before it", async () => {
+    const visitor = "0123456789abcdef0123456789abcdef";
+    expect(
+      (await deliver(completedEvent("evt_test_1", { client_reference_id: visitor }))).status,
+    ).toBe(200);
+    const row = await env.DB.prepare("SELECT visitor_id FROM orders").first();
+    expect(row).toEqual({ visitor_id: visitor });
   });
 
   it("does nothing the second time the same event arrives", async () => {

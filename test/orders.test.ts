@@ -72,11 +72,30 @@ describe("orderFromCompletedSession", () => {
         itemSlug: "alien-paperclip",
         amountCents: 99_900,
         paidAt: PAID_AT,
+        visitorId: null,
       },
     });
     expect(JSON.stringify(orderFromCompletedSession(session(), PAID_AT))).not.toMatch(
       /buyer@example\.com|Pat Buyer/,
     );
+  });
+
+  it("reads the visitor id from client_reference_id", () => {
+    const visitor = "0123456789abcdef0123456789abcdef";
+    const outcome = orderFromCompletedSession(session({ client_reference_id: visitor }), PAID_AT);
+    expect(outcome).toMatchObject({ kind: "order", order: { visitorId: visitor } });
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["null", null],
+    ["too short", "abc123"],
+    ["uppercase", "0123456789ABCDEF0123456789ABCDEF"],
+    ["a number", 42],
+    ["an email", "buyer@example.com"],
+  ])("still records the order, unattributed, when client_reference_id is %s", (_label, value) => {
+    const outcome = orderFromCompletedSession(session({ client_reference_id: value }), PAID_AT);
+    expect(outcome).toMatchObject({ kind: "order", order: { visitorId: null } });
   });
 
   it("skips sessions that aren't paid yet", () => {

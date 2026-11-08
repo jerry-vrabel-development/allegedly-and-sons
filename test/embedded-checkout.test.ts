@@ -124,6 +124,7 @@ function deps(
     db: env.DB,
     nowSeconds: () => 0,
     waitUntil: () => undefined,
+    visitorId: null,
   };
   return { deps: d, sent };
 }
