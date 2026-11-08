@@ -8,6 +8,7 @@ import {
   homePage,
   MAX_SHIP_DAYS,
   MERCHANDISE_TERMS,
+  ORDER_CONTACT_EMAIL,
   METHODS_TERMS,
   REFUND_WINDOW_HOURS,
   saleTerms,
@@ -17,6 +18,7 @@ import {
   layout,
   notFoundPage,
   SITE_NAME,
+  TERMS_PATH,
   thanksPage,
 } from "../src/worker/pages";
 import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
@@ -67,9 +69,11 @@ describe("every page", () => {
         expect(page).toContain('<footer class="site">');
       });
 
-      it("links to the fine print from the footer", () => {
+      it("links to the fine print from the footer, not the header", () => {
         const footer = page.slice(page.indexOf('<footer class="site">'));
         expect(footer).toContain('href="/disclaimer"');
+        const header = page.slice(page.indexOf('<header class="site">'), page.indexOf("</header>"));
+        expect(header).not.toContain("/disclaimer");
       });
 
       it("uses no inline styles or scripts (the CSP would block them)", () => {
@@ -304,14 +308,15 @@ describe("terms of sale", () => {
     }
   });
 
-  it("says plainly that contact details are coming while none is set", () => {
+  it("gives the Bureau's real contact address for refunds and orders", () => {
+    expect(ORDER_CONTACT_EMAIL).toBe("bureau@allegedlyandsons.com");
     expect(pages.disclaimer).toContain(
-      "Contact details will be posted here before the shop takes real orders.",
+      '<a href="mailto:bureau@allegedlyandsons.com">bureau@allegedlyandsons.com</a> for refunds',
     );
-    expect(pages.disclaimer).not.toContain("mailto:");
+    expect(pages.disclaimer).not.toContain("Contact details will be posted");
   });
 
-  it("shows a mailto link once a contact email is set, escaped", () => {
+  it("shows whatever contact address it's given, escaped", () => {
     const page = squish(disclaimerPage("orders@bureau.example"));
     expect(page).toContain('<a href="mailto:orders@bureau.example">orders@bureau.example</a>');
     expect(page).not.toContain("Contact details will be posted");
@@ -337,6 +342,27 @@ describe("the Bureau's methods", () => {
     expect(text).toContain("we pass that number to Stripe with your order");
     expect(text).toContain("Our records don’t include your IP address");
     expect(text).toContain("we don’t use third-party trackers or ad networks");
+  });
+});
+
+describe("terms beside every place a buyer pays", () => {
+  it("links the terms of sale from each item's buy box", () => {
+    for (const item of CATALOG) {
+      expect(squish(itemPage(item, ORIGIN))).toContain(
+        `<a href="${TERMS_PATH}">Terms of sale</a>.`,
+      );
+    }
+  });
+
+  it("tells buyers on the checkout page that paying means agreeing to the terms", () => {
+    expect(pages.checkout).toContain(
+      `By paying, you agree to the <a href="${TERMS_PATH}">terms of sale</a>.`,
+    );
+  });
+
+  it("points at the terms section of The Fine Print", () => {
+    expect(TERMS_PATH).toBe("/disclaimer#terms-heading");
+    expect(pages.disclaimer).toContain('id="terms-heading"');
   });
 });
 

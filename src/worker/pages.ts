@@ -47,7 +47,6 @@ export function layout({
             <nav aria-label="Main">
               <ul>
                 <li><a href="/">The Collection</a></li>
-                <li><a href="/disclaimer">The Fine Print</a></li>
               </ul>
             </nav>
           </div>
@@ -67,6 +66,13 @@ export function layout({
       </body>
     </html> `;
 }
+
+/**
+ * Where the terms of sale start on The Fine Print. Linked beside every place a
+ * buyer pays, so the terms are in front of them when they agree to them; the
+ * page itself is linked from every footer.
+ */
+export const TERMS_PATH = "/disclaimer#terms-heading";
 
 export function itemPath(item: Item): string {
   return `/items/${item.slug}`;
@@ -158,7 +164,10 @@ export function itemPage(item: Item, origin: string): SafeHtml {
             <p class="acquire">
               <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
             </p>
-            <p class="secure-note">Secure checkout by Stripe. US shipping only, for now.</p>
+            <p class="secure-note">
+              Secure checkout by Stripe. US shipping only, for now.
+              <a href="${TERMS_PATH}">Terms of sale</a>.
+            </p>
             <p class="hook">${item.hook}</p>
             <h2 class="small">Included</h2>
             <ul class="included">
@@ -225,11 +234,10 @@ export function itemPage(item: Item, origin: string): SafeHtml {
 }
 
 /**
- * Where buyers ask for refunds or about an order. Shown publicly on The Fine Print.
- * Unset until the founder sets one up; the page says so plainly until then, and
- * real orders shouldn't open without it.
+ * Where buyers ask for refunds or about an order. Shown publicly on The Fine
+ * Print. Cloudflare Email Routing forwards it to the founder's inbox.
  */
-export const ORDER_CONTACT_EMAIL: string | undefined = undefined;
+export const ORDER_CONTACT_EMAIL = "bureau@allegedlyandsons.com";
 
 /** Refunds: how long a buyer has to change their mind, in Earth hours. */
 export const REFUND_WINDOW_HOURS = 24;
@@ -290,14 +298,12 @@ export const MERCHANDISE_TERMS: readonly Term[] = [
   },
 ];
 
-function contactTerm(email: string | undefined): Term {
+function contactTerm(email: string): Term {
   return {
     heading: "Reaching the Bureau",
     flavor: "Don't call us. Don't follow the courier. Use the drop below.",
-    plainly:
-      email === undefined
-        ? html`Contact details will be posted here before the shop takes real orders.`
-        : html`Email <a href="mailto:${email}">${email}</a> for refunds or anything about an order.`,
+    plainly: html`Email <a href="mailto:${email}">${email}</a> for refunds or anything about an
+      order.`,
   };
 }
 
@@ -310,7 +316,7 @@ function contactTerm(email: string | undefined): Term {
  * chargebacks. Have a lawyer review before real orders (enforceability of
  * the liability cap and venue varies).
  */
-export function saleTerms(email: string | undefined = ORDER_CONTACT_EMAIL): readonly Term[] {
+export function saleTerms(email: string = ORDER_CONTACT_EMAIL): readonly Term[] {
   return [
     {
       heading: "No Take-Backs After Twelve Orbits",
@@ -432,7 +438,7 @@ function longDate(isoDate: string): string {
   });
 }
 
-export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL): SafeHtml {
+export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): SafeHtml {
   return layout({
     title: "The Fine Print",
     description:
@@ -603,7 +609,8 @@ export function checkoutPage(item: Item, publishableKey?: string): SafeHtml {
         <button class="button" type="submit">Continue on Stripe’s secure page</button>
       </form>
       <p class="secure-note">
-        Card details go straight to Stripe and never touch our servers. US shipping only, for now.
+        By paying, you agree to the <a href="${TERMS_PATH}">terms of sale</a>. Card details go
+        straight to Stripe and never touch our servers. US shipping only, for now.
       </p>
       <p><a href="${itemPath(item)}">Back to ${item.name}</a></p>
     </div>`,
