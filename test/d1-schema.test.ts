@@ -51,7 +51,18 @@ describe("D1 schema (migrations/0001_orders.sql)", () => {
       ["status", "TEXT", 1, 0],
       ["paid_at", "INTEGER", 1, 0],
       ["shipped_at", "INTEGER", 0, 0],
+      // Added by migrations/0003_orders_visitor.sql.
+      ["visitor_id", "TEXT", 0, 0],
     ]);
+  });
+
+  it("stores a well-formed visitor id on an order and rejects anything else", async () => {
+    await insertOrder({ visitor_id: "0123456789abcdef0123456789abcdef" });
+    for (const [i, bad] of ["abc", "z".repeat(32), "0123456789ABCDEF0123456789ABCDEF"].entries()) {
+      await expect(
+        insertOrder({ stripe_session_id: `cs_test_bad${String(i)}`, visitor_id: bad }),
+      ).rejects.toThrow();
+    }
   });
 
   it("has the processed-events table", async () => {

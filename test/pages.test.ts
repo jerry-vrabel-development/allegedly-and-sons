@@ -241,18 +241,29 @@ describe("disclaimer page", () => {
 });
 
 describe("terms of sale", () => {
-  it("says plainly what runs in the browser: only checkout, only Stripe and us, no trackers", () => {
+  it("says plainly what runs in the browser: only checkout, only Stripe and us", () => {
     expect(pages.disclaimer).toContain("What Runs in Your Browser");
     expect(pages.disclaimer).toContain("Only the checkout page runs any script");
     expect(pages.disclaimer).toContain("Stripe may collect information about your device");
     expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');
-    expect(pages.disclaimer).toContain("the shop uses no trackers");
+    expect(pages.disclaimer).not.toContain("uses no trackers");
+  });
+
+  it("says plainly what the shop keeps on file: one cookie, passed to Stripe, no IPs, no third parties", () => {
+    const text = pages.disclaimer.replace(/\s+/g, " ");
+    expect(text).toContain("What the Bureau Keeps on File");
+    expect(text).toContain("we set one cookie of our own");
+    expect(text).toContain("lasts a year from your latest visit");
+    expect(text).toContain("we pass that number to Stripe with your order");
+    expect(text).toContain("Our records don’t include your IP address");
+    expect(text).toContain("we don’t use third-party trackers or ad networks");
   });
 
   it("gives every themed term a plain-language line", () => {
     const terms = saleTerms();
     expect(terms.length).toBeGreaterThanOrEqual(5);
-    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(terms.length);
+    // One per term, plus one for "What the Bureau Keeps on File".
+    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(terms.length + 1);
     for (const term of terms) {
       expect(pages.disclaimer).toContain(`<h3>${escapeHtml(term.heading)}</h3>`);
       expect(term.plainly.value.trim()).not.toBe("");

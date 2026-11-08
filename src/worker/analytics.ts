@@ -22,6 +22,8 @@ export interface AnalyticsDeps {
   readonly nowSeconds: () => number;
   /** Lets work finish after the response is sent (the Worker's ctx.waitUntil). */
   readonly waitUntil: (promise: Promise<unknown>) => void;
+  /** The visitor cookie's id for this request (existing or just minted), or null. */
+  readonly visitorId: string | null;
 }
 
 /**
@@ -72,6 +74,25 @@ export function countsAsView(request: Request): boolean {
   );
 }
 
+/**
+ * Records `checkout_started` once Stripe has given us a Checkout Session, after
+ * the response is sent. Called only on success, so failed attempts don't count.
+ */
+export function recordCheckoutStarted(request: Request, item: Item, deps: AnalyticsDeps): void {
+  deps.waitUntil(
+    recordEvent(deps.db, {
+      event: "checkout_started",
+      itemSlug: item.slug,
+      ts: deps.nowSeconds(),
+      visitorId: deps.visitorId,
+      referrerHost: null,
+      country: countryFrom(request.cf?.country),
+      utmSource: null,
+      utmCampaign: null,
+    }),
+  );
+}
+
 /** Records `item_viewed` for an item page, after the response is sent. */
 export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps): void {
   if (!countsAsView(request)) return;
@@ -81,7 +102,7 @@ export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps
       event: "item_viewed",
       itemSlug: item.slug,
       ts: deps.nowSeconds(),
-      visitorId: null, // The visitor cookie arrives in the next PR.
+      visitorId: deps.visitorId,
       referrerHost: referrerHostFrom(request.headers.get("Referer")),
       country: countryFrom(request.cf?.country),
       utmSource: utmValue(searchParams.get("utm_source")),

@@ -82,8 +82,9 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
       statements.push(
         deps.db
           .prepare(
-            `INSERT INTO orders (stripe_session_id, payment_intent_id, item_slug, amount_cents, paid_at)
-             VALUES (?, ?, ?, ?, ?)
+            `INSERT INTO orders
+               (stripe_session_id, payment_intent_id, item_slug, amount_cents, paid_at, visitor_id)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT (stripe_session_id) DO NOTHING`,
           )
           .bind(
@@ -92,6 +93,7 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
             order.itemSlug,
             order.amountCents,
             order.paidAt,
+            order.visitorId,
           ),
       );
       note = `order ${order.stripeSessionId}`;
