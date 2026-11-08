@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { returnOutcome, SESSION_ID } from "../src/core/checkout";
@@ -124,6 +125,7 @@ function deps(reply: () => Response | Promise<Response> = () => Response.json(se
     webhookSecret: undefined,
     db: env.DB,
     nowSeconds: () => 0,
+    waitUntil: () => undefined,
   };
   return { deps: d, looked };
 }
@@ -145,7 +147,7 @@ describe("GET /thanks", () => {
     const { deps: d, looked } = deps();
     const page = await visit(`?session_id=${ID}`, d);
     expect(page.status).toBe(200);
-    expect(page.cache).toBe("no-store");
+    expect(page.cache).toBe("no-store, no-transform");
     expect(page.text).toContain("Acquisition recorded");
     expect(page.text).toContain("Payment confirmed for The Alien Paperclip");
     expect(looked).toEqual([`https://api.stripe.com/v1/checkout/sessions/${ID}`]);
@@ -212,7 +214,11 @@ describe("GET /thanks", () => {
   });
 
   it("claims nothing when no Stripe key is set", async () => {
-    const response = await worker.fetch(new Request(`${BASE}/thanks?session_id=${ID}`), testEnv());
+    const response = await worker.fetch(
+      new Request(`${BASE}/thanks?session_id=${ID}`),
+      testEnv(),
+      createExecutionContext(),
+    );
     expect(await response.text()).toContain("<h1>Thank you</h1>");
   });
 });

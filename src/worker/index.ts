@@ -8,6 +8,7 @@ import {
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
+import { recordItemView, type AnalyticsDeps } from "./analytics";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -49,7 +50,7 @@ export interface PublicVars {
 }
 
 /** What `route` needs from the outside world, so tests can swap in fakes. */
-export interface Deps extends WebhookDeps {
+export interface Deps extends WebhookDeps, AnalyticsDeps {
   /** Stripe publishable key for the embedded checkout, or undefined to use only the hosted flow. */
   readonly publishableKey?: string | undefined;
   /** Stripe secret key, or undefined when checkout isn't configured. */
@@ -61,13 +62,24 @@ const TEXT = "text/plain; charset=utf-8";
 const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
+/**
+ * Every HTML page says no-transform: nothing between us and the browser may
+ * rewrite it. In particular Cloudflare won't inject its Web Analytics beacon,
+ * even if that setting is switched back on, so the Fine Print's "no trackers"
+ * stays true by construction.
+ */
+const PAGE_CACHE = "public, max-age=0, must-revalidate, no-transform";
+
+/** For pages about one buyer's checkout: never cached, never rewritten. */
+const PRIVATE_PAGE_CACHE = "no-store, no-transform";
+
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
 function page(body: SafeHtml, status = 200): Response {
   return new Response(body.value, {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Cache-Control": PAGE_CACHE,
     },
   });
 }
@@ -158,7 +170,7 @@ async function returnPage(url: URL, deps: Deps): Promise<Response> {
 
   const response = page(thanksPage(view));
   // The answer is about one buyer's session; never cache or share it.
-  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
   return response;
 }
 
@@ -209,7 +221,10 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
 
   const slug = ITEM_PATH.exec(pathname)?.[1];
   const item = slug === undefined ? undefined : findItem(slug);
-  if (item) return page(itemPage(item, origin));
+  if (item) {
+    recordItemView(request, item, deps);
+    return page(itemPage(item, origin));
+  }
 
   // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
   const checkoutSlug = CHECKOUT_PATH.exec(pathname)?.[1];
@@ -217,7 +232,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   if (checkoutItem) {
     if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
     const response = page(checkoutPage(checkoutItem, deps.publishableKey));
-    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
     return response;
   }
 
@@ -268,7 +283,11 @@ export function nowSeconds(): number {
 }
 
 export default {
-  async fetch(request: Request, env: Env & Secrets & PublicVars): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env & Secrets & PublicVars,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
       publishableKey: publishableKeyFrom(env),
@@ -276,6 +295,9 @@ export default {
       webhookSecret: webhookSecretFrom(env),
       db: env.DB,
       nowSeconds,
+      waitUntil: (promise) => {
+        ctx.waitUntil(promise);
+      },
     });
     return withSecurityHeaders(response, new URL(request.url).pathname);
   },
