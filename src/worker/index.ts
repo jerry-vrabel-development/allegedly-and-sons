@@ -8,6 +8,7 @@ import {
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
+import { recordItemView, type AnalyticsDeps } from "./analytics";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -49,7 +50,7 @@ export interface PublicVars {
 }
 
 /** What `route` needs from the outside world, so tests can swap in fakes. */
-export interface Deps extends WebhookDeps {
+export interface Deps extends WebhookDeps, AnalyticsDeps {
   /** Stripe publishable key for the embedded checkout, or undefined to use only the hosted flow. */
   readonly publishableKey?: string | undefined;
   /** Stripe secret key, or undefined when checkout isn't configured. */
@@ -220,7 +221,10 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
 
   const slug = ITEM_PATH.exec(pathname)?.[1];
   const item = slug === undefined ? undefined : findItem(slug);
-  if (item) return page(itemPage(item, origin));
+  if (item) {
+    recordItemView(request, item, deps);
+    return page(itemPage(item, origin));
+  }
 
   // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
   const checkoutSlug = CHECKOUT_PATH.exec(pathname)?.[1];
@@ -279,7 +283,11 @@ export function nowSeconds(): number {
 }
 
 export default {
-  async fetch(request: Request, env: Env & Secrets & PublicVars): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env & Secrets & PublicVars,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const response = await route(request, {
       stripeKey: stripeKeyFrom(env),
       publishableKey: publishableKeyFrom(env),
@@ -287,6 +295,9 @@ export default {
       webhookSecret: webhookSecretFrom(env),
       db: env.DB,
       nowSeconds,
+      waitUntil: (promise) => {
+        ctx.waitUntil(promise);
+      },
     });
     return withSecurityHeaders(response, new URL(request.url).pathname);
   },

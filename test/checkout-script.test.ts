@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import {
   CHECKOUT_JS,
@@ -15,6 +16,7 @@ describe("the checkout script", () => {
     const response = await worker.fetch(
       new Request(`https://allegedly.example${CHECKOUT_SCRIPT_PATH}`),
       testEnv(),
+      createExecutionContext(),
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("text/javascript; charset=utf-8");
@@ -82,6 +84,7 @@ describe("the deployed Worker's checkout page", () => {
     const response = await worker.fetch(
       new Request("https://allegedly.example/checkout/alien-paperclip"),
       testEnv({ STRIPE_SECRET_KEY: "sk_test_fake" }),
+      createExecutionContext(),
     );
     expect(response.status).toBe(200);
     const text = await response.text();
