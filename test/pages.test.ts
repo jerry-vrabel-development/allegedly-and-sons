@@ -7,8 +7,11 @@ import {
   disclaimerPage,
   homePage,
   MAX_SHIP_DAYS,
+  MERCHANDISE_TERMS,
+  METHODS_TERMS,
   REFUND_WINDOW_HOURS,
   saleTerms,
+  TERMS_LAST_AMENDED,
   itemPage,
   itemPath,
   layout,
@@ -237,53 +240,68 @@ describe("disclaimer page", () => {
     expect(pages.disclaimer).toContain("not appraisals or proof of authenticity");
     expect(pages.disclaimer).toContain("Nothing here is an investment.");
     expect(pages.disclaimer).toContain("not a real price, a former price or an appraisal");
-  });
-});
-
-describe("terms of sale", () => {
-  it("says plainly what runs in the browser: only checkout, only Stripe and us", () => {
-    expect(pages.disclaimer).toContain("What Runs in Your Browser");
-    expect(pages.disclaimer).toContain("Only the checkout page runs any script");
-    expect(pages.disclaimer).toContain("Stripe may collect information about your device");
-    expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');
-    expect(pages.disclaimer).not.toContain("uses no trackers");
+    expect(pages.disclaimer).toContain("The stories are fiction");
   });
 
-  it("says plainly what the shop keeps on file: one cookie, passed to Stripe, no IPs, no third parties", () => {
-    const text = pages.disclaimer.replace(/\s+/g, " ");
-    expect(text).toContain("What the Bureau Keeps on File");
-    expect(text).toContain("we set one cookie of our own");
-    expect(text).toContain("lasts a year from your latest visit");
-    expect(text).toContain("we pass that number to Stripe with your order");
-    expect(text).toContain("Our records don’t include your IP address");
-    expect(text).toContain("we don’t use third-party trackers or ad networks");
-  });
-
-  it("gives every themed term a plain-language line", () => {
-    const terms = saleTerms();
-    expect(terms.length).toBeGreaterThanOrEqual(5);
-    // One per term, plus one for "What the Bureau Keeps on File".
-    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(terms.length + 1);
-    for (const term of terms) {
+  it("gives every clause, in every section, a binding plain line", () => {
+    const all = [...MERCHANDISE_TERMS, ...saleTerms(), ...METHODS_TERMS];
+    // One per clause, plus the closing "the Plainly lines are the deal".
+    expect(count(pages.disclaimer, /<strong>Plainly:<\/strong>/g)).toBe(all.length + 1);
+    for (const term of all) {
       expect(pages.disclaimer).toContain(`<h3>${escapeHtml(term.heading)}</h3>`);
+      expect(term.flavor.trim()).not.toBe("");
       expect(term.plainly.value.trim()).not.toBe("");
     }
   });
 
-  it("states the refund window, damaged-item refunds, shipping and ship time plainly", () => {
-    expect(REFUND_WINDOW_HOURS).toBe(24);
-    expect(MAX_SHIP_DAYS).toBe(30);
+  it("says the plain lines are the binding terms, not the flavor", () => {
     expect(pages.disclaimer).toContain(
-      "You can cancel for a full refund within 24 hours of purchase.",
+      "the flavor text is atmosphere. The Plainly lines are the deal.",
     );
-    expect(pages.disclaimer).toContain("arrives damaged or never arrives, you get a full refund.");
-    expect(pages.disclaimer).toContain("Shipping is included in the price.");
-    expect(pages.disclaimer).toContain("Orders ship within 30 days of purchase.");
-    expect(pages.disclaimer).toContain("you can cancel for a full refund.");
   });
 
-  it("no longer promises details later, now that they're here", () => {
-    expect(pages.disclaimer).not.toContain("Refund and shipping details will be posted");
+  it("dates the terms, so an order can be held to the ones it was placed under", () => {
+    expect(TERMS_LAST_AMENDED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Prettier may wrap the tags, so allow whitespace before each ">".
+    expect(pages.disclaimer).toMatch(
+      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 8, 2026</time\\s*>`),
+    );
+    expect(pages.disclaimer).toContain(
+      "Your order is governed by the terms posted when you placed it.",
+    );
+  });
+
+  it("keeps the comedy obviously comedy: no real contraband words", () => {
+    expect(pages.disclaimer).not.toMatch(/\b(drugs?|weapons?|guns?|stolen|narcotics?)\b/i);
+  });
+});
+
+describe("terms of sale", () => {
+  it("keeps the buyer's refunds: change of mind, damaged or lost, and late shipping", () => {
+    expect(REFUND_WINDOW_HOURS).toBe(24);
+    expect(MAX_SHIP_DAYS).toBe(30);
+    expect(pages.disclaimer).toContain("Full refund if you ask within 24 hours of purchase.");
+    expect(pages.disclaimer).toContain("Arrives damaged, or never arrives? Full refund.");
+    expect(pages.disclaimer).toContain("Orders ship within 30 days of purchase.");
+    expect(pages.disclaimer).toContain("you can cancel for a full refund.");
+    expect(pages.disclaimer).toContain("Shipping is included in the price. US addresses only.");
+  });
+
+  it("states the seller's terms plainly", () => {
+    for (const plain of [
+      "sold as-is, with no warranties beyond the ones the law requires",
+      "our liability for any order is limited to what you paid for it",
+      "We may refuse or cancel any order",
+      "If we cancel, you get a full refund.",
+      "Refunds go back to the card you paid with.",
+      "Contact us first.",
+      "governed by Illinois law",
+      "the courts of Cook County, Illinois",
+      "can't be refunded once delivered, unless they don't work",
+      "The 24-hour change-of-mind refund doesn't cover them.",
+    ]) {
+      expect(pages.disclaimer).toContain(plain);
+    }
   });
 
   it("says plainly that contact details are coming while none is set", () => {
@@ -300,9 +318,25 @@ describe("terms of sale", () => {
     const sneaky = squish(disclaimerPage('x"><script>@evil.example'));
     expect(sneaky).not.toContain("<script>");
   });
+});
 
-  it("keeps the comedy obviously comedy: no real contraband words", () => {
-    expect(pages.disclaimer).not.toMatch(/\b(drugs?|weapons?|guns?|stolen|narcotics?)\b/i);
+describe("the Bureau's methods", () => {
+  it("says plainly what runs in the browser: only checkout, only Stripe and us", () => {
+    expect(pages.disclaimer).toContain("What Runs in Your Browser");
+    expect(pages.disclaimer).toContain("Only the checkout page runs any script");
+    expect(pages.disclaimer).toContain("Stripe may collect information about your device");
+    expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');
+    expect(pages.disclaimer).not.toContain("uses no trackers");
+  });
+
+  it("says plainly what the shop keeps on file: one cookie, passed to Stripe, no IPs, no third parties", () => {
+    const text = pages.disclaimer;
+    expect(text).toContain("What the Bureau Keeps on File");
+    expect(text).toContain("We set one cookie of our own");
+    expect(text).toContain("lasts a year from your latest visit");
+    expect(text).toContain("we pass that number to Stripe with your order");
+    expect(text).toContain("Our records don’t include your IP address");
+    expect(text).toContain("we don’t use third-party trackers or ad networks");
   });
 });
 
