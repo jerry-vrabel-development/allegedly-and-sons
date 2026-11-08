@@ -127,6 +127,7 @@ function deps(reply: () => Response | Promise<Response> = () => Response.json(se
     nowSeconds: () => 0,
     waitUntil: () => undefined,
     visitorId: null,
+    access: undefined,
   };
   return { deps: d, looked };
 }

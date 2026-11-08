@@ -7,5 +7,11 @@ import type { Secrets } from "../src/worker/index";
  * developer's local .dev.vars (a real sandbox key) can't leak into a test.
  */
 export function testEnv(secrets: Secrets = {}) {
-  return { DB: env.DB, STRIPE_PUBLISHABLE_KEY: env.STRIPE_PUBLISHABLE_KEY, ...secrets };
+  return {
+    DB: env.DB,
+    STRIPE_PUBLISHABLE_KEY: env.STRIPE_PUBLISHABLE_KEY,
+    ACCESS_TEAM_DOMAIN: env.ACCESS_TEAM_DOMAIN,
+    ACCESS_AUD: env.ACCESS_AUD,
+    ...secrets,
+  };
 }

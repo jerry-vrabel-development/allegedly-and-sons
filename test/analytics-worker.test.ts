@@ -44,6 +44,7 @@ function deps(db: D1Database = env.DB): { deps: Deps; settled: () => Promise<unk
         pending.push(promise);
       },
       visitorId: VISITOR,
+      access: undefined,
     },
     settled: () => Promise.all(pending),
   };

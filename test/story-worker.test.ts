@@ -25,6 +25,7 @@ function deps(now = NOW, visitorId: string | null = ID): Deps {
     nowSeconds: () => now,
     waitUntil: () => undefined,
     visitorId,
+    access: undefined,
   };
 }
 
