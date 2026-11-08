@@ -8,6 +8,7 @@ import {
   visitorIdFromCookie,
   VISITOR_ID_BYTES,
 } from "../core/visitor";
+import { landingCookie, type Landing } from "../core/landing";
 
 /** This request's visitor id: the cookie's, or a fresh random one. */
 export function visitorIdFor(request: Request): string {
@@ -31,11 +32,18 @@ export function mayCarryVisitorCookie(response: Response): boolean {
 
 /**
  * Sets (or refreshes) the visitor cookie on a page, so it lasts a year from
- * the latest visit. Other responses are returned unchanged.
+ * the latest visit, and, when this request came in from somewhere, the
+ * landing cookie that remembers it for the visit. Other responses are
+ * returned unchanged.
  */
-export function withVisitorCookie(response: Response, visitorId: string): Response {
+export function withVisitorCookie(
+  response: Response,
+  visitorId: string,
+  landing?: Landing,
+): Response {
   if (!mayCarryVisitorCookie(response)) return response;
   const withCookie = new Response(response.body, response);
   withCookie.headers.append("Set-Cookie", visitorCookie(visitorId));
+  if (landing !== undefined) withCookie.headers.append("Set-Cookie", landingCookie(landing));
   return withCookie;
 }

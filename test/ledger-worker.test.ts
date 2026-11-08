@@ -119,6 +119,7 @@ describe("readLedger", () => {
       shares: 1,
       sharedVisits: 2,
       checkouts: 1,
+      buyers: 1,
       orders: 1,
       revenueCents: 27500,
     });
@@ -134,8 +135,8 @@ describe("readLedger", () => {
   it("names where visitors came from, and who later bought", async () => {
     await seed();
     const { sources } = await readLedger(env.DB, 30, NOW, "allegedly.example");
+    // A's later internal click doesn't count: each visitor once, by first visit.
     expect(sources).toEqual([
-      { source: "(this site)", visitors: 1, buyers: 0 },
       { source: "bluesky", visitors: 1, buyers: 1 },
       { source: "old.reddit.com", visitors: 1, buyers: 0 },
     ]);
@@ -158,11 +159,64 @@ describe("readLedger", () => {
     });
   });
 
+  it("counts buyers, not orders: unattributed orders add to sales but not 'Bought'", async () => {
+    const paperclip = "alien-paperclip";
+    await event({ event: "item_viewed", item_slug: paperclip, visitor_id: A });
+    await event({ event: "item_viewed", item_slug: paperclip, visitor_id: B });
+    await order("cs_test_a1", paperclip, A);
+    await order("cs_test_a2", paperclip, A); // A bought twice: still one buyer
+    await order("cs_test_old", paperclip, null); // from before the visitor cookie
+    await order("cs_test_c", paperclip, C); // C never viewed it in the period
+    const row = (await readLedger(env.DB, 30, NOW, "allegedly.example")).items.find(
+      (item) => item.slug === paperclip,
+    );
+    expect(row).toMatchObject({ visitors: 2, buyers: 1, orders: 4, revenueCents: 110000 });
+  });
+
+  it("doesn't credit a purchase made before the visitor's view", async () => {
+    await event({
+      event: "item_viewed",
+      item_slug: "alien-paperclip",
+      visitor_id: A,
+      ts: NOW - 10,
+    });
+    await order("cs_test_early", "alien-paperclip", A, NOW - 20);
+    const row = (await readLedger(env.DB, 30, NOW, "allegedly.example")).items[0];
+    expect(row?.buyers).toBe(0);
+  });
+
+  it("credits each visitor's first source only, even if they come back another way", async () => {
+    await event({
+      event: "item_viewed",
+      item_slug: "alien-paperclip",
+      visitor_id: A,
+      referrer_host: "news.ycombinator.com",
+      ts: NOW - 300,
+    });
+    await event({
+      event: "item_viewed",
+      item_slug: "alien-paperclip",
+      visitor_id: A,
+      utm_source: "bluesky",
+      ts: NOW - 200,
+    });
+    await event({
+      event: "item_viewed",
+      item_slug: "alien-paperclip",
+      visitor_id: null,
+      referrer_host: "legacy.example",
+    });
+    const { sources } = await readLedger(env.DB, 30, NOW, "allegedly.example");
+    expect(sources).toEqual([{ source: "news.ycombinator.com", visitors: 1, buyers: 0 }]);
+  });
+
   it("includes older activity in 'all time'", async () => {
     await seed();
     const ledger = await readLedger(env.DB, 0, NOW, "allegedly.example");
     expect(ledger.items.find((row) => row.slug === "alien-paperclip")?.visitors).toBe(1);
     expect(ledger.sources).toContainEqual({ source: "(direct)", visitors: 1, buyers: 0 });
+    // A's first view (reddit) wins over the later internal click, all time too.
+    expect(ledger.sources).not.toContainEqual(expect.objectContaining({ source: "(this site)" }));
   });
 });
 

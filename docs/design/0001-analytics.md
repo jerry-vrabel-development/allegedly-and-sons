@@ -1,6 +1,6 @@
 # 0001 — Analytics for the shop
 
-- **Status:** Decided; C1–C4 built (#34, #36, #41, #43); C5 in progress
+- **Status:** Decided; C1–C5 built (#34, #36, #41, #43, #45)
 - **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -155,7 +155,7 @@ Each step is a small PR into `dev` with green CI.
    depth counted once per 30 minutes, and at most 60 reads per visitor per
    hour. Ad blockers will hide some reads; views and purchases are recorded
    server-side and unaffected. The Fine Print says so.
-5. **C5 — the ledger.** A private dashboard at `/bureau/ledger`, plain
+5. **C5 — the ledger. Built (#45).** A private dashboard at `/bureau/ledger`, plain
    server-rendered HTML with no script: per item, visitors → opened the case
    file → finished it → started checkout → bought, plus shares, visits from
    shares and sales; where visitors came from (UTM campaign, else referrer
@@ -172,6 +172,16 @@ Each step is a small PR into `dev` with green CI.
    `/bureau` path is a plain 404. Accounts were considered and rejected for
    now: passwords, sessions and resets are a lot of security-critical code to
    protect one user. They come back when customers need accounts.
+
+   **Fixed after launch (seeing real numbers):** "Bought" now counts
+   _visitors who viewed the item and then bought it_, so orders from before
+   the cookie, repeat orders and buyers who never viewed the item no longer
+   distort it (sales still count every order). And sources are **first
+   touch**: each visitor counts once, by their first item view in the
+   period. Because only item pages record views, a session cookie,
+   `__Host-landing` (host and campaign tags only; gone when the browser
+   closes), remembers what brought the visit in, so landing on the home page
+   from Reddit and then clicking an item credits Reddit, not "(this site)".
 
    **Deferred on purpose:** nightly rollups (the ledger reads raw events
    directly; revisit at roughly 5,000 events a day, or if the page takes over

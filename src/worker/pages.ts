@@ -422,14 +422,15 @@ export const METHODS_TERMS: readonly Term[] = [
   {
     heading: "What the Bureau Keeps on File",
     flavor:
-      "The Bureau keeps a discreet ledger of who came by and which relics caught their eye. One slip of paper, tucked in your coat pocket, so we know you when you return.",
-    plainly: html`We set one cookie of our own. It holds a random number and nothing else, and it
-    lasts a year from your latest visit. We use it to count visitors and to see which pages and
-    links lead to purchases. When you check out, we pass that number to Stripe with your order, so
-    we can tell which visits led to a sale. We also note which item pages are viewed, whether you
-    read their case files, which share buttons you press, the country your connection comes from,
-    and the website that sent you. Our records don’t include your IP address, and we don’t use
-    third-party trackers or ad networks.`,
+      "The Bureau keeps a discreet ledger of who came by and which relics caught their eye. Two slips of paper, tucked in your coat pocket: one so we know you when you return, one noting who pointed you our way. The second burns itself when you leave.",
+    plainly: html`We set two cookies of our own. The first holds a random number and nothing else,
+    and it lasts a year from your latest visit. We use it to count visitors and to see which pages
+    and links lead to purchases. The second remembers which website or campaign link brought you
+    here, and it’s deleted when you close your browser. When you check out, we pass the first one’s
+    number to Stripe with your order, so we can tell which visits led to a sale. We also note which
+    item pages are viewed, whether you read their case files, which share buttons you press, the
+    country your connection comes from, and the website that sent you. Our records don’t include
+    your IP address, and we don’t use third-party trackers or ad networks.`,
   },
 ];
 

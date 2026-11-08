@@ -174,3 +174,47 @@ describe("checkout_started", () => {
     expect(await events()).toEqual([]);
   });
 });
+
+describe("the landing cookie on real visits", () => {
+  async function viewedFrom(): Promise<unknown> {
+    const row = await env.DB.prepare(
+      "SELECT referrer_host, utm_source FROM analytics_events WHERE event = 'item_viewed' ORDER BY id DESC",
+    ).first();
+    return row;
+  }
+
+  it("is set when a visit arrives from another site, and not otherwise", async () => {
+    const fromReddit = await visit("/", { headers: { Referer: "https://old.reddit.com/r/x" } });
+    expect(fromReddit.headers.getSetCookie()).toContain(
+      "__Host-landing=old.reddit.com~~; Path=/; Secure; HttpOnly; SameSite=Lax",
+    );
+    const internal = await visit("/", { headers: { Referer: `${BASE}/items/${ITEM.slug}` } });
+    expect(internal.headers.getSetCookie().some((c) => c.startsWith("__Host-landing="))).toBe(
+      false,
+    );
+  });
+
+  it("credits the landing source when the visitor clicks through to an item", async () => {
+    // Landed on the home page from Reddit, then clicked an item: Referer is our own site.
+    await visit(`/items/${ITEM.slug}`, {
+      headers: {
+        "User-Agent": BROWSER,
+        Referer: `${BASE}/`,
+        Cookie: `__Host-vid=${ID}; __Host-landing=old.reddit.com~~`,
+      },
+    });
+    expect(await viewedFrom()).toEqual({ referrer_host: "old.reddit.com", utm_source: null });
+  });
+
+  it("lets a new outside source replace the remembered one", async () => {
+    await visit(`/items/${ITEM.slug}?utm_source=bluesky`, {
+      headers: { "User-Agent": BROWSER, Cookie: "__Host-landing=old.reddit.com~~" },
+    });
+    expect(await viewedFrom()).toEqual({ referrer_host: null, utm_source: "bluesky" });
+  });
+
+  it("records an internal click with no remembered landing as direct, not 'this site'", async () => {
+    await visit(`/items/${ITEM.slug}`, { headers: { "User-Agent": BROWSER, Referer: `${BASE}/` } });
+    expect(await viewedFrom()).toEqual({ referrer_host: null, utm_source: null });
+  });
+});
