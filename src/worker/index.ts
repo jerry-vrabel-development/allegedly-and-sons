@@ -48,6 +48,7 @@ import {
 import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
+import { landingFromRequest } from "../core/landing";
 import { ACCESS_JWT_HEADER, accessConfigFrom, verifyAccessJwt, type AccessDeps } from "./access";
 import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
@@ -414,9 +415,11 @@ export default {
         ctx.waitUntil(promise);
       },
     });
+    const url = new URL(request.url);
     return withVisitorCookie(
-      withSecurityHeaders(response, new URL(request.url).pathname),
+      withSecurityHeaders(response, url.pathname),
       visitorId,
+      landingFromRequest(url, request.headers.get("Referer"), url.hostname),
     );
   },
 } satisfies ExportedHandler<Env & Secrets & PublicVars>;

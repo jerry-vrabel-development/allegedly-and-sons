@@ -358,12 +358,14 @@ describe("the Bureau's methods", () => {
     expect(pages.disclaimer).not.toContain("uses no trackers");
   });
 
-  it("says plainly what the shop keeps on file: one cookie, passed to Stripe, no IPs, no third parties", () => {
+  it("says plainly what the shop keeps on file: two cookies, one passed to Stripe, no IPs, no third parties", () => {
     const text = pages.disclaimer;
     expect(text).toContain("What the Bureau Keeps on File");
-    expect(text).toContain("We set one cookie of our own");
+    expect(text).toContain("We set two cookies of our own.");
     expect(text).toContain("lasts a year from your latest visit");
-    expect(text).toContain("we pass that number to Stripe with your order");
+    expect(text).toContain("it’s deleted when you close your browser");
+    expect(text).not.toContain("one cookie");
+    expect(text).toContain("we pass the first one’s number to Stripe with your order");
     expect(text).toContain("whether you read their case files, which share buttons you press");
     expect(text).toContain("Our records don’t include your IP address");
     expect(text).toContain("we don’t use third-party trackers or ad networks");
