@@ -237,14 +237,58 @@ export const REFUND_WINDOW_HOURS = 24;
 /** The longest we take to ship, in days. */
 export const MAX_SHIP_DAYS = 30;
 
-interface Term {
+/**
+ * When the terms last changed (YYYY-MM-DD). Orders are governed by the terms
+ * posted when they were placed, so bump this with every change to the terms.
+ */
+export const TERMS_LAST_AMENDED = "2026-11-08";
+
+/** A clause of The Fine Print: black-market flavor, then what it actually means. */
+export interface Term {
   /** The black-market heading. */
   readonly heading: string;
-  /** Flavor, in the Bureau's voice. */
+  /** Flavor, in the Bureau's voice. Atmosphere only; never the deal itself. */
   readonly flavor: string;
-  /** What it actually means, said plainly. Every term has one. */
+  /** What it actually means: gruff, but never vague. Every clause has one, and it's binding. */
   readonly plainly: SafeHtml;
 }
+
+/** What a buyer actually gets. The voice is shady; these facts are not. */
+export const MERCHANDISE_TERMS: readonly Term[] = [
+  {
+    heading: "What Changes Hands",
+    flavor:
+      "No crates are pried open in the alley. You get precisely the object on the manifest, and nothing that glows.",
+    plainly: html`You get the ordinary object listed under <strong>Specifications</strong> on its
+      page. That is what ships.`,
+  },
+  {
+    heading: "The Provenance",
+    flavor: "Every relic comes with a story. The Bureau never said the story was true.",
+    plainly: html`The stories are fiction, written for fun. No aliens, Vikings or pharaohs were
+    consulted.`,
+  },
+  {
+    heading: "The Appraisal",
+    flavor:
+      "Each estimated value was arrived at by a man in a trench coat who declined to show his work.",
+    plainly: html`Each “estimated value” is a joke. It is not a real price, a former price or an
+    appraisal.`,
+  },
+  {
+    heading: "The Paperwork",
+    flavor:
+      "Every relic leaves with a Bureau Certificate: stamped, sealed and legally meaningless.",
+    plainly: html`Bureau Certificates are part of the joke. They are not appraisals or proof of
+    authenticity, history or value.`,
+  },
+  {
+    heading: "Not a Sound Investment",
+    flavor:
+      "Some say a Xenoclip appreciates. Those people now work in the gift shop, under supervision.",
+    plainly: html`Nothing here is an investment. Your paperclip will not go up in value.`,
+  },
+];
 
 function contactTerm(email: string | undefined): Term {
   return {
@@ -258,8 +302,13 @@ function contactTerm(email: string | undefined): Term {
 }
 
 /**
- * The terms of sale, themed as back-room dealings. The voice is shady; the
- * terms are not. Each one ends with a plain sentence saying exactly what it means.
+ * The terms of sale, themed as back-room dealings and as seller-friendly as
+ * the law comfortably allows. The flavor is atmosphere; the Plainly line is
+ * the term. Refunds for a change of mind (24 hours), for damaged or lost
+ * items, and for late shipping stay: mail-order rules and the card networks
+ * require them in practice, and dropping them only turns refunds into
+ * chargebacks. Have a lawyer review before real orders (enforceability of
+ * the liability cap and venue varies).
  */
 export function saleTerms(email: string | undefined = ORDER_CONTACT_EMAIL): readonly Term[] {
   return [
@@ -267,93 +316,159 @@ export function saleTerms(email: string | undefined = ORDER_CONTACT_EMAIL): read
       heading: "No Take-Backs After Twelve Orbits",
       flavor:
         "Cold feet? Speak up within twelve orbits of the Naxous star. After that the deal is done, and the Bureau never saw you.",
-      plainly: html`You can cancel for a full refund within ${String(REFUND_WINDOW_HOURS)} hours of
-      purchase. Ask through the contact below.`,
+      plainly: html`Changed your mind? Full refund if you ask within ${String(REFUND_WINDOW_HOURS)}
+      hours of purchase.`,
     },
     {
       heading: "Ambushed Couriers and Misfiring Wormholes",
       flavor: "Couriers get waylaid. Wormholes misfire. In this line of work, it happens.",
-      plainly: html`If your item arrives damaged or never arrives, you get a full refund.`,
+      plainly: html`Arrives damaged, or never arrives? Full refund.`,
     },
     {
       heading: "The Courier's Cut Is Covered",
       flavor: "The courier's fee is baked into the price. Nobody asks the courier questions.",
-      plainly: html`Shipping is included in the price. We ship to US addresses only.`,
+      plainly: html`Shipping is included in the price. US addresses only.`,
     },
     {
       heading: "Rare Goods Travel Slowly",
       flavor:
-        "False-bottomed crates. Decoy routes. Packaging that has to be talked into it. The rarer the object, the longer the road, and some exhibits insist on special handling.",
+        "False-bottomed crates. Decoy routes. Packaging that has to be talked into it. The rarer the object, the longer the road.",
       plainly: html`Orders ship within ${String(MAX_SHIP_DAYS)} days of purchase. If yours will take
-      longer, we'll email you and you can cancel for a full refund.`,
+      longer, we'll email you, and you can cancel for a full refund.`,
+    },
+    {
+      heading: "Sold As Found",
+      flavor: "The Bureau vouches for nothing. Least of all itself.",
+      plainly: html`Items are sold as-is, with no warranties beyond the ones the law requires.`,
+    },
+    {
+      heading: "The Limits of the Bureau's Debt",
+      flavor: "Whatever befalls you, the Bureau's debt to you ends at the price of the relic.",
+      plainly: html`As far as the law allows, our liability for any order is limited to what you
+      paid for it.`,
+    },
+    {
+      heading: "The Bureau Chooses Its Clients",
+      flavor:
+        "Not everyone gets through the door. Some get through it and are politely shown back out.",
+      plainly: html`We may refuse or cancel any order, for example over a pricing mistake or
+      suspected fraud. If we cancel, you get a full refund.`,
+    },
+    {
+      heading: "Money Goes Back the Way It Came",
+      flavor: "No envelopes of cash. No store credit. No favors.",
+      plainly: html`Refunds go back to the card you paid with.`,
+    },
+    {
+      heading: "Come to the Bureau Before the Bank",
+      flavor: "Go to the bank before the Bureau, and the Bureau will remember.",
+      plainly: html`Problem with an order? Contact us first. We'll sort it out faster than a card
+      dispute will.`,
+    },
+    {
+      heading: "The Bureau Answers to Illinois",
+      flavor: "The Bureau operates from undisclosed locations, every one of which is in Illinois.",
+      plainly: html`These terms are governed by Illinois law. Any dispute goes to the courts of Cook
+      County, Illinois.`,
+    },
+    {
+      heading: "The Arrangement Shifts in the Dark",
+      flavor:
+        "The Bureau rewrites its arrangements by candlelight. Yours stays sealed in the envelope you were handed.",
+      plainly: html`We may update these terms. Your order is governed by the terms posted when you
+      placed it.`,
+    },
+    {
+      heading: "What Leaves the Vault Stays Out",
+      flavor: "Once a recording or certificate leaves the vault, it cannot be un-leaked.",
+      plainly: html`Digital items (like certificate files and audio) can't be refunded once
+      delivered, unless they don't work. The 24-hour change-of-mind refund doesn't cover them.`,
     },
     contactTerm(email),
   ];
+}
+
+/** How the shop runs: what loads in the browser and what's recorded. */
+export const METHODS_TERMS: readonly Term[] = [
+  {
+    heading: "What Runs in Your Browser",
+    flavor:
+      "The Bureau's agents work quietly, and only where they're needed: at the checkout desk, nowhere else.",
+    plainly: html`Only the checkout page runs any script: Stripe’s, which shows the payment form,
+      and a small one of ours that loads it. Stripe may collect information about your device to
+      help prevent fraud; see <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card
+      details go straight to Stripe and never touch our servers.`,
+  },
+  {
+    heading: "What the Bureau Keeps on File",
+    flavor:
+      "The Bureau keeps a discreet ledger of who came by and which relics caught their eye. One slip of paper, tucked in your coat pocket, so we know you when you return.",
+    plainly: html`We set one cookie of our own. It holds a random number and nothing else, and it
+    lasts a year from your latest visit. We use it to count visitors and to see which pages and
+    links lead to purchases. When you check out, we pass that number to Stripe with your order, so
+    we can tell which visits led to a sale. We also note which item pages are viewed, the country
+    your connection comes from, and the website that sent you. Our records don’t include your IP
+    address, and we don’t use third-party trackers or ad networks.`,
+  },
+];
+
+/** One group of clauses: heading, flavor, then the binding plain line. */
+function clauses(terms: readonly Term[]): SafeHtml {
+  return html`${terms.map(
+    (term) =>
+      html`<h3>${term.heading}</h3>
+        <p>${term.flavor}</p>
+        <p><strong>Plainly:</strong> ${term.plainly}</p>`,
+  )}`;
+}
+
+/** "2026-11-08" → "November 8, 2026". */
+function longDate(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00Z`).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL): SafeHtml {
   return layout({
     title: "The Fine Print",
     description:
-      "What you actually receive from Allegedly & Sons, and the terms of sale, said plainly.",
+      "What you actually receive from Allegedly & Sons, and the terms of sale, each said plainly.",
     body: html` <div class="prose">
       <h1>The Fine Print</h1>
-      <p class="tagline">Said plainly, for once.</p>
-      <ul>
-        <li>
-          Every item is exactly the ordinary object described under
-          <strong>Specifications</strong> on its page. That is what ships.
-        </li>
-        <li>
-          The stories are fiction, written for fun. No aliens, Vikings or pharaohs were consulted.
-        </li>
-        <li>
-          Each “estimated value” is a joke too. It is not a real price, a former price or an
-          appraisal.
-        </li>
-        <li>
-          Bureau Certificates are part of the joke. They are not appraisals or proof of
-          authenticity, history or value.
-        </li>
-        <li>Nothing here is an investment. Your paperclip will not go up in value.</li>
-      </ul>
+      <p class="tagline">
+        Read it by candlelight. Every clause comes with a plain translation, marked
+        <strong>Plainly</strong>.
+      </p>
+
+      <section aria-labelledby="merchandise-heading">
+        <h2 id="merchandise-heading">Regarding the Merchandise</h2>
+        ${clauses(MERCHANDISE_TERMS)}
+      </section>
 
       <section aria-labelledby="terms-heading">
         <h2 id="terms-heading">The Terms of the Arrangement</h2>
         <p class="tagline">Keep your voice down. Here is how the Bureau does business.</p>
-        ${saleTerms(email).map(
-          (term) =>
-            html`<h3>${term.heading}</h3>
-              <p>${term.flavor}</p>
-              <p><strong>Plainly:</strong> ${term.plainly}</p>`,
-        )}
+        ${clauses(saleTerms(email))}
       </section>
 
-      <section aria-labelledby="scripts-heading">
-        <h2 id="scripts-heading">What Runs in Your Browser</h2>
-        <p>
-          Only the checkout page runs any script: Stripe’s, which shows the payment form, and a
-          small one of ours that loads it. Stripe may collect information about your device to help
-          prevent fraud; see
-          <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight
-          to Stripe and never touch our servers. No other page runs any script.
-        </p>
+      <section aria-labelledby="methods-heading">
+        <h2 id="methods-heading">The Bureau's Methods</h2>
+        ${clauses(METHODS_TERMS)}
       </section>
 
-      <section aria-labelledby="ledger-heading">
-        <h2 id="ledger-heading">What the Bureau Keeps on File</h2>
+      <section aria-labelledby="seal-heading">
+        <h2 id="seal-heading">Signed and Sealed</h2>
         <p>
-          The Bureau keeps a discreet ledger of who came by and which relics caught their eye. One
-          slip of paper, tucked in your coat pocket, so we know you when you return.
+          Last amended the night the ledger caught fire (<time datetime="${TERMS_LAST_AMENDED}"
+            >${longDate(TERMS_LAST_AMENDED)}</time
+          >). Witnessed by Gerald, the Bureau's notary. Gerald is not a notary.
         </p>
         <p>
-          <strong>Plainly:</strong> we set one cookie of our own. It holds a random number and
-          nothing else, and it lasts a year from your latest visit. We use it to count visitors and
-          to see which pages and links lead to purchases. When you check out, we pass that number to
-          Stripe with your order, so we can tell which visits led to a sale. We also note which item
-          pages are viewed, the country your connection comes from, and the website that sent you.
-          Our records don’t include your IP address, and we don’t use third-party trackers or ad
-          networks.
+          <strong>Plainly:</strong> the flavor text is atmosphere. The Plainly lines are the deal.
         </p>
       </section>
       <p><a href="/">Back to the collection</a></p>
