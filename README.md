@@ -31,7 +31,9 @@ Not built yet: a private order list for fulfillment. Analytics
 checkout starts are recorded in D1 with a first-party visitor id, country,
 referrer host and campaign, and each order carries the visitor id, so a sale
 can be traced back to the visits before it. Shares go through the shop's own
-`/share` route, so each one is tied to the visits (and sales) it brings back.
+`/share` route, so each one is tied to the visits (and sales) it brings back,
+and a small first-party script records whether visitors open each item's case
+file and read it to the end.
 
 ## How a purchase works
 
@@ -56,9 +58,11 @@ are the same.
 
 ## Security and privacy
 
-- **One page runs script.** Every other page sends a strict Content Security
-  Policy with no `script-src` at all; only the checkout page allows our own
-  script and Stripe's documented sources. Tests check both.
+- **Two kinds of page run script, nothing third-party.** Item pages allow only
+  our own story script (`script-src 'self'`, reporting reads to our own
+  `/events`); the checkout page allows our own script and Stripe's documented
+  sources. Every other page sends a strict Content Security Policy with no
+  `script-src` at all. Tests check all three.
 - **No third-party trackers.** Analytics are first-party, recorded by the Worker
   in D1, after the response is sent. One first-party cookie (`__Host-vid`, a
   random id: `Secure`, `HttpOnly`, `SameSite=Lax`) recognizes returning

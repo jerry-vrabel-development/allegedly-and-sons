@@ -1,6 +1,6 @@
 # 0001 — Analytics for the shop
 
-- **Status:** Decided; building (C1 #34 and C2 #36 built; C3 in progress)
+- **Status:** Decided; building (C1 #34, C2 #36 and C3 #41 built; C4 in progress)
 - **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -56,13 +56,13 @@ Every event is one row in `analytics_events`, with a fixed, typed shape
 validated in `src/core/analytics.ts`. Anything that fails validation is dropped
 and logged, never stored.
 
-| Event              | Recorded by                        | Notes                                   |
-| ------------------ | ---------------------------------- | --------------------------------------- |
-| `item_viewed`      | Worker, on GET `/items/<slug>`     | Skips HEAD, prefetch and declared bots  |
-| `lore_expanded`    | first-party script → Worker        | Opened the case file; later, read depth |
-| `share_clicked`    | Worker, on `/share/<slug>/<net>`   | 303 to the network, with a `?r=` ref    |
-| `shared_visit`     | Worker, on an item page with `?r=` | Links the visit to the share            |
-| `checkout_started` | Worker, when it creates a session  | Visitor id passed to Stripe             |
+| Event              | Recorded by                        | Notes                                  |
+| ------------------ | ---------------------------------- | -------------------------------------- |
+| `item_viewed`      | Worker, on GET `/items/<slug>`     | Skips HEAD, prefetch and declared bots |
+| `lore_expanded`    | first-party script → Worker        | `read_depth`: opened, or finished      |
+| `share_clicked`    | Worker, on `/share/<slug>/<net>`   | 303 to the network, with a `?r=` ref   |
+| `shared_visit`     | Worker, on an item page with `?r=` | Links the visit to the share           |
+| `checkout_started` | Worker, when it creates a session  | Visitor id passed to Stripe            |
 
 Common columns: `event`, `item_slug`, `ts`, `visitor_id`, `referrer_host`
 (host only), `country`, `utm_source`, `utm_campaign`. Later PRs add columns
@@ -136,7 +136,7 @@ Each step is a small PR into `dev` with green CI.
    (migration 0003, written by the webhook). `checkout_started` is recorded
    when Stripe returns a session. The Fine Print gains "What the Bureau Keeps
    on File."
-3. **C3 — shares.** Share buttons link to our own `/share/<slug>/<network>`,
+3. **C3 — shares. Built (#41).** Share buttons link to our own `/share/<slug>/<network>`,
    which mints a 10-hex-character `ref`, records `share_clicked` (with the
    visitor and network), and 303s to the network's share page (or `mailto:`)
    with a link back to `/items/<slug>?r=<ref>`. An item page opened with a
@@ -146,8 +146,15 @@ Each step is a small PR into `dev` with green CI.
    and item pages carry a canonical link so `?r=` copies don't split search
    results. (The sharer opening their own link counts as a visit; the
    dashboard can exclude it by visitor id.)
-4. **C4 — story reads.** A small first-party script on item pages reports
-   opening the case file and how far it was read.
+4. **C4 — story reads.** `/assets/story.js` (first-party, never inline;
+   item pages get `script-src 'self'` and `connect-src 'self'`, nothing
+   else) sends `lore_expanded` with a `read_depth` (migration 0005): `opened`
+   when the case file opens, `finished` when its last paragraph has stayed
+   on screen for 3 seconds, so skimming past it doesn't count. Beacons go to
+   `POST /events`: our Origin only, bots ignored, the same visitor + item +
+   depth counted once per 30 minutes, and at most 60 reads per visitor per
+   hour. Ad blockers will hide some reads; views and purchases are recorded
+   server-side and unaffected. The Fine Print says so.
 5. **C5 — rollups, retention and stats.** Nightly cron, 13-month cleanup, Wilson
    intervals. Then the dashboard (private admin view first; a public "museum
    stats" page is still an open question).

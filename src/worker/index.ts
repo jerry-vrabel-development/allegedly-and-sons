@@ -1,4 +1,5 @@
-import { findItem } from "../core/catalog";
+import { findItem, ITEM_PATH } from "../core/catalog";
+import { isAutomated, parseReadBeacon } from "../core/analytics";
 import {
   isNetwork,
   REF_BYTES,
@@ -20,8 +21,10 @@ import {
   recordCheckoutStarted,
   recordItemView,
   recordShareClicked,
+  recordStoryRead,
   type AnalyticsDeps,
 } from "./analytics";
+import { EVENTS_PATH, STORY_JS, STORY_SCRIPT_PATH } from "./story-script";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -73,7 +76,6 @@ export interface Deps extends WebhookDeps, AnalyticsDeps {
 }
 
 const TEXT = "text/plain; charset=utf-8";
-const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
 const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
 
 /**
@@ -218,11 +220,41 @@ function shareRedirect(
   });
 }
 
+/** The largest story beacon we'll read. Real ones are under 100 bytes. */
+const MAX_BEACON_BYTES = 1024;
+
+/**
+ * Story reads from the item page's script: POST /events with
+ * {"item": "<slug>", "depth": "opened" | "finished"}. Only our own pages may
+ * send them (Origin must be ours), bots are ignored, and repeats and floods
+ * are dropped (see recordStoryRead). Answers 204 whether or not a row was
+ * written, so a sender learns nothing from it.
+ */
+async function storyRead(request: Request, deps: Deps): Promise<Response> {
+  const { origin } = new URL(request.url);
+  if (request.headers.get("Origin") !== origin) return new Response(null, { status: 403 });
+  const text = await request.text();
+  if (text.length > MAX_BEACON_BYTES) return new Response(null, { status: 413 });
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return new Response(null, { status: 400 });
+  }
+  const beacon = parseReadBeacon(body);
+  if (beacon === undefined) return new Response(null, { status: 400 });
+  if (!isAutomated(request.headers.get("User-Agent"))) {
+    await recordStoryRead(request, beacon, deps);
+  }
+  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
     const { pathname: postPath } = new URL(request.url);
     if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
+    if (postPath === EVENTS_PATH) return storyRead(request, deps);
     const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
     if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
     const slug = CHECKOUT_PATH.exec(postPath)?.[1];
@@ -245,6 +277,13 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       return page(disclaimerPage());
     case THANKS_PATH:
       return returnPage(new URL(request.url), deps);
+    case STORY_SCRIPT_PATH:
+      return new Response(STORY_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
     case CHECKOUT_SCRIPT_PATH:
       return new Response(CHECKOUT_JS, {
         headers: {
