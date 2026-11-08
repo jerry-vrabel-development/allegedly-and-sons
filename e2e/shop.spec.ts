@@ -123,13 +123,22 @@ test.describe("item page", () => {
     await expect(more).toBeVisible();
   });
 
-  test("offers share links with the page URL", async ({ page }) => {
+  test("shares through our own route, which hands off a ref'd link", async ({ page }) => {
     const bluesky = page.getByRole("link", { name: "Share on Bluesky" });
-    await expect(bluesky).toHaveAttribute("href", /alien-paperclip/);
-    await expect(page.getByRole("link", { name: "Share by email" })).toHaveAttribute(
-      "href",
-      /^mailto:/,
-    );
+    await expect(bluesky).toHaveAttribute("href", "/share/alien-paperclip/bluesky");
+    await expect(bluesky).toHaveAttribute("rel", "nofollow");
+    // Check the hand-off without following it: following would leave for bsky.app.
+    for (const [name, target] of [
+      ["Share on Bluesky", /^https:\/\/bsky\.app\/intent\/compose\?/],
+      ["Share by email", /^mailto:\?/],
+    ] as const) {
+      const href = await page.getByRole("link", { name }).getAttribute("href");
+      const response = await page.request.get(href ?? "", { maxRedirects: 0 });
+      expect(response.status()).toBe(303);
+      const location = response.headers()["location"] ?? "";
+      expect(location).toMatch(target);
+      expect(location).toMatch(/alien-paperclip%3Fr%3D[0-9a-f]{10}/);
+    }
   });
 
   test("cross-sells the other items", async ({ page }) => {

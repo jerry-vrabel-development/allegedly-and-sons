@@ -14,6 +14,11 @@ interface PageOptions {
   readonly body: SafeHtml;
   /** Keep the page out of search results (checkout pages). */
   readonly noindex?: boolean;
+  /**
+   * The page's one true address, for search engines. Item pages set it, so
+   * shared links (?r=...) all count as the same page.
+   */
+  readonly canonical?: string;
   /** External scripts, loaded with `defer` in this order. Only the checkout page has any. */
   readonly scripts?: readonly string[];
 }
@@ -24,6 +29,7 @@ export function layout({
   description,
   body,
   noindex = false,
+  canonical,
   scripts = [],
 }: PageOptions): SafeHtml {
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
@@ -36,6 +42,7 @@ export function layout({
         <title>${fullTitle}</title>
         <meta name="description" content="${description}" />
         ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
+        ${canonical === undefined ? html`` : html`<link rel="canonical" href="${canonical}" />`}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
         ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
       </head>
@@ -141,13 +148,11 @@ export function itemPage(item: Item, origin: string): SafeHtml {
   const { story } = item;
   const [opening, ...rest] = story.paragraphs;
   const others = CATALOG.filter((other) => other.slug !== item.slug);
-  const links = shareLinks({
-    url: `${origin}${itemPath(item)}`,
-    text: `${item.name}: ${item.tagline}`,
-  });
+  const links = shareLinks(item.slug);
 
   return layout({
     title: item.name,
+    canonical: `${origin}${itemPath(item)}`,
     description: `${item.name}: ${item.hook}`,
     body: html` <article>
         <div class="exhibit">
@@ -199,7 +204,7 @@ export function itemPage(item: Item, origin: string): SafeHtml {
               ${links.map(
                 (link) =>
                   html`<li>
-                    <a href="${link.href}">${link.label}</a>
+                    <a href="${link.href}" rel="nofollow">${link.label}</a>
                   </li>`,
               )}
             </ul>

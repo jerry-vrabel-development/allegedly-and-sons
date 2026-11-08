@@ -1,6 +1,6 @@
 # 0001 — Analytics for the shop
 
-- **Status:** Decided; building (C1 built in #34; C2 in progress)
+- **Status:** Decided; building (C1 #34 and C2 #36 built; C3 in progress)
 - **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -127,7 +127,7 @@ Each step is a small PR into `dev` with green CI.
    Migration 0002 with every planned column, the pure event schema with
    property-based tests, server-side `item_viewed` with country, referrer host
    and UTMs.
-2. **C2 — visitor cookie and attribution.** `__Host-vid`: a random 128-bit id,
+2. **C2 — visitor cookie and attribution. Built (#36).** `__Host-vid`: a random 128-bit id,
    `Secure`, `HttpOnly`, `SameSite=Lax`, refreshed on every page load so it
    lasts a year from the latest visit. It's set only on HTML pages, which
    become `Cache-Control: private` so no shared cache can hand one visitor's
@@ -136,8 +136,16 @@ Each step is a small PR into `dev` with green CI.
    (migration 0003, written by the webhook). `checkout_started` is recorded
    when Stripe returns a session. The Fine Print gains "What the Bureau Keeps
    on File."
-3. **C3 — shares.** `/share/<slug>/<network>` records `share_clicked`, mints a
-   `ref`, and redirects; visits with `?r=` record `shared_visit`.
+3. **C3 — shares.** Share buttons link to our own `/share/<slug>/<network>`,
+   which mints a 10-hex-character `ref`, records `share_clicked` (with the
+   visitor and network), and 303s to the network's share page (or `mailto:`)
+   with a link back to `/items/<slug>?r=<ref>`. An item page opened with a
+   valid `?r=` records `shared_visit` alongside the view. Migration 0004 adds
+   `ref` and `channel`; the event schema allows them only on share events.
+   Link-preview bots are filtered like views, share links are `nofollow`,
+   and item pages carry a canonical link so `?r=` copies don't split search
+   results. (The sharer opening their own link counts as a visit; the
+   dashboard can exclude it by visitor id.)
 4. **C4 — story reads.** A small first-party script on item pages reports
    opening the case file and how far it was read.
 5. **C5 — rollups, retention and stats.** Nightly cron, 13-month cleanup, Wilson

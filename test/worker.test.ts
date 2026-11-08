@@ -77,9 +77,13 @@ describe("Worker", () => {
     }
   });
 
-  it("builds share links from the request's own origin", async () => {
-    const page = await (await get("/items/alien-paperclip")).text();
-    expect(page).toContain(encodeURIComponent(`${BASE}/items/alien-paperclip`));
+  it("shares links built from the request's own origin", async () => {
+    // Don't follow the redirect: that would call the real bsky.app from a test.
+    const response = await get("/share/alien-paperclip/bluesky", { redirect: "manual" });
+    expect(response.status).toBe(303);
+    expect(response.headers.get("Location")).toContain(
+      encodeURIComponent(`${BASE}/items/alien-paperclip?r=`),
+    );
   });
 
   it("returns a friendly HTML 404 for unknown paths and items", async () => {
