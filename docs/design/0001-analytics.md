@@ -1,7 +1,7 @@
-# 0001 — Privacy-first analytics for the shop
+# 0001 — Analytics for the shop
 
-- **Status:** Draft
-- **Date:** 2026-11-03
+- **Status:** Decided; building (C1 of five PRs)
+- **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
 ## Problem
@@ -10,138 +10,144 @@ Allegedly & Sons sells comedy items wrapped in outrageous lore. The strategy is 
 release many small items, see which ones get bites and build more lore around the
 winners. That only works if we can answer, per item:
 
-1. How many people saw it?
-2. How many read the lore?
-3. How many shared it, and how many visits did each share bring back?
+1. How many people saw it, and where did they come from?
+2. How many read the lore, and how far?
+3. How many shared it, and how many visits (and sales) did each share bring back?
 4. How many started checkout, and how many paid?
 
-The shop is also a portfolio piece, so the analytics must be trustworthy,
-privacy-respecting and honest about uncertainty. A wrong "winner" picked from
-twelve visits is worse than no answer.
+The goal is sales. The shop is also a portfolio piece, so the numbers must be
+trustworthy: a wrong "winner" picked from twelve visits is worse than no answer.
 
-### Constraints
+### What changed on 2026-11-08
 
-- No third-party trackers, no cookies for tracking, no cookie banner needed.
-- No personal data stored: no raw IP addresses, no user agents, no emails in
-  analytics. (Stripe holds the customer data for purchases; we keep only the
-  Stripe session id and amount.)
-- Runs on the same stack as Quest Log: Cloudflare Workers, strict TypeScript.
-- Traffic will be small at first (tens to hundreds of visits a day).
+The first draft was "privacy-first": no cookies, a daily-rotating hash instead
+of a visitor id, nothing linkable across days. That rules out the most valuable
+number for a shop, which is which visit, share or campaign led to a sale days
+later. This is an ecommerce site, so the note now optimizes for conversion:
+
+- **A first-party visitor cookie** (random id, one year) replaces the daily
+  hash. Returning visitors, multi-day funnels and purchase attribution all work.
+  The daily-salt cron and its rate limiting are gone from the plan.
+- **First-party JavaScript on item pages** is fine (story-read depth now; loot
+  spins, badges and add-to-cart later). Item pages get `script-src 'self'`.
+- **UTM parameters** are captured so posts and ads can be compared.
+- **Ad pixels** (Meta, Google Ads) come later, as their own PR, the week paid
+  ads start. Purchase conversions will be sent from the verified webhook.
+
+### Constraints that still hold
+
+- Exact, testable numbers on the stack we already run: Workers, D1, strict
+  TypeScript, Vitest in the Workers runtime.
+- **No raw IP addresses or user agents are stored.** They don't help sell
+  anything, and a table of them is only a liability. Cloudflare's country code
+  covers "where"; the user agent is read in memory to skip bots.
+- `purchased` comes only from the verified Stripe webhook, never from the
+  browser, so revenue numbers can't be faked by a client.
+- Analytics never breaks or slows a page: writes happen after the response is
+  sent, and failures are logged and dropped.
+- Once the cookie (and later pixels) exist, the shop needs a short privacy
+  policy saying what's collected. It goes to the same lawyer review as the
+  terms of sale. The Fine Print's "no trackers" line changes in the cookie PR.
 
 ## Event model
 
-Every event is one row with a fixed, typed shape, validated in the Worker.
-Anything that fails validation is dropped and counted, never stored.
+Every event is one row in `analytics_events`, with a fixed, typed shape
+validated in `src/core/analytics.ts`. Anything that fails validation is dropped
+and logged, never stored.
 
-| Event              | Sent from         | Extra fields                                |
-| ------------------ | ----------------- | ------------------------------------------- |
-| `item_viewed`      | browser → Worker  | —                                           |
-| `lore_expanded`    | browser → Worker  | `section`                                   |
-| `share_clicked`    | browser → Worker  | `channel`, `ref`                            |
-| `shared_visit`     | Worker (on `?r=`) | `ref`                                       |
-| `add_to_cart`      | browser → Worker  | `tier`                                      |
-| `checkout_started` | Worker            | `tier`, `stripe_session_id`                 |
-| `purchased`        | Stripe webhook    | `tier`, `amount_cents`, `stripe_session_id` |
+| Event              | Recorded by                        | Notes                                   |
+| ------------------ | ---------------------------------- | --------------------------------------- |
+| `item_viewed`      | Worker, on GET `/items/<slug>`     | Skips HEAD, prefetch and declared bots  |
+| `lore_expanded`    | first-party script → Worker        | Opened the case file; later, read depth |
+| `share_clicked`    | Worker, on `/share/<slug>/<net>`   | 303 to the network, with a `?r=` ref    |
+| `shared_visit`     | Worker, on an item page with `?r=` | Links the visit to the share            |
+| `checkout_started` | Worker, when it creates a session  | Visitor id passed to Stripe             |
 
-Common fields: `event`, `item_id`, `ts`, `visitor_day_id`, `referrer_host`
-(host only, no path or query).
+Common columns: `event`, `item_slug`, `ts`, `visitor_id`, `referrer_host`
+(host only), `country`, `utm_source`, `utm_campaign`. Later PRs add columns
+for `ref`, `channel` and read depth; the event list in the table's `CHECK` is
+already complete, so the table never needs rebuilding.
 
-- **`purchased` comes only from a verified Stripe webhook**, never from the
-  browser, so revenue numbers can't be faked by a client.
-- **`ref`** is a short random code created when someone clicks Share. A visit
-  with `?r=<ref>` logs a `shared_visit` linked to the original share, which gives
-  us shares → return visits per item and per channel.
-- **`visitor_day_id`** is `hash(ip + user_agent + daily_salt)`. The salt
-  lives in KV, a cron trigger rotates it daily, and the old salt is deleted. That
-  lets us count unique visitors within a day but makes it impossible (for us too)
-  to link a visitor across days. The IP is used only in memory to compute the hash
-  and is never written anywhere.
+**Purchases aren't copied into this table.** The `orders` table, written only by
+the verified webhook, is the purchase record. Checkout passes the visitor id to
+Stripe (`client_reference_id`), the webhook stores it on the order, and the
+funnel joins views → shares → checkouts → orders by visitor. One writer per
+fact means nothing can drift.
+
+"Views" are page loads by browsers that don't announce they're bots. Bots that
+pretend to be browsers still count, so the dashboard says "page views," and
+"visitors" once the cookie exists.
 
 ## Options for the event store
 
 ### Option A — Workers Analytics Engine
 
-Cloudflare's built-in time-series store, written from the Worker with
-`writeDataPoint` and queried over a SQL API.
-
 - ➕ Purpose-built for event analytics, cheap at high volume, no schema to manage.
-- ➖ Data is kept for three months only.
-- ➖ It samples data at write and read time, so counts are estimates. That's fine at
-  CDN scale, but it works against "exact, honest numbers" at our scale.
-- ➖ No joins, so share → return-visit → purchase attribution gets awkward.
+- ➖ Keeps data for three months only, and samples, so counts are estimates.
+- ➖ No joins, so share → visit → purchase attribution gets awkward.
 - ➖ Harder to test locally and in CI than SQL against a real database.
 
 ### Option B — D1 raw events plus daily rollups
 
-Store each event as a row in D1 (SQLite). A cron trigger builds a
-`daily_item_stats` table each night. The dashboard reads the rollups; ad-hoc
-questions use SQL on the raw events.
-
-- ➕ Exact counts, real joins (shares → visits → purchases), and unlimited retention
-  under our control.
-- ➕ Plain SQL migrations, testable in Vitest with the Workers pool, the same as
-  Quest Log.
-- ➕ Easy to explain in a README or an interview.
-- ➖ We own the schema, indexes and retention policy.
-- ➖ Write volume is limited by D1. That isn't a concern at our traffic, but it would
-  be at viral-spike scale.
+- ➕ Exact counts, real joins (visitor → share → order), retention we control.
+- ➕ Plain SQL migrations, testable in Vitest with the Workers pool.
+- ➖ We own the schema, indexes and retention.
+- ➖ D1 write volume would matter at viral-spike scale, not at ours.
 
 ## Decision
 
-**Option B: D1 raw events plus daily rollups.**
-
-At our scale, exact numbers and joins matter more than unlimited write
-throughput. D1 also keeps the whole system testable and explainable, which is
-the point of a portfolio piece.
-
-Raw events are kept for 13 months, then deleted by the cron job. Rollups are
-kept indefinitely; they contain no visitor ids.
+**Option B: D1 raw events plus nightly rollups.** Exact numbers and joins
+matter more than write throughput at our scale, and attribution needs joins.
+Raw events are kept for 13 months; rollups indefinitely.
 
 ### What would change my mind
 
-- **Sustained traffic in the thousands of events per second, or D1 write
-  errors during a spike.** Then add Analytics Engine as a write-through
-  buffer for the high-volume events (`item_viewed`) and keep D1 for the
-  low-volume, high-value ones (shares, checkouts, purchases).
-- **A need for real-time dashboards.** Rollups would move from nightly to hourly
-  first; only then would we consider anything else.
+- **Sustained thousands of events per second, or D1 write errors in a spike.**
+  Then `item_viewed` goes to Analytics Engine as a write-through buffer, and D1
+  keeps the low-volume, high-value events (shares, checkouts, orders).
+- **A need for real-time dashboards.** Rollups move from nightly to hourly first.
 
 ## Honest statistics
 
-The dashboard ranks items by bites, and it must not overclaim.
+The dashboard ranks items by bites, and it must not overclaim. This is about
+money: lore effort should go to real winners.
 
-- Every rate (share rate, conversion rate) is shown with its sample size and a
-  95% Wilson score interval.
-- An item isn't ranked until it has at least **100 views**. Below that, it
-  shows "not enough data yet."
-- Comparisons ("Xenoclip shares 4× more than the Quill") are shown only
-  when the intervals don't overlap. Otherwise the dashboard says "no clear
-  difference yet."
-- Each lore decision ("gave the Xenoclip a sequel") is logged with the numbers
-  behind it, so the data → decision loop is visible and auditable.
+- Every rate is shown with its sample size and a 95% Wilson score interval.
+- An item isn't ranked until it has at least **100 views**.
+- Comparisons ("the Xenoclip gets shared 4× more than the Quill") are shown only when the
+  intervals don't overlap; otherwise "no clear difference yet."
+- Each lore decision is logged with the numbers behind it.
 
-## Security and abuse
+## Build plan
 
-- Event endpoints are rate-limited per `visitor_day_id` and validate the
-  `item_id` against the catalog, so junk can't pile up.
-- Stripe webhooks are verified with the signing secret; unverified calls are
-  rejected and counted.
-- Secrets (Stripe keys, webhook secret) live in Worker secrets, never in code.
-- Logs never contain IPs, user agents, Stripe customer details or full referrer
-  URLs.
+Each step is a small PR into `dev` with green CI.
+
+1. **C1 — events table and item views.** Migration 0002 with every planned
+   column, the pure event schema with property-based tests, server-side
+   `item_viewed` with country, referrer host and UTMs. No cookie yet
+   (`visitor_id` is NULL).
+2. **C2 — visitor cookie and attribution.** A first-party `HttpOnly`, `Secure`,
+   `SameSite=Lax` cookie with a random id, set on page loads; the id on every
+   event and passed to Stripe; stored on orders by the webhook. Update the
+   Fine Print.
+3. **C3 — shares.** `/share/<slug>/<network>` records `share_clicked`, mints a
+   `ref`, and redirects; visits with `?r=` record `shared_visit`.
+4. **C4 — story reads.** A small first-party script on item pages reports
+   opening the case file and how far it was read.
+5. **C5 — rollups, retention and stats.** Nightly cron, 13-month cleanup, Wilson
+   intervals. Then the dashboard (private admin view first; a public "museum
+   stats" page is still an open question).
 
 ## Testing
 
-- Unit tests for the event schema and validation, including property-based
-  tests for malformed input.
-- Unit tests for the Wilson interval and the "not enough data" thresholds.
-- Worker tests: event ingestion, `?r=` attribution, webhook signature
-  rejection, salt rotation, retention cleanup.
-- A test proving no stored row or log line contains an IP or user agent.
+- Unit and property-based tests for the event schema, referrer, UTM and
+  country parsing, and bot/prefetch detection.
+- Worker tests: views recorded after the response, nothing recorded for HEAD,
+  prefetch, bots or unknown items, pages still served when D1 is down.
+- A test that no stored row or log line contains the raw IP or user agent.
+- Browser tests run the real Worker with migrations applied to local D1.
 
 ## Open questions
 
-- Which tiers launch first (digital certificate, `.wav`, sticker,
-  headline item)?
-- Dashboard: public "museum stats" page as part of the joke, private admin
-  view, or both?
+- Which tiers launch first (digital certificate, `.wav`, sticker, headline item)?
+- Dashboard: private admin view only, or also a public "museum stats" page?

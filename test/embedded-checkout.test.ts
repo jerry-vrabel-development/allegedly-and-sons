@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
@@ -122,6 +123,7 @@ function deps(
     webhookSecret: undefined,
     db: env.DB,
     nowSeconds: () => 0,
+    waitUntil: () => undefined,
   };
   return { deps: d, sent };
 }
@@ -149,13 +151,18 @@ describe("GET /checkout/<item>", () => {
     const response = await worker.fetch(
       new Request(`${BASE}/checkout/${ITEM.slug}`),
       testEnv({ STRIPE_SECRET_KEY: "sk_test_fake" }),
+      createExecutionContext(),
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Security-Policy")).toBe(CHECKOUT_CSP);
   });
 
   it("says acquisitions open soon (503, strict policy) when no Stripe key is set", async () => {
-    const response = await worker.fetch(new Request(`${BASE}/checkout/${ITEM.slug}`), testEnv());
+    const response = await worker.fetch(
+      new Request(`${BASE}/checkout/${ITEM.slug}`),
+      testEnv(),
+      createExecutionContext(),
+    );
     expect(response.status).toBe(503);
     expect(await response.text()).toContain("Acquisitions open soon");
     expect(response.headers.get("Content-Security-Policy")).toBe(STRICT_CSP);
@@ -217,7 +224,7 @@ describe("POST /checkout/<item>/session", () => {
   });
 
   it("gets the strict policy from the deployed Worker (it's JSON, not the checkout page)", async () => {
-    const response = await worker.fetch(postSession(), testEnv());
+    const response = await worker.fetch(postSession(), testEnv(), createExecutionContext());
     expect(response.status).toBe(503);
     expect(response.headers.get("Content-Security-Policy")).toBe(STRICT_CSP);
   });

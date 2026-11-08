@@ -26,8 +26,9 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
 - A return page that asks Stripe whether a session was really paid before
   saying so.
 
-Not built yet: a private order list for fulfillment, and the privacy-first
-analytics in [0001](docs/design/0001-analytics.md).
+Not built yet: a private order list for fulfillment. Analytics
+([0001](docs/design/0001-analytics.md)) is in progress: item page views are
+recorded in D1 with country, referrer host and campaign.
 
 ## How a purchase works
 
@@ -55,8 +56,11 @@ are the same.
 - **One page runs script.** Every other page sends a strict Content Security
   Policy with no `script-src` at all; only the checkout page allows our own
   script and Stripe's documented sources. Tests check both.
-- **No trackers.** No analytics scripts, no tracking cookies. Every HTML page
-  sends `Cache-Control: no-transform`, so nothing can be injected in transit.
+- **No third-party trackers.** Analytics are first-party, recorded by the Worker
+  in D1, after the response is sent. Every HTML page sends
+  `Cache-Control: no-transform`, so nothing can be injected in transit.
+- **No raw IPs or user agents stored.** Analytics keep the item, the time, the
+  country, the referring host and the campaign; tests check nothing else leaks.
 - **No personal data stored.** Orders hold Stripe ids, the item, the amount and
   timestamps. Names, emails and addresses stay with Stripe, and logs carry event
   types, ids and short reasons, never payloads.
@@ -139,13 +143,13 @@ Before your first `npm run test:e2e`, install the browsers once:
 
 - Cloudflare Workers, strict TypeScript, no runtime dependencies (plain `fetch`
   and Web Crypto instead of the Stripe SDK)
-- D1 for orders and processed Stripe events (analytics events planned)
+- D1 for orders, processed Stripe events and analytics events
 - Stripe Checkout, embedded, with purchases recorded by verified webhooks
 - Vitest in the Workers runtime, Playwright with axe, GitHub Actions CI
 
 ## Design notes
 
-- [0001 — Privacy-first analytics](docs/design/0001-analytics.md)
+- [0001 — Analytics for the shop](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
 - [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
 - [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md) (built)

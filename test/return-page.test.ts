@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { returnOutcome, SESSION_ID } from "../src/core/checkout";
@@ -124,6 +125,7 @@ function deps(reply: () => Response | Promise<Response> = () => Response.json(se
     webhookSecret: undefined,
     db: env.DB,
     nowSeconds: () => 0,
+    waitUntil: () => undefined,
   };
   return { deps: d, looked };
 }
@@ -212,7 +214,11 @@ describe("GET /thanks", () => {
   });
 
   it("claims nothing when no Stripe key is set", async () => {
-    const response = await worker.fetch(new Request(`${BASE}/thanks?session_id=${ID}`), testEnv());
+    const response = await worker.fetch(
+      new Request(`${BASE}/thanks?session_id=${ID}`),
+      testEnv(),
+      createExecutionContext(),
+    );
     expect(await response.text()).toContain("<h1>Thank you</h1>");
   });
 });

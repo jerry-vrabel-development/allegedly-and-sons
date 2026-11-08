@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
@@ -130,8 +131,13 @@ describe("Worker", () => {
       await worker.fetch(
         new Request(`${BASE}/checkout/${CATALOG[0].slug}`),
         testEnv({ STRIPE_SECRET_KEY: "sk_test_fake" }),
+        createExecutionContext(),
       ),
-      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), NO_STRIPE_ENV),
+      await worker.fetch(
+        new Request(`${BASE}/checkout/${CATALOG[0].slug}`),
+        NO_STRIPE_ENV,
+        createExecutionContext(),
+      ),
     ];
     for (const response of responses) {
       expect(response.headers.get("Content-Type"), response.url).toBe("text/html; charset=utf-8");
@@ -153,13 +159,18 @@ describe("Worker", () => {
           ...CATALOG.map((i) => `/items/${i.slug}`),
         ].map((path) => get(path)),
       )),
-      await worker.fetch(new Request(`${BASE}/checkout/${CATALOG[0].slug}`), NO_STRIPE_ENV),
+      await worker.fetch(
+        new Request(`${BASE}/checkout/${CATALOG[0].slug}`),
+        NO_STRIPE_ENV,
+        createExecutionContext(),
+      ),
       await worker.fetch(
         new Request(`${BASE}/checkout/${CATALOG[0].slug}`, {
           method: "POST",
           headers: { Origin: BASE },
         }),
         NO_STRIPE_ENV,
+        createExecutionContext(),
       ),
     ];
     for (const response of responses) {
@@ -196,6 +207,7 @@ describe("checkout", () => {
         webhookSecret: undefined,
         db: env.DB,
         nowSeconds: () => 0,
+        waitUntil: () => undefined,
       },
       sent,
     };
@@ -254,7 +266,7 @@ describe("checkout", () => {
       method: "POST",
       headers: { Origin: BASE },
     });
-    const response = await worker.fetch(request, NO_STRIPE_ENV);
+    const response = await worker.fetch(request, NO_STRIPE_ENV, createExecutionContext());
     expect(response.status).toBe(503);
     const text = await response.text();
     expect(text).toContain("Acquisitions open soon");

@@ -1,3 +1,4 @@
+import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { route, type Deps } from "../src/worker/index";
@@ -17,6 +18,7 @@ function deps(overrides: Partial<Deps> = {}): Deps {
     webhookSecret: SECRET,
     db: env.DB,
     nowSeconds: () => NOW,
+    waitUntil: () => undefined,
     ...overrides,
   };
 }
@@ -258,6 +260,7 @@ describe("the deployed Worker", () => {
     const response = await worker.fetch(
       await signedRequest(completedEvent(), SECRET, now),
       secured,
+      createExecutionContext(),
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'none'");
@@ -265,7 +268,11 @@ describe("the deployed Worker", () => {
   });
 
   it("answers 503 when the env has no signing secret", async () => {
-    const response = await worker.fetch(await signedRequest(completedEvent()), testEnv());
+    const response = await worker.fetch(
+      await signedRequest(completedEvent()),
+      testEnv(),
+      createExecutionContext(),
+    );
     expect(response.status).toBe(503);
   });
 });
