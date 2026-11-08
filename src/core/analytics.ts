@@ -83,6 +83,16 @@ function nullOr(value: unknown, pattern: RegExp): value is string | null {
   return value === null || (typeof value === "string" && pattern.test(value));
 }
 
+/** A bare DNS host name, as stored in referrer_host. */
+export function isHostName(value: string): boolean {
+  return HOST.test(value);
+}
+
+/** A normalized UTM value, as stored in utm_source and utm_campaign. */
+export function isUtmValue(value: string): boolean {
+  return UTM.test(value);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -7,6 +7,7 @@
  */
 
 import type { Item } from "../core/catalog";
+import { landingFromCookie, landingFromRequest } from "../core/landing";
 import { REF, REF_PARAM, type Network } from "../core/share";
 import {
   countryFrom,
@@ -15,7 +16,6 @@ import {
   isPrefetch,
   parseEvent,
   referrerHostFrom,
-  utmValue,
 } from "../core/analytics";
 
 export interface AnalyticsDeps {
@@ -105,17 +105,23 @@ export function recordCheckoutStarted(request: Request, item: Item, deps: Analyt
 /** Records `item_viewed` for an item page, after the response is sent. */
 export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps): void {
   if (!countsAsView(request)) return;
-  const { searchParams } = new URL(request.url);
+  const url = new URL(request.url);
+  const { searchParams } = url;
+  // Credit what brought this visit in: this request's own outside source, or
+  // the one remembered from where the visit landed (see core/landing.ts).
+  const landing =
+    landingFromRequest(url, request.headers.get("Referer"), url.hostname) ??
+    landingFromCookie(request.headers.get("Cookie"));
   deps.waitUntil(
     recordEvent(deps.db, {
       event: "item_viewed",
       itemSlug: item.slug,
       ts: deps.nowSeconds(),
       visitorId: deps.visitorId,
-      referrerHost: referrerHostFrom(request.headers.get("Referer")),
+      referrerHost: landing?.referrerHost ?? null,
       country: countryFrom(request.cf?.country),
-      utmSource: utmValue(searchParams.get("utm_source")),
-      utmCampaign: utmValue(searchParams.get("utm_campaign")),
+      utmSource: landing?.utmSource ?? null,
+      utmCampaign: landing?.utmCampaign ?? null,
       ref: null,
       channel: null,
       readDepth: null,

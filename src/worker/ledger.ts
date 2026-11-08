@@ -38,6 +38,9 @@ export interface ItemRow {
   readonly shares: number;
   readonly sharedVisits: number;
   readonly checkouts: number;
+  /** Visitors of this item who bought it: what "Bought" rates against visitors. */
+  readonly buyers: number;
+  /** Every paid order for the item in the period, attributed or not (sales). */
   readonly orders: number;
   readonly revenueCents: number;
 }
@@ -94,27 +97,46 @@ export async function readLedger(
       .bind(since),
     db
       .prepare(
-        `SELECT item_slug, COUNT(*) AS orders, SUM(amount_cents) AS revenue
-         FROM orders WHERE paid_at >= ? GROUP BY item_slug`,
+        // Sales count every paid order; buyers only visitors who viewed the
+        // item in the period and then bought it, so "Bought" never mixes in
+        // orders from before the visitor cookie (or with none).
+        `SELECT o.item_slug,
+           COUNT(*) AS orders,
+           SUM(o.amount_cents) AS revenue,
+           COUNT(DISTINCT CASE WHEN EXISTS (
+             SELECT 1 FROM analytics_events e
+             WHERE e.event = 'item_viewed' AND e.item_slug = o.item_slug
+               AND e.visitor_id = o.visitor_id AND e.ts >= ? AND e.ts <= o.paid_at
+           ) THEN o.visitor_id END) AS buyers
+         FROM orders o WHERE o.paid_at >= ? GROUP BY o.item_slug`,
       )
-      .bind(since),
+      .bind(since, since),
     db
       .prepare(
-        `SELECT
+        // Each visitor counts once, by the source of their first item view in
+        // the period (first touch). Rows from before the visitor cookie have
+        // no visitor to follow, so they're left out here.
+        `WITH firsts AS (
+           SELECT visitor_id, ts, utm_source, referrer_host,
+             ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY ts, id) AS n
+           FROM analytics_events
+           WHERE event = 'item_viewed' AND ts >= ? AND visitor_id IS NOT NULL
+         )
+         SELECT
            CASE
-             WHEN e.utm_source IS NOT NULL THEN e.utm_source
-             WHEN e.referrer_host IS NULL THEN '(direct)'
-             WHEN e.referrer_host = ? THEN '(this site)'
-             ELSE e.referrer_host
+             WHEN f.utm_source IS NOT NULL THEN f.utm_source
+             WHEN f.referrer_host IS NULL THEN '(direct)'
+             WHEN f.referrer_host = ? THEN '(this site)'
+             ELSE f.referrer_host
            END AS source,
-           COUNT(DISTINCT e.visitor_id) AS visitors,
+           COUNT(DISTINCT f.visitor_id) AS visitors,
            COUNT(DISTINCT o.visitor_id) AS buyers
-         FROM analytics_events e
-         LEFT JOIN orders o ON o.visitor_id = e.visitor_id AND o.paid_at >= e.ts
-         WHERE e.event = 'item_viewed' AND e.ts >= ?
+         FROM firsts f
+         LEFT JOIN orders o ON o.visitor_id = f.visitor_id AND o.paid_at >= f.ts
+         WHERE f.n = 1
          GROUP BY source ORDER BY visitors DESC, source LIMIT 20`,
       )
-      .bind(ownHost, since),
+      .bind(since, ownHost),
     db
       .prepare(
         // A sharer opening their own link isn't a return visit.
@@ -159,6 +181,7 @@ export async function readLedger(
         shares: num(row?.["shares"]),
         sharedVisits: num(row?.["shared_visits"]),
         checkouts: num(row?.["checkouts"]),
+        buyers: num(sold?.["buyers"]),
         orders: num(sold?.["orders"]),
         revenueCents: num(sold?.["revenue"]),
       };
@@ -241,7 +264,7 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
               <th scope="col">Opened the case file</th>
               <th scope="col">Finished it (of openers)</th>
               <th scope="col">Started checkout</th>
-              <th scope="col">Bought</th>
+              <th scope="col">Bought (visitors who did)</th>
               <th scope="col" class="num">Shares</th>
               <th scope="col" class="num">Visits from shares</th>
               <th scope="col" class="num">Sales</th>
@@ -256,7 +279,7 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
                   <td>${describeRate(wilson(row.opened, row.visitors))}</td>
                   <td>${describeRate(wilson(row.finished, row.opened))}</td>
                   <td>${describeRate(wilson(row.checkouts, row.visitors))}</td>
-                  <td>${describeRate(wilson(row.orders, row.visitors))}</td>
+                  <td>${describeRate(wilson(row.buyers, row.visitors))}</td>
                   <td class="num">${String(row.shares)}</td>
                   <td class="num">${String(row.sharedVisits)}</td>
                   <td class="num">${formatPrice(row.revenueCents)}</td>
@@ -269,7 +292,7 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
         "Where visitors came from",
         html`<table>
           <caption>
-            Where visitors came from (campaign, else the site that sent them)
+            Where visitors came from (by their first visit: campaign, else the site that sent them)
           </caption>
           <thead>
             <tr>
