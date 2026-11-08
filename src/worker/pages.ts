@@ -3,6 +3,7 @@ import { checkoutPath, checkoutSessionPath } from "../core/checkout";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
 import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
+import { STORY_END_ID, STORY_SCRIPT_PATH } from "./story-script";
 import { html, type SafeHtml } from "./html";
 
 export const SITE_NAME = "Allegedly & Sons";
@@ -153,6 +154,8 @@ export function itemPage(item: Item, origin: string): SafeHtml {
   return layout({
     title: item.name,
     canonical: `${origin}${itemPath(item)}`,
+    // The story script only matters when there's a case file to open.
+    scripts: rest.length === 0 ? [] : [STORY_SCRIPT_PATH],
     description: `${item.name}: ${item.hook}`,
     body: html` <article>
         <div class="exhibit">
@@ -190,9 +193,13 @@ export function itemPage(item: Item, origin: string): SafeHtml {
             ${
               rest.length === 0
                 ? html``
-                : html`<details>
+                : html`<details data-story="${item.slug}">
                     <summary>Keep reading the case file</summary>
-                    ${rest.map((paragraph) => html`<p>${paragraph}</p>`)}
+                    ${rest.map((paragraph, index) =>
+                      index === rest.length - 1
+                        ? html`<p id="${STORY_END_ID}">${paragraph}</p>`
+                        : html`<p>${paragraph}</p>`,
+                    )}
                   </details>`
             }
             <p class="byline">Recorded by ${story.author.name}, ${story.author.title}</p>
@@ -404,11 +411,13 @@ export const METHODS_TERMS: readonly Term[] = [
   {
     heading: "What Runs in Your Browser",
     flavor:
-      "The Bureau's agents work quietly, and only where they're needed: at the checkout desk, nowhere else.",
-    plainly: html`Only the checkout page runs any script: Stripe’s, which shows the payment form,
-      and a small one of ours that loads it. Stripe may collect information about your device to
-      help prevent fraud; see <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card
-      details go straight to Stripe and never touch our servers.`,
+      "The Bureau's agents work quietly: one watches the reading room, one minds the checkout desk, and nobody else gets in.",
+    plainly: html`Two kinds of page run a script, and only our own or Stripe’s. Item pages run a
+      small one of ours that notes when you open a case file and whether you read it to the end. The
+      checkout page runs Stripe’s, which shows the payment form, and a small one of ours that loads
+      it. Stripe may collect information about your device to help prevent fraud; see
+      <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight to
+      Stripe and never touch our servers.`,
   },
   {
     heading: "What the Bureau Keeps on File",
@@ -417,9 +426,10 @@ export const METHODS_TERMS: readonly Term[] = [
     plainly: html`We set one cookie of our own. It holds a random number and nothing else, and it
     lasts a year from your latest visit. We use it to count visitors and to see which pages and
     links lead to purchases. When you check out, we pass that number to Stripe with your order, so
-    we can tell which visits led to a sale. We also note which item pages are viewed, the country
-    your connection comes from, and the website that sent you. Our records don’t include your IP
-    address, and we don’t use third-party trackers or ad networks.`,
+    we can tell which visits led to a sale. We also note which item pages are viewed, whether you
+    read their case files, which share buttons you press, the country your connection comes from,
+    and the website that sent you. Our records don’t include your IP address, and we don’t use
+    third-party trackers or ad networks.`,
   },
 ];
 
