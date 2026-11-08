@@ -179,7 +179,10 @@ describe("item page", () => {
       expect(page).toContain(item.estimatedValue);
       expect(page).toContain(`alt="${item.artAlt}"`);
       expect(page).toContain(`src="/assets/art/${item.slug}.svg"`);
-      expect(page).toContain(encodeURIComponent(`${ORIGIN}/items/${item.slug}`));
+      expect(page).toContain(`<link rel="canonical" href="${ORIGIN}/items/${item.slug}" />`);
+      expect(page).toContain(
+        `<a href="/share/${item.slug}/bluesky" rel="nofollow">Share on Bluesky</a>`,
+      );
       expect(page).toContain(item.story.author.title);
       expect(count(page, /<p>/g)).toBeGreaterThanOrEqual(item.story.paragraphs.length);
       for (const spec of item.specs)

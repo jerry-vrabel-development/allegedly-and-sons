@@ -30,7 +30,8 @@ Not built yet: a private order list for fulfillment. Analytics
 ([0001](docs/design/0001-analytics.md)) is in progress: item views and
 checkout starts are recorded in D1 with a first-party visitor id, country,
 referrer host and campaign, and each order carries the visitor id, so a sale
-can be traced back to the visits before it.
+can be traced back to the visits before it. Shares go through the shop's own
+`/share` route, so each one is tied to the visits (and sales) it brings back.
 
 ## How a purchase works
 

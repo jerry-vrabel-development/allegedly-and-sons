@@ -1,5 +1,13 @@
 import { findItem } from "../core/catalog";
 import {
+  isNetwork,
+  REF_BYTES,
+  parseSharePath,
+  refFrom,
+  sharedItemUrl,
+  shareTarget,
+} from "../core/share";
+import {
   CHECKOUT_PATH,
   CHECKOUT_SESSION_PATH,
   checkoutSessionForm,
@@ -8,7 +16,12 @@ import {
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
-import { recordCheckoutStarted, recordItemView, type AnalyticsDeps } from "./analytics";
+import {
+  recordCheckoutStarted,
+  recordItemView,
+  recordShareClicked,
+  type AnalyticsDeps,
+} from "./analytics";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -178,6 +191,33 @@ async function returnPage(url: URL, deps: Deps): Promise<Response> {
   return response;
 }
 
+/**
+ * A share button: GET /share/<slug>/<network>. Mints a ref code, records the
+ * share, and sends the visitor on to the network's share page (or their mail
+ * app) with a link back to the item that carries the ref. Never cached: every
+ * press gets its own ref.
+ */
+function shareRedirect(
+  request: Request,
+  slug: string,
+  network: string,
+  origin: string,
+  deps: Deps,
+): Response {
+  const item = findItem(slug);
+  if (item === undefined || !isNetwork(network)) return page(notFoundPage(), 404);
+  const ref = refFrom(crypto.getRandomValues(new Uint8Array(REF_BYTES)));
+  recordShareClicked(request, item, network, ref, deps);
+  const location = shareTarget(network, {
+    url: sharedItemUrl(origin, item.slug, ref),
+    text: `${item.name}: ${item.tagline}`,
+  });
+  return new Response(null, {
+    status: 303,
+    headers: { Location: location, "Cache-Control": "no-store" },
+  });
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
@@ -222,6 +262,9 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   }
+
+  const share = parseSharePath(pathname);
+  if (share !== undefined) return shareRedirect(request, share.slug, share.network, origin, deps);
 
   const slug = ITEM_PATH.exec(pathname)?.[1];
   const item = slug === undefined ? undefined : findItem(slug);

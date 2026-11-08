@@ -7,6 +7,7 @@
  */
 
 import type { Item } from "../core/catalog";
+import { REF, REF_PARAM, type Network } from "../core/share";
 import {
   countryFrom,
   isAutomated,
@@ -40,8 +41,9 @@ export async function recordEvent(db: D1Database, candidate: unknown): Promise<b
     await db
       .prepare(
         `INSERT INTO analytics_events
-           (event, item_slug, ts, visitor_id, referrer_host, country, utm_source, utm_campaign)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (event, item_slug, ts, visitor_id, referrer_host, country, utm_source, utm_campaign,
+            ref, channel)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         event.event,
@@ -52,6 +54,8 @@ export async function recordEvent(db: D1Database, candidate: unknown): Promise<b
         event.country,
         event.utmSource,
         event.utmCampaign,
+        event.ref,
+        event.channel,
       )
       .run();
     return true;
@@ -89,6 +93,8 @@ export function recordCheckoutStarted(request: Request, item: Item, deps: Analyt
       country: countryFrom(request.cf?.country),
       utmSource: null,
       utmCampaign: null,
+      ref: null,
+      channel: null,
     }),
   );
 }
@@ -107,6 +113,54 @@ export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps
       country: countryFrom(request.cf?.country),
       utmSource: utmValue(searchParams.get("utm_source")),
       utmCampaign: utmValue(searchParams.get("utm_campaign")),
+      ref: null,
+      channel: null,
+    }),
+  );
+  // Arrived through a shared link: tie the visit to that share.
+  const ref = searchParams.get(REF_PARAM);
+  if (ref !== null && REF.test(ref)) {
+    deps.waitUntil(
+      recordEvent(deps.db, {
+        event: "shared_visit",
+        itemSlug: item.slug,
+        ts: deps.nowSeconds(),
+        visitorId: deps.visitorId,
+        referrerHost: referrerHostFrom(request.headers.get("Referer")),
+        country: countryFrom(request.cf?.country),
+        utmSource: null,
+        utmCampaign: null,
+        ref,
+        channel: null,
+      }),
+    );
+  }
+}
+
+/**
+ * Records share_clicked for a share button press, after the response is sent.
+ * Only real browser GETs count (link-preview bots fetch share links too).
+ */
+export function recordShareClicked(
+  request: Request,
+  item: Item,
+  network: Network,
+  ref: string,
+  deps: AnalyticsDeps,
+): void {
+  if (!countsAsView(request)) return;
+  deps.waitUntil(
+    recordEvent(deps.db, {
+      event: "share_clicked",
+      itemSlug: item.slug,
+      ts: deps.nowSeconds(),
+      visitorId: deps.visitorId,
+      referrerHost: null,
+      country: countryFrom(request.cf?.country),
+      utmSource: null,
+      utmCampaign: null,
+      ref,
+      channel: network,
     }),
   );
 }
