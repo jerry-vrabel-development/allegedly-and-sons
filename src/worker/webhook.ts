@@ -13,6 +13,8 @@
  * Logs carry the event type and id and a short reason. Never the payload.
  */
 
+import { awardsForOrder } from "../core/dossier";
+import { grantAwards } from "./dossier";
 import { CHECKOUT_COMPLETED, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
 import { verifyStripeSignature } from "./stripe-signature";
 
@@ -75,6 +77,7 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
   ];
 
   let note = "acknowledged";
+  let buyer: { visitorId: string; itemSlug: string } | undefined;
   if (event.type === CHECKOUT_COMPLETED) {
     const outcome = orderFromCompletedSession(event.object, event.created);
     if (outcome.kind === "order") {
@@ -97,6 +100,8 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
           ),
       );
       note = `order ${order.stripeSessionId}`;
+      if (order.visitorId !== null)
+        buyer = { visitorId: order.visitorId, itemSlug: order.itemSlug };
     } else {
       note = outcome.reason;
       // A paid-looking session we can't read is worth a louder log line.
@@ -114,5 +119,19 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
 
   const duplicate = results[0]?.meta.changes === 0;
   console.log(`${label}: ${duplicate ? "duplicate, ignored" : note}`);
+  // The buyer's dossier: Acquirer and the item's card. The order is already
+  // safe, so a failure here is logged and never makes Stripe retry.
+  if (!duplicate && buyer !== undefined) {
+    try {
+      await grantAwards(
+        deps.db,
+        buyer.visitorId,
+        awardsForOrder(buyer.itemSlug),
+        deps.nowSeconds(),
+      );
+    } catch {
+      console.error(`${label}: dossier grant failed`);
+    }
+  }
   return Response.json({ received: true }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -131,6 +131,10 @@ dl.specs dd { margin: 0; }
 .certificate h2 { margin-top: 0.5rem; }
 footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--muted); font-size: 1rem; }
 
+/* The dossier: sealed cards are dashed and say "Sealed" in words, never color alone */
+.card.sealed { border-style: dashed; background: transparent; }
+.badges { padding-left: 1.25rem; }
+
 /* The ledger (private dashboard): plain, scrollable tables */
 .ledger .table-scroll { overflow-x: auto; margin: 0.75rem 0 2rem; }
 .ledger .table-scroll:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
