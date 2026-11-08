@@ -1,118 +1,128 @@
 # 0003 — Gamification, collectibles and the lore rule
 
-- **Status:** Draft (planning only; no code yet)
-- **Date:** 2026-11-05
+- **Status:** Decided; building (G1, the Agent Dossier)
+- **Date:** 2026-11-05, rewritten 2026-11-08
 - **Author:** Jerry Vrabel
 
 ## Problem
 
-The shop should be fun to explore, not just to buy from. We want visitors to come
-back, collect things and share them. We also want product drops and collectibles
-to feel exciting without creating legal risk or treating visitors badly.
+The shop should be a habit, not a one-time laugh. Visitors should come back,
+collect, show off, recruit friends and buy, and the mechanics should be built
+deliberately on two frameworks:
+
+- **Hooked** (Nir Eyal): Trigger → Action → Variable Reward → Investment, a
+  loop repeated until the trigger becomes internal ("I wonder what the Bureau
+  acquired today").
+- **Octalysis** (Yu-Kai Chou, _Actionable Gamification_): eight core drives.
+  "White hat" drives (meaning, accomplishment, creativity, ownership) make
+  people feel good and stay; "black hat" drives (scarcity, unpredictability,
+  loss avoidance) create urgency and sell, but burn people out if they lead.
+  **We lead with white hat and use black hat at the moment of purchase.**
+
+## The loop
+
+| Hooked step                | At the Bureau                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| **Trigger, outside**       | Share links, posts, the Bureau Dispatch email (G3), "notify me" on editions   |
+| **Trigger, inside**        | Curiosity: what absurd thing came in today? Is my pull ready?                 |
+| **Action**                 | One tap: pull the vault lever, open a case file, check the dossier            |
+| **Variable reward: hunt**  | Lever results, secret lore pages, surprise acquisitions                       |
+| **Variable reward: self**  | Cards, card sets, ranks, badges                                               |
+| **Variable reward: tribe** | Shareable cards; Recruiter credit when your share brings someone              |
+| **Investment**             | The dossier itself: codename, number, sets in progress, streak, field reports |
+
+Without a return trigger the loop never closes, which is why the Dispatch (G3)
+comes right after the lever.
+
+## The eight drives
+
+| Drive              | Mechanic                                                                       |
+| ------------------ | ------------------------------------------------------------------------------ |
+| 1 Epic Meaning     | You're a Bureau field agent, recovering the improbable                         |
+| 2 Accomplishment   | Ranks, badges, completed card sets                                             |
+| 3 Creativity       | Codenames; later, field reports and votes on the next acquisitions             |
+| 4 Ownership        | The dossier, cards, agent number, certificates, physical trading cards         |
+| 5 Social           | Shareable cards, Recruiter badge, a recruiter leaderboard                      |
+| 6 Scarcity         | Real limited editions, one free pull a day, the locked vault, rank-gated items |
+| 7 Unpredictability | The lever, secret pages, surprise acquisitions, seasonal operations            |
+| 8 Loss Avoidance   | Duty streaks, with a streak freeze so it never feels punishing                 |
+
+## Lines we don't cross (law and money, not taste)
+
+- **Scarcity is always true.** Edition counts, stock and deadlines are real
+  numbers from the database. Fake "only 3 left" or resetting countdowns are
+  deceptive practices (FTC) and lose trust that sells future drops.
+- **No purchase ever buys a chance at something of value.** Prize + chance +
+  paying = an illegal lottery. The lever is free (daily, plus pulls earned by
+  actions); purchases earn cards and rank, **never pulls**. Lever prizes may
+  include discount codes only with written official rules, posted odds and a
+  lawyer's review; until then, prizes are vault cards, badges and secret lore.
+- **Paid random packs**, if ever: a real item worth at least the price,
+  posted odds, 18+, no checkout from Belgium, a lawyer first.
+- **The comedy goes on the story, never on the receipt.** What ships, the
+  price, shipping and refunds are always plain (see the lore rule below).
 
 ## The lore rule: outlandish, never plausible
 
-All lore, whether drafted with AI or written by partnered writers (see
-[0002](0002-writers.md)), follows one rule:
+All lore follows one rule: **make it outlandish, never plausible.** Claims so
+over the top that no reasonable buyer takes them literally are puffery; the
+risk is in claims a buyer might believe ("authentic 1800s," "will go up in
+value," anything about health or safety). Bureau certificates read as comedy
+("Authenticity: Allegedly") and never imitate a real appraiser or museum.
 
-**Make it outlandish, never plausible.**
+## Build order
 
-- ✅ Recovered from a crashed UFO, owned by a Viking with a participation trophy,
-  used by a lost civilization to sign treaties with pigeons.
-- ❌ "Authentic 1800s artifact," "Lincoln's actual pen," "will go up in value,"
-  or anything about health or safety.
+Each is a small PR into `dev` with tests, and each mechanic gets a row in the
+Ledger, so we can see which hooks actually hook.
 
-Why: claims so over the top that no reasonable buyer would take them literally
-are generally treated as puffery. The risk comes from claims a buyer might
-actually believe and rely on.
+1. **G1 — the Agent Dossier (this PR).** Server-side, keyed to the visitor
+   cookie (migration 0006: `agents`, `awards`). Awards come only from events
+   the Worker recorded itself, so nothing can be claimed from the browser:
+   - First Contact (opened a case file), Case Closed (finished one), Town Crier
+     (shared), Recruiter (someone arrived through your share; never for your
+     own link), Acquirer (first purchase, from the verified webhook).
+   - One card per exhibit: finish its case file, or acquire it.
+   - Ranks by commendations: Civilian Informant → Junior Field Agent → Field
+     Agent → Senior Field Agent → Senior Treasure Hunter → Director of
+     Improbable Acquisitions (everything).
+   - A stable codename from the visitor id and a sequential agent number.
+   - `/dossier`, linked from every page's header. Sealed cards and locked
+     badges say so in words, never color alone.
+   - Granting never breaks what triggered it, and is idempotent.
+2. **G2 — the Vault Lever.** One free pull a day, enforced by the Worker
+   (per visitor, per day); bonus pulls earned by actions, never by purchase.
+   Vault-only cards and secret lore pages; posted odds; reduced-motion version
+   ("the vault creaks open…"); no fake near-misses.
+3. **G3 — the Bureau Dispatch.** Email sign-up framed as agent registration
+   (Cloudflare Email Sending): new acquisitions, "your pull is ready," set
+   reminders. It also lets a dossier follow the agent across devices. This is
+   the outside trigger that closes the loop.
+4. **G4 — streaks, limited editions, card sets.** Duty streaks with a freeze;
+   real numbered editions ("No. 12 of 50") with true remaining counts; set
+   completion rewards and set bundles at checkout.
+5. **G5 — social.** Shareable card images (Open Graph), a "recruit an agent"
+   referral reward (credit for both sides; not chance-based), a recruiter
+   leaderboard.
+6. **G6 — more per order.** Order bumps (Deluxe Containment Crate, framed
+   certificate, wax-sealed dossier; see note 0006), gift mode (certificate in
+   the recipient's name), rank-gated items (only Senior Agents may acquire the
+   vault piece).
+7. **G7 — seasons and field reports.** Time-limited operations ("The Great
+   Bigfoot Audit") with their own card set and lore; buyers' photo field
+   reports earn a badge and get featured; physical trading cards in every
+   shipment.
 
-**The comedy goes on the story, never on the receipt.** What physically ships,
-the price, shipping times and refunds are always stated plainly and truthfully.
+## Privacy and accessibility
 
-A disclaimer page explains the joke, linked from the footer of every page.
-
-### Bureau certificates
-
-Every product comes with a certificate from the Bureau of Improbable
-Acquisitions. Certifying an unverifiable object is part of the joke, so the
-certificate must read as comedy:
-
-- Issued by the Bureau and signed by a fictional agent, with stamps like
-  "Authenticity: Allegedly" and "Verified by Nobody, Certified by Us."
-- It never imitates a real appraiser, auction house, museum or grading service,
-  and never claims real historical provenance.
-
-## Earned badges and cards (first)
-
-Visitors earn collectibles for free by exploring the shop:
-
-- **Badges** for actions: reading lore, sharing an item, a return visit through a
-  shared link, a first purchase.
-- **Cards** for items: each card shows the item's art and one line of its lore.
-  You get a card by reading an item's full story or buying the item.
-- **Bureau ranks** grow with badges, for example Junior Field Agent → Senior
-  Treasure Hunter → Director of Improbable Acquisitions.
-- **The case file:** a page showing your badges, cards and rank, with stamps.
-
-Nothing earned costs money, so there is no chance-based purchase and no legal
-question.
-
-### Privacy
-
-- Collectibles live in the visitor's own browser at first: no accounts, no
-  personal data, consistent with [0001](0001-analytics.md).
-- Trade-off: clearing the browser clears the case file. Accounts can come later
-  if visitors ask for them.
-- Analytics count badge and card events like any other event, with no visitor
-  identity.
-
-### Accessibility
-
-- Badges and cards have text names and descriptions, not just icons or colors.
-- Unlock animations respect reduced-motion settings.
-
-## The Vault Lever
-
-A big brass lever on the Bureau's vault door. Pulling it (or rolling the dice)
-gives a chance at the locked vault.
-
-- **Never paid.** Pulls are a reward: a free daily pull, plus bonus pulls earned
-  with badges.
-- **Vault prizes have no money value:** vault-only cards, badges and secret lore
-  pages. No discounts or free items, which would turn it into a sweepstakes with
-  its own rules.
-- If a purchase ever earns pulls, prizes must stay non-monetary, since paying
-  for a chance at something of value is what makes a lottery.
-- The odds are posted on the vault page.
-- No fake near-misses and no countdown pressure.
-- Reduced motion: show "the vault creaks open…" instead of the spin.
-- Pull counts live in the browser, like the case file; the Worker checks the
-  daily limit so it can't simply be reset by hand. (Detail to settle in the
-  build plan.)
-
-## Product drops and paid random items (later, if ever)
-
-Timed drops of new items (a fixed item at a fixed price) are fine and need no
-special rules.
-
-Selling **random** items for money (mystery crates, random card packs) is
-legally sensitive: Belgium treats paid loot boxes as gambling, Brazil bans them
-for under-18s, and US rules on chance-based sales vary by state. If we ever do
-it, these guardrails apply:
-
-- Every crate or pack contains a real item worth at least its price.
-- The odds are posted on the page.
-- An 18+ confirmation at checkout.
-- No checkout from Belgium.
-- No dark patterns: no fake near-misses, no countdown pressure.
-- A legal review before launch.
+- The dossier is keyed to the first-party visitor id. No accounts until G3
+  (and then only an email the agent chooses to give). The Fine Print says so.
+- Clearing cookies starts a new file until G3 can restore one by email.
+- Text names and descriptions for every badge and card; animations respect
+  reduced motion; nothing relies on color alone.
 
 ## Open questions
 
-- Which badges and ranks ship first?
-- Is a card earned by reading the whole story, or only by buying?
-- Should the case file be shareable as an image or a link?
-- Do partnered writers get their own badge or card?
-- Is the certificate a free extra with every item, a printable PDF, or a paid
-  upgrade tier?
-- How many bonus pulls can be earned per day?
+- Which vault-only cards and secret pages ship with G2, and the odds?
+- Edition sizes for the first limited run.
+- Do partnered writers (note 0002) get their own badge or card?
+- Certificate tiers: free extra, printable PDF, or a paid upgrade (G6)?

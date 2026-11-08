@@ -37,6 +37,11 @@ file and read it to the end. The private ledger at `/bureau/ledger` shows it
 all, with honest intervals, behind Cloudflare Access (which the Worker verifies
 too).
 
+Every visitor can become a Bureau agent: `/dossier` shows their badges, exhibit
+cards and rank, awarded by the Worker from what they actually do (read a case
+file to the end, share, bring someone in, acquire). See
+[0003](docs/design/0003-gamification.md) for the full gamification roadmap.
+
 ## How a purchase works
 
 1. **Acquire this exhibit** opens `/checkout/<item>`, a page in the shop. It

@@ -78,6 +78,8 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM orders"),
     env.DB.prepare("DELETE FROM stripe_events"),
+    env.DB.prepare("DELETE FROM awards"),
+    env.DB.prepare("DELETE FROM agents"),
   ]);
   logs = [];
   for (const level of ["log", "warn", "error"] as const) {
@@ -124,6 +126,41 @@ describe(`POST ${WEBHOOK_PATH}`, () => {
     ).toBe(200);
     const row = await env.DB.prepare("SELECT visitor_id FROM orders").first();
     expect(row).toEqual({ visitor_id: visitor });
+  });
+
+  it("gives the buyer Acquirer and the item's card, once", async () => {
+    const visitor = "0123456789abcdef0123456789abcdef";
+    const paid = completedEvent("evt_test_1", { client_reference_id: visitor });
+    expect((await deliver(paid)).status).toBe(200);
+    expect((await deliver(paid)).status).toBe(200);
+    const { results } = await env.DB.prepare("SELECT award FROM awards ORDER BY award").all();
+    expect(results).toEqual([{ award: "acquirer" }, { award: "card:alien-paperclip" }]);
+  });
+
+  it("still acknowledges the order if the dossier grant fails", async () => {
+    const visitor = "0123456789abcdef0123456789abcdef";
+    let calls = 0;
+    const db = new Proxy(env.DB, {
+      get(target, prop, receiver) {
+        if (prop === "batch") {
+          return (statements: D1PreparedStatement[]) => {
+            calls += 1;
+            return calls === 1 ? target.batch(statements) : Promise.reject(new Error("D1 hiccup"));
+          };
+        }
+        const value: unknown = Reflect.get(target, prop, receiver);
+        return typeof value === "function"
+          ? (value as (...a: unknown[]) => unknown).bind(target)
+          : value;
+      },
+    });
+    const response = await deliver(
+      completedEvent("evt_test_1", { client_reference_id: visitor }),
+      deps({ db }),
+    );
+    expect(response.status).toBe(200);
+    expect(await count("orders")).toBe(1);
+    expect(logs.join("\n")).toContain("dossier grant failed");
   });
 
   it("does nothing the second time the same event arrives", async () => {

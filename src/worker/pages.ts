@@ -55,6 +55,7 @@ export function layout({
             <nav aria-label="Main">
               <ul>
                 <li><a href="/">The Collection</a></li>
+                <li><a href="/dossier">Your Dossier</a></li>
               </ul>
             </nav>
           </div>
@@ -429,8 +430,10 @@ export const METHODS_TERMS: readonly Term[] = [
     here, and it’s deleted when you close your browser. When you check out, we pass the first one’s
     number to Stripe with your order, so we can tell which visits led to a sale. We also note which
     item pages are viewed, whether you read their case files, which share buttons you press, the
-    country your connection comes from, and the website that sent you. Our records don’t include
-    your IP address, and we don’t use third-party trackers or ad networks.`,
+    country your connection comes from, and the website that sent you. If you earn badges or cards,
+    we keep them with the first cookie’s number, along with an agent number and a codename made from
+    it. Our records don’t include your IP address, and we don’t use third-party trackers or ad
+    networks.`,
   },
 ];
 
