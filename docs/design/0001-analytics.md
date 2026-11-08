@@ -1,6 +1,6 @@
 # 0001 — Analytics for the shop
 
-- **Status:** Decided; building (C1 of five PRs)
+- **Status:** Decided; building (C1 built in #34; C2 in progress)
 - **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -47,7 +47,8 @@ later. This is an ecommerce site, so the note now optimizes for conversion:
   sent, and failures are logged and dropped.
 - Once the cookie (and later pixels) exist, the shop needs a short privacy
   policy saying what's collected. It goes to the same lawyer review as the
-  terms of sale. The Fine Print's "no trackers" line changes in the cookie PR.
+  terms of sale. The Fine Print's "What the Bureau Keeps on File" section (C2)
+  says what's collected, and must change when pixels arrive.
 
 ## Event model
 
@@ -122,14 +123,19 @@ money: lore effort should go to real winners.
 
 Each step is a small PR into `dev` with green CI.
 
-1. **C1 — events table and item views.** Migration 0002 with every planned
-   column, the pure event schema with property-based tests, server-side
-   `item_viewed` with country, referrer host and UTMs. No cookie yet
-   (`visitor_id` is NULL).
-2. **C2 — visitor cookie and attribution.** A first-party `HttpOnly`, `Secure`,
-   `SameSite=Lax` cookie with a random id, set on page loads; the id on every
-   event and passed to Stripe; stored on orders by the webhook. Update the
-   Fine Print.
+1. **C1 — events table and item views. Built (#34, released in #35).**
+   Migration 0002 with every planned column, the pure event schema with
+   property-based tests, server-side `item_viewed` with country, referrer host
+   and UTMs.
+2. **C2 — visitor cookie and attribution.** `__Host-vid`: a random 128-bit id,
+   `Secure`, `HttpOnly`, `SameSite=Lax`, refreshed on every page load so it
+   lasts a year from the latest visit. It's set only on HTML pages, which
+   become `Cache-Control: private` so no shared cache can hand one visitor's
+   cookie to another; static files stay public and never carry it. The id goes
+   on every event, to Stripe as `client_reference_id`, and onto the order
+   (migration 0003, written by the webhook). `checkout_started` is recorded
+   when Stripe returns a session. The Fine Print gains "What the Bureau Keeps
+   on File."
 3. **C3 — shares.** `/share/<slug>/<network>` records `share_clicked`, mints a
    `ref`, and redirects; visits with `?r=` record `shared_visit`.
 4. **C4 — story reads.** A small first-party script on item pages reports

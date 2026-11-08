@@ -336,8 +336,24 @@ export function disclaimerPage(email: string | undefined = ORDER_CONTACT_EMAIL):
           small one of ours that loads it. Stripe may collect information about your device to help
           prevent fraud; see
           <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight
-          to Stripe and never touch our servers. No other page runs any script, and the shop uses no
-          trackers.
+          to Stripe and never touch our servers. No other page runs any script.
+        </p>
+      </section>
+
+      <section aria-labelledby="ledger-heading">
+        <h2 id="ledger-heading">What the Bureau Keeps on File</h2>
+        <p>
+          The Bureau keeps a discreet ledger of who came by and which relics caught their eye. One
+          slip of paper, tucked in your coat pocket, so we know you when you return.
+        </p>
+        <p>
+          <strong>Plainly:</strong> we set one cookie of our own. It holds a random number and
+          nothing else, and it lasts a year from your latest visit. We use it to count visitors and
+          to see which pages and links lead to purchases. When you check out, we pass that number to
+          Stripe with your order, so we can tell which visits led to a sale. We also note which item
+          pages are viewed, the country your connection comes from, and the website that sent you.
+          Our records don’t include your IP address, and we don’t use third-party trackers or ad
+          networks.
         </p>
       </section>
       <p><a href="/">Back to the collection</a></p>

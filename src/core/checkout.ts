@@ -92,8 +92,13 @@ export function paymentDescription(item: Item): string {
   return `${item.name} (Exhibit ${item.exhibit})`;
 }
 
-/** The fields every Checkout Session for `item` shares, hosted or embedded. */
-function baseSessionForm(item: Item): URLSearchParams {
+/**
+ * The fields every Checkout Session for `item` shares, hosted or embedded.
+ * `visitorId` (the visitor cookie's id) goes to Stripe as client_reference_id,
+ * and comes back on the completed session, so the order can be joined to the
+ * visits before it.
+ */
+function baseSessionForm(item: Item, visitorId: string | null): URLSearchParams {
   const form = new URLSearchParams({
     mode: "payment",
     "line_items[0][quantity]": "1",
@@ -110,6 +115,7 @@ function baseSessionForm(item: Item): URLSearchParams {
     // A customer record per buyer, so name and email show up beside each payment.
     customer_creation: "always",
   });
+  if (visitorId !== null) form.set("client_reference_id", visitorId);
   for (const [key, value] of Object.entries(CHECKOUT_BRANDING)) {
     form.set(`branding_settings[${key}]`, value);
   }
@@ -124,8 +130,12 @@ function baseSessionForm(item: Item): URLSearchParams {
  * on Stripe's hosted page. `origin` is the shop's own origin (for example
  * https://allegedly.example).
  */
-export function checkoutSessionForm(item: Item, origin: string): URLSearchParams {
-  const form = baseSessionForm(item);
+export function checkoutSessionForm(
+  item: Item,
+  origin: string,
+  visitorId: string | null = null,
+): URLSearchParams {
+  const form = baseSessionForm(item, visitorId);
   form.set("success_url", returnUrl(origin));
   form.set("cancel_url", `${origin}/items/${item.slug}`);
   return form;
@@ -138,8 +148,12 @@ export function checkoutSessionForm(item: Item, origin: string): URLSearchParams
  * have one return URL instead of success and cancel URLs; Stripe fills in
  * {CHECKOUT_SESSION_ID} so the return page can confirm the payment (PR 4).
  */
-export function embeddedCheckoutSessionForm(item: Item, origin: string): URLSearchParams {
-  const form = baseSessionForm(item);
+export function embeddedCheckoutSessionForm(
+  item: Item,
+  origin: string,
+  visitorId: string | null = null,
+): URLSearchParams {
+  const form = baseSessionForm(item, visitorId);
   form.set("ui_mode", "embedded");
   form.set("return_url", returnUrl(origin));
   return form;

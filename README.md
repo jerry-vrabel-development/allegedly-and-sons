@@ -27,8 +27,10 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
   saying so.
 
 Not built yet: a private order list for fulfillment. Analytics
-([0001](docs/design/0001-analytics.md)) is in progress: item page views are
-recorded in D1 with country, referrer host and campaign.
+([0001](docs/design/0001-analytics.md)) is in progress: item views and
+checkout starts are recorded in D1 with a first-party visitor id, country,
+referrer host and campaign, and each order carries the visitor id, so a sale
+can be traced back to the visits before it.
 
 ## How a purchase works
 
@@ -57,8 +59,11 @@ are the same.
   Policy with no `script-src` at all; only the checkout page allows our own
   script and Stripe's documented sources. Tests check both.
 - **No third-party trackers.** Analytics are first-party, recorded by the Worker
-  in D1, after the response is sent. Every HTML page sends
-  `Cache-Control: no-transform`, so nothing can be injected in transit.
+  in D1, after the response is sent. One first-party cookie (`__Host-vid`, a
+  random id: `Secure`, `HttpOnly`, `SameSite=Lax`) recognizes returning
+  visitors; it's only ever set on private HTML pages, never on cacheable files.
+  Every HTML page sends `Cache-Control: no-transform`, so nothing can be
+  injected in transit. The Fine Print says all of this in plain words.
 - **No raw IPs or user agents stored.** Analytics keep the item, the time, the
   country, the referring host and the campaign; tests check nothing else leaks.
 - **No personal data stored.** Orders hold Stripe ids, the item, the amount and

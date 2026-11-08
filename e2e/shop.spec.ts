@@ -148,3 +148,16 @@ test("unknown items get a friendly 404", async ({ page }) => {
   expect(response?.status()).toBe(404);
   await expect(page.getByText("The Bureau is still looking.")).toBeVisible();
 });
+
+test("sets the visitor cookie: secure, host-only, HttpOnly, Lax, one year", async ({ page }) => {
+  const response = await page.goto("/items/alien-paperclip");
+  // Read the header itself, not the cookie jar: browsers differ on keeping
+  // Secure cookies for http://localhost, but every one receives the header.
+  const setCookie = (await response?.headerValue("set-cookie")) ?? "";
+  expect(setCookie).toMatch(
+    /^__Host-vid=[0-9a-f]{32}; Max-Age=31536000; Path=\/; Secure; HttpOnly; SameSite=Lax$/,
+  );
+  expect(await response?.headerValue("cache-control")).toContain("private");
+  // HttpOnly: page scripts can't read it.
+  expect(await page.evaluate(() => document.cookie)).not.toContain("__Host-vid");
+});
