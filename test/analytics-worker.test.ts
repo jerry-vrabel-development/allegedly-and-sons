@@ -20,6 +20,8 @@ const EMPTY = {
   country: null,
   utm_source: null,
   utm_campaign: null,
+  ref: null,
+  channel: null,
 };
 
 async function rows(): Promise<Record<string, unknown>[]> {
@@ -88,6 +90,8 @@ describe("item views", () => {
         country: "US",
         utm_source: "bluesky",
         utm_campaign: "xenoclip-launch",
+        ref: null,
+        channel: null,
       },
     ]);
   });
@@ -153,6 +157,8 @@ describe("recordEvent", () => {
       country: null,
       utmSource: null,
       utmCampaign: null,
+      ref: null,
+      channel: null,
     });
     expect(stored).toBe(false);
     expect(error).toHaveBeenCalledWith("analytics: could not record item_viewed");
@@ -227,6 +233,9 @@ describe("the analytics_events table (migrations/0002)", () => {
       "country",
       "utm_source",
       "utm_campaign",
+      // Added by migrations/0004_share_refs.sql.
+      "ref",
+      "channel",
     ]);
   });
 
@@ -265,6 +274,8 @@ describe("the analytics_events table (migrations/0002)", () => {
     ["a three-letter country", { country: "USA" }],
     ["an empty UTM source", { utm_source: "" }],
     ["an overlong UTM campaign", { utm_campaign: "a".repeat(101) }],
+    ["a malformed ref", { ref: "not-a-ref!" }],
+    ["an unknown channel", { channel: "myspace" }],
   ])("rejects %s", async (_label, values) => {
     await expect(insert(values)).rejects.toThrow();
   });

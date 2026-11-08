@@ -12,6 +12,7 @@
  */
 
 import { findItem } from "./catalog";
+import { isNetwork, REF, type Network } from "./share";
 
 /**
  * Every event the shop records. Purchases aren't here: the orders table,
@@ -43,6 +44,10 @@ export interface AnalyticsEvent {
   readonly utmSource: string | null;
   /** utm_campaign from the landing URL, normalized, or null. */
   readonly utmCampaign: string | null;
+  /** A share's ref code: set on share_clicked and shared_visit, null otherwise. */
+  readonly ref: string | null;
+  /** The network a share went to: set on share_clicked only, null otherwise. */
+  readonly channel: Network | null;
 }
 
 /** A DNS host name: lowercase letters, digits, dots and hyphens, at most 253 characters. */
@@ -74,7 +79,18 @@ function isEventName(value: unknown): value is EventName {
  */
 export function parseEvent(value: unknown): AnalyticsEvent | undefined {
   if (!isRecord(value)) return undefined;
-  const { event, itemSlug, ts, visitorId, referrerHost, country, utmSource, utmCampaign } = value;
+  const {
+    event,
+    itemSlug,
+    ts,
+    visitorId,
+    referrerHost,
+    country,
+    utmSource,
+    utmCampaign,
+    ref,
+    channel,
+  } = value;
   if (!isEventName(event)) return undefined;
   if (typeof itemSlug !== "string" || findItem(itemSlug) === undefined) return undefined;
   if (typeof ts !== "number" || !Number.isSafeInteger(ts) || ts < 0) return undefined;
@@ -87,7 +103,34 @@ export function parseEvent(value: unknown): AnalyticsEvent | undefined {
   ) {
     return undefined;
   }
-  return { event, itemSlug, ts, visitorId, referrerHost, country, utmSource, utmCampaign };
+  // Share fields belong to share events only, so every row means one thing:
+  // share_clicked has a ref and a channel, shared_visit a ref, the rest neither.
+  let shareRef: string | null = null;
+  if (event === "share_clicked" || event === "shared_visit") {
+    if (typeof ref !== "string" || !REF.test(ref)) return undefined;
+    shareRef = ref;
+  } else if (ref !== null) {
+    return undefined;
+  }
+  let shareChannel: Network | null = null;
+  if (event === "share_clicked") {
+    if (!isNetwork(channel)) return undefined;
+    shareChannel = channel;
+  } else if (channel !== null) {
+    return undefined;
+  }
+  return {
+    event,
+    itemSlug,
+    ts,
+    visitorId,
+    referrerHost,
+    country,
+    utmSource,
+    utmCampaign,
+    ref: shareRef,
+    channel: shareChannel,
+  };
 }
 
 /**

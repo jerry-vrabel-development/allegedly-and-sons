@@ -11,6 +11,7 @@ import {
   type AnalyticsEvent,
 } from "../src/core/analytics";
 import { CATALOG } from "../src/core/catalog";
+import { NETWORKS } from "../src/core/share";
 
 const VALID: AnalyticsEvent = {
   event: "item_viewed",
@@ -21,22 +22,35 @@ const VALID: AnalyticsEvent = {
   country: "US",
   utmSource: "bluesky",
   utmCampaign: "xenoclip-launch",
+  ref: null,
+  channel: null,
 };
+
+const REF_CODE = "0a1b2c3d4e";
 
 const host = fc
   .array(fc.stringMatching(/^[a-z0-9-]{1,20}$/), { minLength: 1, maxLength: 4 })
   .map((labels) => labels.join("."));
 
-const validEvent: fc.Arbitrary<AnalyticsEvent> = fc.record({
-  event: fc.constantFrom(...EVENT_NAMES),
-  itemSlug: fc.constantFrom(...CATALOG.map((item) => item.slug)),
-  ts: fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
-  visitorId: fc.option(fc.stringMatching(/^[0-9a-f]{32}$/), { nil: null }),
-  referrerHost: fc.option(host, { nil: null }),
-  country: fc.option(fc.stringMatching(/^[A-Z][A-Z0-9]$/), { nil: null }),
-  utmSource: fc.option(fc.stringMatching(/^[a-z0-9._+-]{1,100}$/), { nil: null }),
-  utmCampaign: fc.option(fc.stringMatching(/^[a-z0-9._+-]{1,100}$/), { nil: null }),
-});
+const validEvent: fc.Arbitrary<AnalyticsEvent> = fc
+  .record({
+    event: fc.constantFrom(...EVENT_NAMES),
+    itemSlug: fc.constantFrom(...CATALOG.map((item) => item.slug)),
+    ts: fc.integer({ min: 0, max: Number.MAX_SAFE_INTEGER }),
+    visitorId: fc.option(fc.stringMatching(/^[0-9a-f]{32}$/), { nil: null }),
+    referrerHost: fc.option(host, { nil: null }),
+    country: fc.option(fc.stringMatching(/^[A-Z][A-Z0-9]$/), { nil: null }),
+    utmSource: fc.option(fc.stringMatching(/^[a-z0-9._+-]{1,100}$/), { nil: null }),
+    utmCampaign: fc.option(fc.stringMatching(/^[a-z0-9._+-]{1,100}$/), { nil: null }),
+    ref: fc.stringMatching(/^[0-9a-f]{10}$/),
+    channel: fc.constantFrom(...NETWORKS),
+  })
+  // Share fields only where the event allows them (see parseEvent).
+  .map((event) => ({
+    ...event,
+    ref: event.event === "share_clicked" || event.event === "shared_visit" ? event.ref : null,
+    channel: event.event === "share_clicked" ? event.channel : null,
+  }));
 
 describe("parseEvent", () => {
   it("accepts a well-formed event", () => {
@@ -121,6 +135,8 @@ describe("parseEvent", () => {
           "country",
           "utmSource",
           "utmCampaign",
+          "ref",
+          "channel",
         ),
         corrupt,
         (event, field, value) => {
@@ -131,6 +147,30 @@ describe("parseEvent", () => {
         },
       ),
     );
+  });
+});
+
+describe("parseEvent: share fields", () => {
+  const clicked = { ...VALID, event: "share_clicked", ref: REF_CODE, channel: "reddit" };
+  const visit = { ...VALID, event: "shared_visit", ref: REF_CODE, channel: null };
+
+  it("accepts a share click with a ref and a channel, and a shared visit with a ref", () => {
+    expect(parseEvent(clicked)).toEqual(clicked);
+    expect(parseEvent(visit)).toEqual(visit);
+  });
+
+  it.each([
+    ["a share click without a ref", { ...clicked, ref: null }],
+    ["a share click without a channel", { ...clicked, channel: null }],
+    ["a share click to an unknown network", { ...clicked, channel: "myspace" }],
+    ["a share click with a malformed ref", { ...clicked, ref: "ZZZZZZZZZZ" }],
+    ["a shared visit without a ref", { ...visit, ref: null }],
+    ["a shared visit with a channel", { ...visit, channel: "x" }],
+    ["a view carrying a ref", { ...VALID, ref: REF_CODE }],
+    ["a view carrying a channel", { ...VALID, channel: "x" }],
+    ["a missing ref (must be null)", { ...VALID, ref: undefined }],
+  ])("drops %s", (_label, value) => {
+    expect(parseEvent(value)).toBeUndefined();
   });
 });
 
