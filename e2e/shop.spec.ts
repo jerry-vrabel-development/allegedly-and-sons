@@ -231,7 +231,12 @@ test("the ledger is simply not found without Cloudflare Access", async ({ page }
   await expect(page.getByRole("heading", { name: "The Ledger" })).toHaveCount(0);
 });
 
-test("finishing a case file earns its card in your dossier", async ({ page }) => {
+test("finishing a case file earns its card in your dossier", async ({ page, browserName }) => {
+  // The dossier follows the visitor cookie, which is Secure. WebKit won't keep
+  // Secure cookies on http://localhost (these tests' server), so every request
+  // there is a new visitor. On the real https site Safari keeps it; granting
+  // itself is covered by test/dossier-worker.test.ts.
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
   await page.goto("/items/second-best-quill");
   await page.getByText("Keep reading the case file").click();
   await page.locator("#story-end").scrollIntoViewIfNeeded();
