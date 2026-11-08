@@ -67,10 +67,10 @@ const ART_PATH = /^\/assets\/art\/([a-z0-9-]+)\.svg$/;
  * even if that setting is switched back on, so the Fine Print's "no trackers"
  * stays true by construction.
  */
-export const PAGE_CACHE = "public, max-age=0, must-revalidate, no-transform";
+const PAGE_CACHE = "public, max-age=0, must-revalidate, no-transform";
 
 /** For pages about one buyer's checkout: never cached, never rewritten. */
-export const PRIVATE_PAGE_CACHE = "no-store, no-transform";
+const PRIVATE_PAGE_CACHE = "no-store, no-transform";
 
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
 function page(body: SafeHtml, status = 200): Response {
