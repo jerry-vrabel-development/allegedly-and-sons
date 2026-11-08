@@ -28,6 +28,22 @@ export const EVENT_NAMES = [
 
 export type EventName = (typeof EVENT_NAMES)[number];
 
+/**
+ * How far into an item's case file a reader got (lore_expanded only):
+ * "opened" the rest of the story, or "finished" it (the last paragraph stayed
+ * on screen for STORY_DWELL_MS).
+ */
+export const READ_DEPTHS = ["opened", "finished"] as const;
+
+export type ReadDepth = (typeof READ_DEPTHS)[number];
+
+export function isReadDepth(value: unknown): value is ReadDepth {
+  return typeof value === "string" && (READ_DEPTHS as readonly string[]).includes(value);
+}
+
+/** How long the end of a story must stay on screen to count as finished. */
+export const STORY_DWELL_MS = 3000;
+
 export interface AnalyticsEvent {
   readonly event: EventName;
   /** A slug from the catalog. Events about unknown items are dropped. */
@@ -48,6 +64,8 @@ export interface AnalyticsEvent {
   readonly ref: string | null;
   /** The network a share went to: set on share_clicked only, null otherwise. */
   readonly channel: Network | null;
+  /** How far into the story: set on lore_expanded only, null otherwise. */
+  readonly readDepth: ReadDepth | null;
 }
 
 /** A DNS host name: lowercase letters, digits, dots and hyphens, at most 253 characters. */
@@ -90,6 +108,7 @@ export function parseEvent(value: unknown): AnalyticsEvent | undefined {
     utmCampaign,
     ref,
     channel,
+    readDepth,
   } = value;
   if (!isEventName(event)) return undefined;
   if (typeof itemSlug !== "string" || findItem(itemSlug) === undefined) return undefined;
@@ -119,6 +138,13 @@ export function parseEvent(value: unknown): AnalyticsEvent | undefined {
   } else if (channel !== null) {
     return undefined;
   }
+  let depth: ReadDepth | null = null;
+  if (event === "lore_expanded") {
+    if (!isReadDepth(readDepth)) return undefined;
+    depth = readDepth;
+  } else if (readDepth !== null) {
+    return undefined;
+  }
   return {
     event,
     itemSlug,
@@ -130,7 +156,23 @@ export function parseEvent(value: unknown): AnalyticsEvent | undefined {
     utmCampaign,
     ref: shareRef,
     channel: shareChannel,
+    readDepth: depth,
   };
+}
+
+/** What the story script sends: which item, and how far the reader got. */
+export interface ReadBeacon {
+  readonly itemSlug: string;
+  readonly depth: ReadDepth;
+}
+
+/** Checks a story beacon's parsed JSON body; anything else gives undefined. */
+export function parseReadBeacon(value: unknown): ReadBeacon | undefined {
+  if (!isRecord(value)) return undefined;
+  const { item, depth } = value;
+  if (typeof item !== "string" || findItem(item) === undefined) return undefined;
+  if (!isReadDepth(depth)) return undefined;
+  return { itemSlug: item, depth };
 }
 
 /**

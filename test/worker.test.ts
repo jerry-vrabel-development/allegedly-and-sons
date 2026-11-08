@@ -9,7 +9,7 @@ import worker, {
   stripeKeyFrom,
   webhookSecretFrom,
 } from "../src/worker/index";
-import { STRICT_CSP } from "../src/worker/security-headers";
+import { ITEM_CSP, STRICT_CSP } from "../src/worker/security-headers";
 import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
@@ -149,19 +149,21 @@ describe("Worker", () => {
     }
   });
 
-  it("sends the strict policy (no script-src) on every page that exists today", async () => {
+  it("gives item pages the item policy: only our own script", async () => {
+    for (const item of CATALOG) {
+      const response = await get(`/items/${item.slug}`);
+      expect(response.headers.get("Content-Security-Policy")).toBe(ITEM_CSP);
+    }
+  });
+
+  it("sends the strict policy (no script-src) on every other page", async () => {
     // Without a Stripe key the checkout page is closed (503), so nothing gets the Stripe policy.
     // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
     const responses = [
       ...(await Promise.all(
-        [
-          "/",
-          "/disclaimer",
-          "/thanks",
-          "/nope",
-          "/assets/site.css",
-          ...CATALOG.map((i) => `/items/${i.slug}`),
-        ].map((path) => get(path)),
+        ["/", "/disclaimer", "/thanks", "/nope", "/assets/site.css", "/items/xenoclip"].map(
+          (path) => get(path),
+        ),
       )),
       await worker.fetch(
         new Request(`${BASE}/checkout/${CATALOG[0].slug}`),

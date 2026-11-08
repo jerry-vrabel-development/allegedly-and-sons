@@ -22,6 +22,7 @@ const EMPTY = {
   utm_campaign: null,
   ref: null,
   channel: null,
+  read_depth: null,
 };
 
 async function rows(): Promise<Record<string, unknown>[]> {
@@ -92,6 +93,7 @@ describe("item views", () => {
         utm_campaign: "xenoclip-launch",
         ref: null,
         channel: null,
+        read_depth: null,
       },
     ]);
   });
@@ -159,6 +161,7 @@ describe("recordEvent", () => {
       utmCampaign: null,
       ref: null,
       channel: null,
+      readDepth: null,
     });
     expect(stored).toBe(false);
     expect(error).toHaveBeenCalledWith("analytics: could not record item_viewed");
@@ -236,6 +239,8 @@ describe("the analytics_events table (migrations/0002)", () => {
       // Added by migrations/0004_share_refs.sql.
       "ref",
       "channel",
+      // Added by migrations/0005_read_depth.sql.
+      "read_depth",
     ]);
   });
 
@@ -276,6 +281,7 @@ describe("the analytics_events table (migrations/0002)", () => {
     ["an overlong UTM campaign", { utm_campaign: "a".repeat(101) }],
     ["a malformed ref", { ref: "not-a-ref!" }],
     ["an unknown channel", { channel: "myspace" }],
+    ["an unknown read depth", { read_depth: "skimmed" }],
   ])("rejects %s", async (_label, values) => {
     await expect(insert(values)).rejects.toThrow();
   });

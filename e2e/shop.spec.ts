@@ -178,3 +178,48 @@ test("sets the visitor cookie: secure, host-only, HttpOnly, Lax, one year", asyn
   // HttpOnly: page scripts can't read it.
   expect(await page.evaluate(() => document.cookie)).not.toContain("__Host-vid");
 });
+
+test.describe("story reads", () => {
+  /** Collects the story beacons the page sends to /events. */
+  function watchReads(page: import("@playwright/test").Page): string[] {
+    const depths: string[] = [];
+    page.on("request", (request) => {
+      if (request.method() === "POST" && new URL(request.url()).pathname === "/events") {
+        const body = request.postDataJSON() as { item: string; depth: string };
+        expect(body.item).toBe("alien-paperclip");
+        depths.push(body.depth);
+      }
+    });
+    return depths;
+  }
+
+  test("reports 'opened', then 'finished' once the end stays in view", async ({ page }) => {
+    const depths = watchReads(page);
+    await page.goto("/items/alien-paperclip");
+    await page.getByText("Keep reading the case file").click();
+    await expect.poll(() => depths).toEqual(["opened"]);
+    await page.locator("#story-end").scrollIntoViewIfNeeded();
+    await expect.poll(() => depths, { timeout: 10_000 }).toEqual(["opened", "finished"]);
+  });
+
+  test("doesn't count a flick past the end as finished", async ({ page }) => {
+    const depths = watchReads(page);
+    await page.goto("/items/alien-paperclip");
+    await page.getByText("Keep reading the case file").click();
+    await page.locator("#story-end").scrollIntoViewIfNeeded();
+    await page.getByRole("heading", { name: "Other recent acquisitions" }).scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    // Longer than the dwell time: the end was on screen only briefly.
+    await page.waitForTimeout(4_000);
+    expect(depths).toEqual(["opened"]);
+  });
+
+  test("sends nothing when the case file stays closed", async ({ page }) => {
+    const depths = watchReads(page);
+    await page.goto("/items/alien-paperclip");
+    await page.waitForTimeout(1_000);
+    expect(depths).toEqual([]);
+  });
+});

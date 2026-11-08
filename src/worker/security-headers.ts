@@ -6,11 +6,14 @@
  * form-action allows our own checkout form and the redirect it gets to
  * Stripe-hosted Checkout (browsers check redirects after a form post too).
  *
- * One page gets a looser policy: the embedded checkout page (design note 0005,
- * Option B). Only there may Stripe.js load, frame Stripe's Checkout and talk to
- * Stripe's API. Every other page keeps the strict policy with no script-src.
+ * Two kinds of page get a looser policy. The embedded checkout page (design
+ * note 0005, Option B): only there may Stripe.js load, frame Stripe's Checkout
+ * and talk to Stripe's API. And item pages (note 0001, C4): our own story
+ * script may run and report reads to our own origin, nothing else. Every other
+ * page keeps the strict policy with no script-src.
  */
 
+import { ITEM_PATH } from "../core/catalog";
 import { CHECKOUT_PATH } from "../core/checkout";
 
 type Directives = Readonly<Record<string, readonly string[]>>;
@@ -50,6 +53,16 @@ const CHECKOUT_DIRECTIVES: Directives = {
   "img-src": ["'self'", "https://*.stripe.com"],
 };
 
+/**
+ * Item pages: the strict policy plus our own story script ('self', served
+ * from /assets/story.js, never inline) and beacons to our own /events.
+ */
+const ITEM_DIRECTIVES: Directives = {
+  ...STRICT_DIRECTIVES,
+  "script-src": ["'self'"],
+  "connect-src": ["'self'"],
+};
+
 function serialize(directives: Directives): string {
   return Object.entries(directives)
     .map(([name, sources]) => `${name} ${sources.join(" ")}`)
@@ -61,6 +74,9 @@ export const STRICT_CSP = serialize(STRICT_DIRECTIVES);
 
 /** The policy for the embedded checkout page only. */
 export const CHECKOUT_CSP = serialize(CHECKOUT_DIRECTIVES);
+
+/** The policy for item pages only. */
+export const ITEM_CSP = serialize(ITEM_DIRECTIVES);
 
 /** Headers that are the same on every response. */
 const COMMON_HEADERS: Readonly<Record<string, string>> = {
@@ -83,16 +99,25 @@ const CHECKOUT_HEADERS: Readonly<Record<string, string>> = {
   "Content-Security-Policy": CHECKOUT_CSP,
 };
 
+const ITEM_HEADERS: Readonly<Record<string, string>> = {
+  ...SECURITY_HEADERS,
+  "Content-Security-Policy": ITEM_CSP,
+};
+
 /**
  * The security headers for one response. Only a successful (200) response on
- * /checkout/<item> gets the checkout policy; its errors, redirects and
- * not-found pages run no script, so they stay strict.
+ * /checkout/<item> gets the checkout policy, and only a successful item page
+ * the item policy; errors, redirects and not-found pages run no script, so
+ * they stay strict.
  */
 export function securityHeadersFor(
   pathname: string,
   status: number,
 ): Readonly<Record<string, string>> {
-  return status === 200 && CHECKOUT_PATH.test(pathname) ? CHECKOUT_HEADERS : SECURITY_HEADERS;
+  if (status !== 200) return SECURITY_HEADERS;
+  if (CHECKOUT_PATH.test(pathname)) return CHECKOUT_HEADERS;
+  if (ITEM_PATH.test(pathname)) return ITEM_HEADERS;
+  return SECURITY_HEADERS;
 }
 
 /**

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CHECKOUT_CSP,
   SECURITY_HEADERS,
+  ITEM_CSP,
   STRICT_CSP,
   securityHeadersFor,
   withSecurityHeaders,
@@ -148,10 +149,24 @@ describe("securityHeadersFor", () => {
     }
   });
 
+  it("lets item pages run only our own script and report only to us", () => {
+    const csp = securityHeadersFor("/items/alien-paperclip", 200)["Content-Security-Policy"];
+    expect(csp).toBe(ITEM_CSP);
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("connect-src 'self'");
+    // Scripts and connections: our own origin and nothing else.
+    expect(csp).toMatch(/script-src 'self'(;|$)/);
+    expect(csp).toMatch(/connect-src 'self'(;|$)/);
+    expect(csp).not.toMatch(/unsafe-inline|unsafe-eval/);
+    // A missing item is a 404 page, which runs nothing.
+    expect(securityHeadersFor("/items/xenoclip", 404)["Content-Security-Policy"]).toBe(STRICT_CSP);
+  });
+
   it("keeps the strict policy on every other path", () => {
     for (const path of [
       "/",
-      "/items/alien-paperclip",
+      "/items/alien-paperclip/extra",
+      "/items/",
       "/disclaimer",
       "/thanks",
       "/checkout",

@@ -10,6 +10,7 @@ import type { Item } from "../core/catalog";
 import { REF, REF_PARAM, type Network } from "../core/share";
 import {
   countryFrom,
+  type ReadBeacon,
   isAutomated,
   isPrefetch,
   parseEvent,
@@ -42,8 +43,8 @@ export async function recordEvent(db: D1Database, candidate: unknown): Promise<b
       .prepare(
         `INSERT INTO analytics_events
            (event, item_slug, ts, visitor_id, referrer_host, country, utm_source, utm_campaign,
-            ref, channel)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ref, channel, read_depth)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         event.event,
@@ -56,6 +57,7 @@ export async function recordEvent(db: D1Database, candidate: unknown): Promise<b
         event.utmCampaign,
         event.ref,
         event.channel,
+        event.readDepth,
       )
       .run();
     return true;
@@ -95,6 +97,7 @@ export function recordCheckoutStarted(request: Request, item: Item, deps: Analyt
       utmCampaign: null,
       ref: null,
       channel: null,
+      readDepth: null,
     }),
   );
 }
@@ -115,6 +118,7 @@ export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps
       utmCampaign: utmValue(searchParams.get("utm_campaign")),
       ref: null,
       channel: null,
+      readDepth: null,
     }),
   );
   // Arrived through a shared link: tie the visit to that share.
@@ -132,6 +136,7 @@ export function recordItemView(request: Request, item: Item, deps: AnalyticsDeps
         utmCampaign: null,
         ref,
         channel: null,
+        readDepth: null,
       }),
     );
   }
@@ -161,6 +166,58 @@ export function recordShareClicked(
       utmCampaign: null,
       ref,
       channel: network,
+      readDepth: null,
     }),
   );
+}
+
+/** How long a repeat of the same read (visitor, item, depth) is ignored, in seconds. */
+export const READ_DEDUPE_SECONDS = 30 * 60;
+
+/** The most story reads one visitor may record per hour; the rest are dropped. */
+export const READS_PER_VISITOR_PER_HOUR = 60;
+
+/**
+ * Records a story read from the item page's script, unless it's a repeat of
+ * one this visitor recorded in the last half hour, or the visitor is over the
+ * hourly limit. Repeats and floods are dropped quietly: they'd only inflate
+ * the numbers. Returns whether a row was written.
+ */
+export async function recordStoryRead(
+  request: Request,
+  beacon: ReadBeacon,
+  deps: AnalyticsDeps,
+): Promise<boolean> {
+  const now = deps.nowSeconds();
+  if (deps.visitorId !== null) {
+    const recent = await deps.db
+      .prepare(
+        `SELECT
+           COUNT(*) AS hour,
+           SUM(item_slug = ? AND read_depth = ? AND ts > ?) AS repeats
+         FROM analytics_events
+         WHERE visitor_id = ? AND event = 'lore_expanded' AND ts > ?`,
+      )
+      .bind(beacon.itemSlug, beacon.depth, now - READ_DEDUPE_SECONDS, deps.visitorId, now - 3600)
+      .first<{ hour: number; repeats: number | null }>();
+    if (
+      recent !== null &&
+      ((recent.repeats ?? 0) > 0 || recent.hour >= READS_PER_VISITOR_PER_HOUR)
+    ) {
+      return false;
+    }
+  }
+  return recordEvent(deps.db, {
+    event: "lore_expanded",
+    itemSlug: beacon.itemSlug,
+    ts: now,
+    visitorId: deps.visitorId,
+    referrerHost: null,
+    country: countryFrom(request.cf?.country),
+    utmSource: null,
+    utmCampaign: null,
+    ref: null,
+    channel: null,
+    readDepth: beacon.depth,
+  });
 }

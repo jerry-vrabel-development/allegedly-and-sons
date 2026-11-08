@@ -22,6 +22,7 @@ import {
   thanksPage,
 } from "../src/worker/pages";
 import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
+import { STORY_END_ID, STORY_SCRIPT_PATH } from "../src/worker/story-script";
 
 /** Collapses whitespace, since Prettier is free to reflow the HTML templates. */
 function squish(page: SafeHtml): string {
@@ -98,8 +99,9 @@ describe("checkout page", () => {
     expect(pages.checkout).not.toContain("<script");
   });
 
-  it("is the only page with any script", () => {
+  it("is the only page besides item pages with any script", () => {
     for (const [name, page] of Object.entries(pages)) {
+      if (name === "item") continue;
       expect(page.includes("<script"), name).toBe(false);
     }
   });
@@ -208,14 +210,27 @@ describe("item page details", () => {
   it('hides all but the first paragraph behind "keep reading"', () => {
     const page = squish(itemPage(firstItem(), ORIGIN));
     const [first, second] = firstItem().story.paragraphs;
-    expect(page.indexOf(first)).toBeLessThan(page.indexOf("<details>"));
-    expect(page.indexOf(second ?? "")).toBeGreaterThan(page.indexOf("<details>"));
+    const details = page.indexOf(`<details data-story="${firstItem().slug}">`);
+    expect(details).toBeGreaterThan(0);
+    expect(page.indexOf(first)).toBeLessThan(details);
+    expect(page.indexOf(second ?? "")).toBeGreaterThan(details);
+  });
+
+  it("marks the story's last paragraph for the read tracker, and loads only our script", () => {
+    const item = firstItem();
+    const page = squish(itemPage(item, ORIGIN));
+    const last = item.story.paragraphs[item.story.paragraphs.length - 1] ?? "";
+    expect(page).toContain(`<p id="${STORY_END_ID}">${escapeHtml(last)}</p>`);
+    expect(count(page, /<script /g)).toBe(1);
+    expect(page).toContain(`<script src="${STORY_SCRIPT_PATH}" defer></script>`);
   });
 
   it('skips "keep reading" when the story is a single paragraph', () => {
     const base = firstItem();
     const short: Item = { ...base, story: { ...base.story, paragraphs: ["Just one."] } };
     const page = squish(itemPage(short, ORIGIN));
+    // Nothing to open, so no read tracker either.
+    expect(page).not.toContain("<script");
     expect(page).toContain("<p>Just one.</p>");
     expect(page).not.toContain("<details>");
   });
@@ -329,9 +344,15 @@ describe("terms of sale", () => {
 });
 
 describe("the Bureau's methods", () => {
-  it("says plainly what runs in the browser: only checkout, only Stripe and us", () => {
+  it("says plainly what runs in the browser: item pages and checkout, only Stripe and us", () => {
     expect(pages.disclaimer).toContain("What Runs in Your Browser");
-    expect(pages.disclaimer).toContain("Only the checkout page runs any script");
+    expect(pages.disclaimer).toContain(
+      "Two kinds of page run a script, and only our own or Stripe’s.",
+    );
+    expect(pages.disclaimer).toContain(
+      "notes when you open a case file and whether you read it to the end",
+    );
+    expect(pages.disclaimer).not.toContain("Only the checkout page runs any script");
     expect(pages.disclaimer).toContain("Stripe may collect information about your device");
     expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');
     expect(pages.disclaimer).not.toContain("uses no trackers");
@@ -343,6 +364,7 @@ describe("the Bureau's methods", () => {
     expect(text).toContain("We set one cookie of our own");
     expect(text).toContain("lasts a year from your latest visit");
     expect(text).toContain("we pass that number to Stripe with your order");
+    expect(text).toContain("whether you read their case files, which share buttons you press");
     expect(text).toContain("Our records don’t include your IP address");
     expect(text).toContain("we don’t use third-party trackers or ad networks");
   });

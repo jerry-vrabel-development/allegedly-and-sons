@@ -6,6 +6,8 @@ import {
   isAutomated,
   isPrefetch,
   parseEvent,
+  parseReadBeacon,
+  READ_DEPTHS,
   referrerHostFrom,
   utmValue,
   type AnalyticsEvent,
@@ -24,6 +26,7 @@ const VALID: AnalyticsEvent = {
   utmCampaign: "xenoclip-launch",
   ref: null,
   channel: null,
+  readDepth: null,
 };
 
 const REF_CODE = "0a1b2c3d4e";
@@ -44,12 +47,14 @@ const validEvent: fc.Arbitrary<AnalyticsEvent> = fc
     utmCampaign: fc.option(fc.stringMatching(/^[a-z0-9._+-]{1,100}$/), { nil: null }),
     ref: fc.stringMatching(/^[0-9a-f]{10}$/),
     channel: fc.constantFrom(...NETWORKS),
+    readDepth: fc.constantFrom(...READ_DEPTHS),
   })
   // Share fields only where the event allows them (see parseEvent).
   .map((event) => ({
     ...event,
     ref: event.event === "share_clicked" || event.event === "shared_visit" ? event.ref : null,
     channel: event.event === "share_clicked" ? event.channel : null,
+    readDepth: event.event === "lore_expanded" ? event.readDepth : null,
   }));
 
 describe("parseEvent", () => {
@@ -137,6 +142,7 @@ describe("parseEvent", () => {
           "utmCampaign",
           "ref",
           "channel",
+          "readDepth",
         ),
         corrupt,
         (event, field, value) => {
@@ -171,6 +177,50 @@ describe("parseEvent: share fields", () => {
     ["a missing ref (must be null)", { ...VALID, ref: undefined }],
   ])("drops %s", (_label, value) => {
     expect(parseEvent(value)).toBeUndefined();
+  });
+});
+
+describe("parseEvent: read depth", () => {
+  const read = { ...VALID, event: "lore_expanded", readDepth: "finished" };
+
+  it("accepts a story read with its depth", () => {
+    expect(parseEvent(read)).toEqual(read);
+    expect(parseEvent({ ...read, readDepth: "opened" })).toEqual({ ...read, readDepth: "opened" });
+  });
+
+  it.each([
+    ["a story read without a depth", { ...read, readDepth: null }],
+    ["a story read with an unknown depth", { ...read, readDepth: "skimmed" }],
+    ["a view carrying a depth", { ...VALID, readDepth: "opened" }],
+    ["a missing depth (must be null)", { ...VALID, readDepth: undefined }],
+  ])("drops %s", (_label, value) => {
+    expect(parseEvent(value)).toBeUndefined();
+  });
+});
+
+describe("parseReadBeacon", () => {
+  it("reads the item and depth the story script sends", () => {
+    expect(parseReadBeacon({ item: "alien-paperclip", depth: "opened" })).toEqual({
+      itemSlug: "alien-paperclip",
+      depth: "opened",
+    });
+  });
+
+  it.each([
+    ["not an object", "opened"],
+    ["an unknown item", { item: "xenoclip", depth: "opened" }],
+    ["an unknown depth", { item: "alien-paperclip", depth: "skimmed" }],
+    ["a missing depth", { item: "alien-paperclip" }],
+  ])("rejects %s", (_label, value) => {
+    expect(parseReadBeacon(value)).toBeUndefined();
+  });
+
+  it("never throws, whatever arrives", () => {
+    fc.assert(
+      fc.property(fc.jsonValue(), (value) => {
+        parseReadBeacon(value);
+      }),
+    );
   });
 });
 

@@ -134,6 +134,9 @@ export const CATALOG: readonly [Item, ...Item[]] = [
 ];
 
 /** Finds an item by slug, or `undefined` if the Bureau has no such thing. */
+/** Matches /items/<slug> and captures the slug. */
+export const ITEM_PATH = /^\/items\/([a-z0-9-]+)$/;
+
 export function findItem(slug: string): Item | undefined {
   return CATALOG.find((item) => item.slug === slug);
 }
