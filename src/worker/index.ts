@@ -51,6 +51,8 @@ import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { landingFromRequest } from "../core/landing";
 import { ACCESS_JWT_HEADER, accessConfigFrom, verifyAccessJwt, type AccessDeps } from "./access";
 import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
+import { readDossier } from "./dossier";
+import { DOSSIER_PATH, dossierPage } from "./dossier-page";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
 /**
@@ -300,6 +302,8 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       return page(disclaimerPage());
     case THANKS_PATH:
       return returnPage(new URL(request.url), deps);
+    case DOSSIER_PATH:
+      return page(dossierPage(await readDossier(deps.db, deps.visitorId)));
     case STORY_SCRIPT_PATH:
       return new Response(STORY_JS, {
         headers: {

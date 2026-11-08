@@ -8,6 +8,7 @@
 
 import type { Item } from "../core/catalog";
 import { landingFromCookie, landingFromRequest } from "../core/landing";
+import { grantForEvent } from "./dossier";
 import { REF, REF_PARAM, type Network } from "../core/share";
 import {
   countryFrom,
@@ -60,11 +61,17 @@ export async function recordEvent(db: D1Database, candidate: unknown): Promise<b
         event.readDepth,
       )
       .run();
-    return true;
   } catch {
     console.error(`analytics: could not record ${event.event}`);
     return false;
   }
+  // Badges and cards: granted only from events we recorded ourselves.
+  try {
+    await grantForEvent(db, event);
+  } catch {
+    console.error(`dossier: could not grant for ${event.event}`);
+  }
+  return true;
 }
 
 /**

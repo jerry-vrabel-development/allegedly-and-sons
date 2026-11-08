@@ -8,6 +8,7 @@ const PAGES = [
   { name: "viking trophy", path: "/items/viking-participation-trophy" },
   { name: "fine print", path: "/disclaimer" },
   { name: "thank you", path: "/thanks" },
+  { name: "dossier", path: "/dossier" },
   { name: "not found", path: "/items/the-other-three-xenoclips" },
 ] as const;
 
@@ -228,4 +229,29 @@ test("the ledger is simply not found without Cloudflare Access", async ({ page }
   const response = await page.goto("/bureau/ledger");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: "The Ledger" })).toHaveCount(0);
+});
+
+test("finishing a case file earns its card in your dossier", async ({ page, browserName }) => {
+  // The dossier follows the visitor cookie, which is Secure. WebKit won't keep
+  // Secure cookies on http://localhost (these tests' server), so every request
+  // there is a new visitor. On the real https site Safari keeps it; granting
+  // itself is covered by test/dossier-worker.test.ts.
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.goto("/items/second-best-quill");
+  await page.getByText("Keep reading the case file").click();
+  await page.locator("#story-end").scrollIntoViewIfNeeded();
+  // The story must stay on screen for the dwell time before it counts as finished.
+  await expect
+    .poll(
+      async () => {
+        await page.waitForTimeout(1_000);
+        const dossier = await page.request.get("/dossier");
+        return (await dossier.text()).includes("Card AS-0002 · Collected");
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+  await page.getByRole("link", { name: "Your Dossier" }).click();
+  await expect(page.getByText("Card AS-0002 · Collected")).toBeVisible();
+  await expect(page.getByText(/Agent No\. \d{4}/)).toBeVisible();
 });
