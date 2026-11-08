@@ -137,6 +137,14 @@ test.describe("item page", () => {
     await expect(more.getByRole("link")).toHaveCount(2);
   });
 
+  test("links the terms of sale from the buy box, landing on the terms", async ({ page }) => {
+    await page.getByRole("link", { name: "Terms of sale" }).click();
+    await expect(page).toHaveURL(/\/disclaimer#terms-heading$/);
+    await expect(
+      page.getByRole("heading", { level: 2, name: "The Terms of the Arrangement" }),
+    ).toBeInViewport();
+  });
+
   test("links to the fine print from the footer", async ({ page }) => {
     await page.getByRole("contentinfo").getByRole("link", { name: "Read the fine print" }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("The Fine Print");
