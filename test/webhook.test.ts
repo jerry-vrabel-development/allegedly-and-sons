@@ -20,6 +20,7 @@ function deps(overrides: Partial<Deps> = {}): Deps {
     nowSeconds: () => NOW,
     waitUntil: () => undefined,
     visitorId: null,
+    access: undefined,
     ...overrides,
   };
 }

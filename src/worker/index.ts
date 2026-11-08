@@ -48,6 +48,8 @@ import {
 import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
 import { SITE_CSS } from "./styles";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
+import { ACCESS_JWT_HEADER, accessConfigFrom, verifyAccessJwt, type AccessDeps } from "./access";
+import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 
 /**
@@ -64,10 +66,14 @@ export interface Secrets {
 export interface PublicVars {
   /** pk_test_... or pk_live_..., set in wrangler.jsonc "vars". */
   readonly STRIPE_PUBLISHABLE_KEY?: string;
+  /** Cloudflare Access team domain, e.g. allegedlyandsons.cloudflareaccess.com. */
+  readonly ACCESS_TEAM_DOMAIN?: string;
+  /** The Access application's Audience (AUD) tag for /bureau. Unset keeps /bureau closed. */
+  readonly ACCESS_AUD?: string;
 }
 
 /** What `route` needs from the outside world, so tests can swap in fakes. */
-export interface Deps extends WebhookDeps, AnalyticsDeps {
+export interface Deps extends WebhookDeps, AnalyticsDeps, AccessDeps {
   /** Stripe publishable key for the embedded checkout, or undefined to use only the hosted flow. */
   readonly publishableKey?: string | undefined;
   /** Stripe secret key, or undefined when checkout isn't configured. */
@@ -249,6 +255,22 @@ async function storyRead(request: Request, deps: Deps): Promise<Response> {
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 }
 
+/**
+ * The private ledger: GET /bureau/ledger. Cloudflare Access guards /bureau;
+ * this checks Access's signed token too, so a misconfigured Access rule fails
+ * closed. Without a valid token, /bureau/* is simply not found.
+ */
+async function bureau(request: Request, pathname: string, deps: Deps): Promise<Response> {
+  const identity = await verifyAccessJwt(request.headers.get(ACCESS_JWT_HEADER), deps);
+  if (identity === undefined || pathname !== LEDGER_PATH) return page(notFoundPage(), 404);
+  const url = new URL(request.url);
+  const ledger = await readLedger(deps.db, periodFrom(url), deps.nowSeconds(), url.hostname);
+  const response = page(ledgerPage(ledger, identity.email));
+  response.headers.set("Cache-Control", "private, no-store, no-transform");
+  response.headers.set("X-Robots-Tag", "noindex");
+  return response;
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
@@ -300,6 +322,10 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       });
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  if (pathname === "/bureau" || pathname.startsWith("/bureau/")) {
+    return bureau(request, pathname, deps);
   }
 
   const share = parseSharePath(pathname);
@@ -377,6 +403,7 @@ export default {
     const visitorId = visitorIdFor(request);
     const response = await route(request, {
       visitorId,
+      access: accessConfigFrom(env),
       stripeKey: stripeKeyFrom(env),
       publishableKey: publishableKeyFrom(env),
       fetch: globalFetch,
