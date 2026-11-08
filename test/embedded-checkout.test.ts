@@ -125,6 +125,7 @@ function deps(
     nowSeconds: () => 0,
     waitUntil: () => undefined,
     visitorId: null,
+    access: undefined,
   };
   return { deps: d, sent };
 }

@@ -118,6 +118,7 @@ describe("checkout_started", () => {
         pending.push(promise);
       },
       visitorId: ID,
+      access: undefined,
     };
     return { d, sent, settled: () => Promise.all(pending) };
   }

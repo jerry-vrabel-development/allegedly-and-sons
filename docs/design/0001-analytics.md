@@ -1,6 +1,6 @@
 # 0001 — Analytics for the shop
 
-- **Status:** Decided; building (C1 #34, C2 #36 and C3 #41 built; C4 in progress)
+- **Status:** Decided; C1–C4 built (#34, #36, #41, #43); C5 in progress
 - **Date:** 2026-11-03, revised 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -146,7 +146,7 @@ Each step is a small PR into `dev` with green CI.
    and item pages carry a canonical link so `?r=` copies don't split search
    results. (The sharer opening their own link counts as a visit; the
    dashboard can exclude it by visitor id.)
-4. **C4 — story reads.** `/assets/story.js` (first-party, never inline;
+4. **C4 — story reads. Built (#43).** `/assets/story.js` (first-party, never inline;
    item pages get `script-src 'self'` and `connect-src 'self'`, nothing
    else) sends `lore_expanded` with a `read_depth` (migration 0005): `opened`
    when the case file opens, `finished` when its last paragraph has stayed
@@ -155,9 +155,28 @@ Each step is a small PR into `dev` with green CI.
    depth counted once per 30 minutes, and at most 60 reads per visitor per
    hour. Ad blockers will hide some reads; views and purchases are recorded
    server-side and unaffected. The Fine Print says so.
-5. **C5 — rollups, retention and stats.** Nightly cron, 13-month cleanup, Wilson
-   intervals. Then the dashboard (private admin view first; a public "museum
-   stats" page is still an open question).
+5. **C5 — the ledger.** A private dashboard at `/bureau/ledger`, plain
+   server-rendered HTML with no script: per item, visitors → opened the case
+   file → finished it → started checkout → bought, plus shares, visits from
+   shares and sales; where visitors came from (UTM campaign, else referrer
+   host, with "(this site)" and "(direct)"); and shares by network (return
+   visits exclude the sharer's own, orders count only after the visit). Every
+   rate is shown with a 95% Wilson interval and its sample size; under 100
+   visitors it shows raw counts marked "too few to say". Periods: 7, 30, 90
+   days or all time.
+
+   **Locked by Cloudflare Access** (one-time PIN to the owner's email), and
+   the Worker verifies Access's signed JWT itself (RS256 against the team's
+   published keys, audience, issuer, expiry), so a misconfigured Access rule
+   fails closed. Without a valid token, or until `ACCESS_AUD` is set, every
+   `/bureau` path is a plain 404. Accounts were considered and rejected for
+   now: passwords, sessions and resets are a lot of security-critical code to
+   protect one user. They come back when customers need accounts.
+
+   **Deferred on purpose:** nightly rollups (the ledger reads raw events
+   directly; revisit at roughly 5,000 events a day, or if the page takes over
+   a second) and the 13-month cleanup (the oldest row won't be 13 months old
+   until December 2027; tracked as a quest).
 
 ## Testing
 

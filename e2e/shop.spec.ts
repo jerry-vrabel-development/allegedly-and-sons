@@ -223,3 +223,9 @@ test.describe("story reads", () => {
     expect(depths).toEqual([]);
   });
 });
+
+test("the ledger is simply not found without Cloudflare Access", async ({ page }) => {
+  const response = await page.goto("/bureau/ledger");
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "The Ledger" })).toHaveCount(0);
+});

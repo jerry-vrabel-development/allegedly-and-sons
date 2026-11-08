@@ -215,6 +215,7 @@ describe("checkout", () => {
         nowSeconds: () => 0,
         waitUntil: () => undefined,
         visitorId: null,
+        access: undefined,
       },
       sent,
     };

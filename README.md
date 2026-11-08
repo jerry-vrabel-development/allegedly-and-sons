@@ -33,7 +33,9 @@ referrer host and campaign, and each order carries the visitor id, so a sale
 can be traced back to the visits before it. Shares go through the shop's own
 `/share` route, so each one is tied to the visits (and sales) it brings back,
 and a small first-party script records whether visitors open each item's case
-file and read it to the end.
+file and read it to the end. The private ledger at `/bureau/ledger` shows it
+all, with honest intervals, behind Cloudflare Access (which the Worker verifies
+too).
 
 ## How a purchase works
 

@@ -131,6 +131,15 @@ dl.specs dd { margin: 0; }
 .certificate h2 { margin-top: 0.5rem; }
 footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--muted); font-size: 1rem; }
 
+/* The ledger (private dashboard): plain, scrollable tables */
+.ledger .table-scroll { overflow-x: auto; margin: 0.75rem 0 2rem; }
+.ledger .table-scroll:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+.ledger table { border-collapse: collapse; min-width: 100%; font-size: 1rem; }
+.ledger caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem; }
+.ledger th, .ledger td { text-align: left; padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--muted); vertical-align: top; }
+.ledger td.num, .ledger th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.ledger .period a[aria-current="page"] { font-weight: 700; text-decoration-thickness: 3px; }
+
 /* Phones: keep the name, price and call to action on the first screen */
 @media (max-width: 51.99rem) {
   header.site { padding: 0.6rem 0; }
