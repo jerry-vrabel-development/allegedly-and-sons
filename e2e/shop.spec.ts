@@ -281,6 +281,9 @@ test("pulling the vault lever opens the vault once a day", async ({ page, browse
     latest.getByText(/Vault card V-00\d · (Common|Uncommon|Rare) · New to your file/),
   ).toBeVisible();
   await expect(page.getByText("The lever is locked until tomorrow.")).toBeVisible();
+  const streak = page.getByRole("region", { name: "Duty streak" });
+  await expect(streak.getByText("Duty streak: 1 day.")).toBeVisible();
+  await expect(streak.getByText("Freezes held: 0 of 2.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Pull the lever" })).toHaveCount(0);
   // Check the page at rest: mid-swing, axe can't measure the turning card's contrast.
   await latest.locator(".vault-card").evaluate(async (card) => {

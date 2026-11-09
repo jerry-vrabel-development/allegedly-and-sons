@@ -251,8 +251,10 @@ describe("GET /vault", () => {
       '<th scope="row">The Moon&#39;s Receipt</th> <td>Rare</td> <td class="num">10%</td>',
     );
     expect(html).toContain("Nothing you buy earns a pull or changes the odds.");
-    expect(html).toContain("First Contact, Case Closed, Town Crier, Recruiter");
-    expect(html).toContain("You've earned 0 of 4.");
+    expect(html).toContain(
+      "First Contact, Case Closed, Town Crier, Recruiter, Regular, Made, Fixer, Kingpin",
+    );
+    expect(html).toContain("You've earned 0 of 8.");
     expect(html).not.toContain("latest-pull");
     expect(html).not.toContain("<script");
     expect(html).toContain('<meta name="robots" content="noindex" />');
@@ -283,7 +285,7 @@ describe("GET /vault", () => {
     expect(html).toContain("files it in triplicate");
     expect(html).toContain("You've used today's free pull.</strong> You also have 1 bonus pull.");
     expect(html).toContain('<form class="lever"');
-    expect(html).toContain("You've earned 2 of 4.");
+    expect(html).toContain("You've earned 2 of 8.");
     await pullLever(env.DB, A, TOMORROW, RECEIPT);
     await env.DB.prepare("DELETE FROM vault_pulls WHERE kind = 'bonus'").run();
     const nextDay = await route(
@@ -312,7 +314,7 @@ describe("GET /vault", () => {
     expect(html).toContain(
       "<strong>The Left Sock of Atlantis</strong> (still in the vault): Common.",
     );
-    expect(html).toContain("1 of 12 commendations.");
+    expect(html).toContain("1 of 16 commendations.");
   });
 });
 

@@ -14,6 +14,9 @@ import { describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
 import { html, type SafeHtml } from "./html";
 import { layout } from "./pages";
 import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
+import { STREAK_BUCKETS, type StreakSummary } from "../core/streak";
+import { readStreakSummary } from "./streak";
+import { REPAIR_SLUG } from "../core/repair";
 
 export const LEDGER_PATH = "/bureau/ledger";
 
@@ -72,6 +75,10 @@ export interface Ledger {
   readonly period: Period;
   readonly vault: VaultRow;
   readonly dispatch: DispatchCounts;
+  /** Duty streaks right now (not by period: a streak is about today). */
+  readonly streaks: StreakSummary;
+  /** Streaks bought back in the period ("Grease the Clerk"). */
+  readonly repairs: { readonly count: number; readonly revenueCents: number };
   readonly items: readonly ItemRow[];
   readonly sources: readonly SourceRow[];
   readonly shares: readonly ShareRow[];
@@ -178,18 +185,27 @@ export async function readLedger(
       )
       .bind(since),
     dispatchCountsQuery(db, since),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS count, SUM(amount_cents) AS revenue FROM orders
+         WHERE item_slug = ? AND paid_at >= ?`,
+      )
+      .bind(REPAIR_SLUG, since),
   ]);
 
   // A batch returns one result per statement, in order.
-  const [items, orders, sources, shares, [vault], [dispatch]] = results.map(
+  const streaks = await readStreakSummary(db, nowSeconds);
+  const [items, orders, sources, shares, [vault], [dispatch], [repairs]] = results.map(
     (result) => result.results,
-  ) as [Row[], Row[], Row[], Row[], [Row], [Row]];
+  ) as [Row[], Row[], Row[], Row[], [Row], [Row], [Row]];
   const byItem = new Map(items.map((row) => [row["item_slug"], row]));
   const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
   const sharesByChannel = new Map(shares.map((row) => [row["channel"], row]));
 
   return {
     period,
+    streaks,
+    repairs: { count: num(repairs["count"]), revenueCents: num(repairs["revenue"]) },
     vault: {
       pullers: num(vault["pullers"]),
       pulls: num(vault["pulls"]),
@@ -250,8 +266,12 @@ function scrollTable(label: string, table: SafeHtml): SafeHtml {
 
 export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
   const totalVisitors = ledger.items.reduce((sum, row) => sum + row.visitors, 0);
-  const totalOrders = ledger.items.reduce((sum, row) => sum + row.orders, 0);
-  const totalRevenue = ledger.items.reduce((sum, row) => sum + row.revenueCents, 0);
+  // Sales include bought-back streaks, not just exhibits.
+  const totalOrders = ledger.items.reduce((sum, row) => sum + row.orders, ledger.repairs.count);
+  const totalRevenue = ledger.items.reduce(
+    (sum, row) => sum + row.revenueCents,
+    ledger.repairs.revenueCents,
+  );
 
   return layout({
     title: "The Ledger",
@@ -400,6 +420,28 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
               <td class="num">${String(ledger.vault.pulls)}</td>
               <td class="num">${String(ledger.vault.bonusPulls)}</td>
               <td>${describeRate(wilson(ledger.vault.returners, ledger.vault.pullers))}</td>
+            </tr>
+          </tbody>
+        </table>`,
+      )}
+      ${scrollTable(
+        "Duty streaks",
+        html`<table>
+          <caption>
+            Duty streaks right now: ${String(ledger.streaks.alive)} alive
+            (${String(ledger.streaks.safe)} already pulled today), ${String(ledger.streaks.dead)}
+            dead, longest ever ${String(ledger.streaks.longest)} days,
+            ${String(ledger.streaks.freezesSpent)} freezes spent. Bought back in the period:
+            ${String(ledger.repairs.count)} (${formatPrice(ledger.repairs.revenueCents)})
+          </caption>
+          <thead>
+            <tr>
+              ${STREAK_BUCKETS.map((bucket) => html`<th scope="col" class="num">${bucket.label}</th>`)}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              ${ledger.streaks.byLength.map((count) => html`<td class="num">${String(count)}</td>`)}
             </tr>
           </tbody>
         </table>`,

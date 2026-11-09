@@ -17,6 +17,8 @@ import { awardsForOrder } from "../core/dossier";
 import { grantAwards } from "./dossier";
 import { CHECKOUT_COMPLETED, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
 import { verifyStripeSignature } from "./stripe-signature";
+import { REPAIR_SLUG } from "../core/repair";
+import { vaultDay } from "../core/vault";
 
 export const WEBHOOK_PATH = "/webhooks/stripe";
 
@@ -100,8 +102,29 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
           ),
       );
       note = `order ${order.stripeSessionId}`;
-      if (order.visitorId !== null)
+      if (order.itemSlug === REPAIR_SLUG) {
+        // A bought-back streak: bridge the days missed since the agent's last
+        // free pull, up to the day before payment, in the same transaction as
+        // the order. Skipped (never failing the batch) if there's no gap to
+        // bridge or it's longer than a repair can cover.
+        note = `repair ${order.stripeSessionId}`;
+        if (order.visitorId !== null) {
+          statements.push(
+            deps.db
+              .prepare(
+                `INSERT OR IGNORE INTO streak_repairs
+                   (stripe_session_id, visitor_id, from_day, to_day, repaired_at)
+                 SELECT ?1, ?2, MAX(day) + 1, ?3 - 1, ?4
+                 FROM vault_pulls WHERE visitor_id = ?2 AND kind = 'daily'
+                 HAVING MAX(day) IS NOT NULL AND MAX(day) + 1 <= ?3 - 1
+                   AND (?3 - 1) - (MAX(day) + 1) < 10`,
+              )
+              .bind(order.stripeSessionId, order.visitorId, vaultDay(order.paidAt), order.paidAt),
+          );
+        }
+      } else if (order.visitorId !== null) {
         buyer = { visitorId: order.visitorId, itemSlug: order.itemSlug };
+      }
     } else {
       note = outcome.reason;
       // A paid-looking session we can't read is worth a louder log line.
