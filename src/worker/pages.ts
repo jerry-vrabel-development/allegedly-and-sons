@@ -401,8 +401,9 @@ export function saleTerms(email: string = ORDER_CONTACT_EMAIL): readonly Term[] 
     {
       heading: "What Leaves the Vault Stays Out",
       flavor: "Once a recording or certificate leaves the vault, it cannot be un-leaked.",
-      plainly: html`Digital items (like certificate files and audio) can't be refunded once
-      delivered, unless they don't work. The 24-hour change-of-mind refund doesn't cover them.`,
+      plainly: html`Digital items (like certificate files, audio, and streak restorations) can't be
+      refunded once delivered, unless they don't work. The 24-hour change-of-mind refund doesn't
+      cover them.`,
     },
     contactTerm(email),
   ];

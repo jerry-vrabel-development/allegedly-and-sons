@@ -14,6 +14,7 @@ import {
   checkoutSessionForm,
   embeddedCheckoutSessionForm,
   returnOutcome,
+  type ReturnOutcome,
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
@@ -56,6 +57,11 @@ import { readDossier } from "./dossier";
 import { DOSSIER_PATH, dossierPage } from "./dossier-page";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 import { pullLever, readVault, secureUint32 } from "./vault";
+import { readStreak } from "./streak";
+import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
+import { canRepair } from "../core/streak";
+import { vaultDay } from "../core/vault";
+import { repairReturnPage, repairUnavailablePage } from "./repair-page";
 import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
@@ -451,6 +457,46 @@ async function useLink(
 }
 
 /**
+ * "Grease the Clerk": POST /streak/repair starts a Stripe Checkout Session to
+ * buy back the visitor's dead streak, if it can still be bought back. The
+ * price comes from core/repair.ts, never from the form. Anything else goes
+ * back to the Vault.
+ */
+async function repairCheckout(request: Request, deps: Deps): Promise<Response> {
+  if (!fromOwnSite(request)) return forbidden();
+  const visitorId = returningVisitor(request, deps);
+  const { stripeKey } = deps;
+  if (visitorId === undefined || stripeKey === undefined) return seeOther(VAULT_PATH);
+  const now = deps.nowSeconds();
+  const streak = await readStreak(deps.db, visitorId, now);
+  if (!canRepair(streak, vaultDay(now))) return seeOther(VAULT_PATH);
+  const result = await createCheckoutSession(
+    stripeKey,
+    repairSessionForm(new URL(request.url).origin, visitorId, streak.lost),
+    deps.fetch,
+  );
+  if (!result.ok) {
+    console.error(`repair checkout failed: ${result.reason}`);
+    return page(repairUnavailablePage(), 502);
+  }
+  return seeOther(result.url);
+}
+
+/** Where Stripe sends a buy-back buyer: says only what Stripe confirms. */
+async function repairReturn(url: URL, deps: Deps): Promise<Response> {
+  const id = url.searchParams.get("session_id");
+  let outcome: ReturnOutcome["kind"] = "unchecked";
+  if (id !== null && SESSION_ID.test(id) && deps.stripeKey !== undefined) {
+    const lookup = await retrieveCheckoutSession(deps.stripeKey, id, deps.fetch);
+    if (lookup.ok) outcome = returnOutcome(lookup.session).kind;
+    else console.error(`repair return page: ${lookup.reason}`);
+  }
+  const response = page(repairReturnPage(outcome));
+  response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
+  return response;
+}
+
+/**
  * Unsubscribe: the button on the unsubscribe page, or a mail app's one-click
  * POST to the List-Unsubscribe URL (RFC 8058, token in the query string). No
  * Origin check: mail providers post from their own servers, and the token is
@@ -473,6 +519,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     if (postPath === EVENTS_PATH) return storyRead(request, deps);
     if (postPath === VAULT_PULL_PATH) return vaultPull(request, deps);
     if (postPath === DISPATCH_PATH) return dispatchRegister(request, deps);
+    if (postPath === REPAIR_PATH) return repairCheckout(request, deps);
     if (postPath === DISPATCH_CONFIRM_PATH) return useLink(request, "confirm", deps);
     if (postPath === DISPATCH_RECOVER_PATH) return useLink(request, "recover", deps);
     if (postPath === DISPATCH_UNSUBSCRIBE_PATH) return unsubscribePost(request, deps);
@@ -499,18 +546,28 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     case THANKS_PATH:
       return returnPage(new URL(request.url), deps);
     case DOSSIER_PATH: {
-      const [agent, registration] = await Promise.all([
+      const now = deps.nowSeconds();
+      const [agent, registration, streak] = await Promise.all([
         readDossier(deps.db, deps.visitorId),
         readRegistration(deps.db, deps.visitorId),
+        readStreak(deps.db, deps.visitorId, now),
       ]);
       return page(
-        dossierPage(agent, {
-          open: deps.postalAddress !== undefined && deps.sendEmail !== undefined,
-          registration,
-          notice: dispatchNoticeFrom(new URL(request.url).searchParams.get("dispatch")),
-        }),
+        dossierPage(
+          agent,
+          {
+            open: deps.postalAddress !== undefined && deps.sendEmail !== undefined,
+            registration,
+            notice: dispatchNoticeFrom(new URL(request.url).searchParams.get("dispatch")),
+          },
+          streak,
+          now,
+          deps.stripeKey !== undefined,
+        ),
       );
     }
+    case REPAIR_RETURN_PATH:
+      return repairReturn(new URL(request.url), deps);
     case DISPATCH_SENT_PATH:
       return page(sentPage());
     case DISPATCH_CONFIRM_PATH:
@@ -522,7 +579,11 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     case VAULT_PATH: {
       const now = deps.nowSeconds();
       const opened = new URL(request.url).searchParams.get("opened") === "1";
-      return page(vaultPage(await readVault(deps.db, deps.visitorId, now), now, opened));
+      const [vault, streak] = await Promise.all([
+        readVault(deps.db, deps.visitorId, now),
+        readStreak(deps.db, deps.visitorId, now),
+      ]);
+      return page(vaultPage(vault, streak, now, opened, deps.stripeKey !== undefined));
     }
     case STORY_SCRIPT_PATH:
       return new Response(STORY_JS, {
