@@ -13,6 +13,7 @@ import {
   rankFor,
   TOTAL_AWARDS,
 } from "../src/core/dossier";
+import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 
 const BASE: AnalyticsEvent = {
   event: "item_viewed",
@@ -29,13 +30,23 @@ const BASE: AnalyticsEvent = {
 };
 
 describe("awards", () => {
-  it("knows every badge and one card per catalog item, and nothing else", () => {
+  it("knows every badge, one card per catalog item, the vault cards, and nothing else", () => {
     for (const badge of BADGES) expect(isAward(badge.id)).toBe(true);
     for (const item of CATALOG) expect(isAward(cardId(item.slug))).toBe(true);
-    for (const bogus of ["", "card:", "card:xenoclip", "admin", "Case-Closed"]) {
+    for (const card of VAULT_CARDS) expect(isAward(vaultAwardId(card.id))).toBe(true);
+    for (const bogus of [
+      "",
+      "card:",
+      "card:xenoclip",
+      "vault:",
+      "vault:alien-paperclip",
+      "card:the-moons-receipt",
+      "admin",
+      "Case-Closed",
+    ]) {
       expect(isAward(bogus)).toBe(false);
     }
-    expect(TOTAL_AWARDS).toBe(BADGES.length + CATALOG.length);
+    expect(TOTAL_AWARDS).toBe(BADGES.length + CATALOG.length + VAULT_CARDS.length);
   });
 
   it("gives every badge a name, what earned it, and a hint (never icons alone)", () => {

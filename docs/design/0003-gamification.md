@@ -1,6 +1,6 @@
 # 0003 — Gamification, collectibles and the lore rule
 
-- **Status:** Decided; building (G1, the Agent Dossier)
+- **Status:** Decided; G1 (the Agent Dossier) shipped; building G2 (the Vault Lever)
 - **Date:** 2026-11-05, rewritten 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -89,10 +89,25 @@ Ledger, so we can see which hooks actually hook.
    - `/dossier`, linked from every page's header. Sealed cards and locked
      badges say so in words, never color alone.
    - Granting never breaks what triggered it, and is idempotent.
-2. **G2 — the Vault Lever.** One free pull a day, enforced by the Worker
-   (per visitor, per day); bonus pulls earned by actions, never by purchase.
-   Vault-only cards and secret lore pages; posted odds; reduced-motion version
-   ("the vault creaks open…"); no fake near-misses.
+2. **G2 — the Vault Lever (this PR).** `/vault`, a plain form with no script
+   (migration 0007: `vault_pulls`).
+   - One free pull per agent per UTC day, enforced by a unique index, so two
+     quick presses can't both win. A pull needs the visitor cookie already
+     set; bots never pull.
+   - One bonus pull for each of First Contact, Case Closed, Town Crier and
+     Recruiter, checked in the same statement that records the pull. Never
+     Acquirer and never cards, since those can come from a purchase.
+   - Four vault cards, never for sale, each with a secret file: The Left Sock
+     of Atlantis (Common, 40%), The Yeti's Library Card (Uncommon, 30%), A
+     Jar of Pre-Owned Thunder (Uncommon, 20%), The Moon's Receipt (Rare,
+     10%). Odds are posted on the page and drawn with rejection sampling, so
+     they're exact. Duplicates are possible and say so.
+   - Vault cards are awards (`vault:<card>`), so they count toward rank.
+   - The result page says exactly what came out: no near misses. The door's
+     swing is CSS only; reduced motion turns it off, and "The vault creaks
+     open…" is always there in words.
+   - The Ledger counts pullers, pulls, bonus pulls, and pullers who came back
+     on another day.
 3. **G3 — the Bureau Dispatch.** Email sign-up framed as agent registration
    (Cloudflare Email Sending): new acquisitions, "your pull is ready," set
    reminders. It also lets a dossier follow the agent across devices. This is
@@ -122,7 +137,6 @@ Ledger, so we can see which hooks actually hook.
 
 ## Open questions
 
-- Which vault-only cards and secret pages ship with G2, and the odds?
 - Edition sizes for the first limited run.
 - Do partnered writers (note 0002) get their own badge or card?
 - Certificate tiers: free extra, printable PDF, or a paid upgrade (G6)?

@@ -6,6 +6,7 @@
 
 import { CATALOG } from "../core/catalog";
 import { BADGES, cardId, rankFor, TOTAL_AWARDS } from "../core/dossier";
+import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout } from "./pages";
@@ -79,6 +80,18 @@ export function dossierPage(agent: Agent | undefined): SafeHtml {
                     </p>
                   </div>
                 </li>`,
+          )}
+        </ul>
+      </section>
+
+      <section class="prose" aria-labelledby="vault-heading">
+        <h2 id="vault-heading">Vault cards</h2>
+        <p>Never for sale. One free pull a day at <a href="/vault">the Vault</a>.</p>
+        <ul class="badges">
+          ${VAULT_CARDS.map((card) =>
+            earned.has(vaultAwardId(card.id))
+              ? html`<li><strong>${card.name}</strong> (collected): ${card.summary}</li>`
+              : html`<li><strong>${card.name}</strong> (still in the vault): ${card.rarity}.</li>`,
           )}
         </ul>
       </section>
