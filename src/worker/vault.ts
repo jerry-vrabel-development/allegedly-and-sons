@@ -163,3 +163,31 @@ export async function pullLever(
 export function secureUint32(): number {
   return new DataView(crypto.getRandomValues(new Uint8Array(4)).buffer).getUint32(0);
 }
+
+/**
+ * What the Vault's script gets back from a pull (design note 0008): the card
+ * (with its secret file: it's theirs now), whether it's a duplicate, and what
+ * they can do next. Never anything about other agents.
+ */
+export function pullJson(
+  card: VaultCard,
+  kind: PullKind,
+  vault: VaultState,
+  streak: { readonly status: string; readonly days: number },
+) {
+  return {
+    ok: true as const,
+    kind,
+    card: {
+      id: card.id,
+      designation: card.designation,
+      name: card.name,
+      rarity: card.rarity,
+      summary: card.summary,
+      secretFile: card.secretFile,
+    },
+    duplicate: vault.latest?.duplicate === true,
+    next: { dailyReady: vault.dailyReady, bonusLeft: vault.bonusLeft },
+    streakDays: streak.days,
+  };
+}

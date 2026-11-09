@@ -415,10 +415,12 @@ export const METHODS_TERMS: readonly Term[] = [
     heading: "What Runs in Your Browser",
     flavor:
       "The Bureau's agents work quietly: one watches the reading room, one minds the checkout desk, and nobody else gets in.",
-    plainly: html`Two kinds of page run a script, and only our own or Stripe’s. Item pages run a
+    plainly: html`Three kinds of page run a script, and only our own or Stripe’s. Item pages run a
       small one of ours that notes when you open a case file and whether you read it to the end. The
-      checkout page runs Stripe’s, which shows the payment form, and a small one of ours that loads
-      it. Stripe may collect information about your device to help prevent fraud; see
+      Vault runs one of ours that animates the lever and plays its sounds; if you turn the sound
+      off, your browser remembers that, and nothing about it is sent to us. The checkout page runs
+      Stripe’s, which shows the payment form, and a small one of ours that loads it. Stripe may
+      collect information about your device to help prevent fraud; see
       <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight to
       Stripe and never touch our servers.`,
   },
