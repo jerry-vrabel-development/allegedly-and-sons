@@ -286,7 +286,7 @@ describe("disclaimer page", () => {
     expect(TERMS_LAST_AMENDED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // Prettier may wrap the tags, so allow whitespace before each ">".
     expect(pages.disclaimer).toMatch(
-      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 8, 2026</time\\s*>`),
+      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 9, 2026</time\\s*>`),
     );
     expect(pages.disclaimer).toContain(
       "Your order is governed by the terms posted when you placed it.",

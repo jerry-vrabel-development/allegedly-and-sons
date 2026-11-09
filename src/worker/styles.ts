@@ -152,6 +152,15 @@ table.odds caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem;
 table.odds th, table.odds td { text-align: left; padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--muted); }
 table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* The Dispatch form: a visible label, a full-size field, a worded button */
+.dispatch-form { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: end; margin: 1rem 0; }
+.dispatch-form label { flex-basis: 100%; font-weight: bold; }
+.dispatch-form input[type="email"] { flex: 1 1 16rem; min-height: 44px; padding: 0.5rem 0.75rem; font: inherit; color: var(--text); background: var(--surface); border: 2px solid var(--muted); border-radius: 6px; }
+.dispatch-form input:focus-visible, .dispatch-form .button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.dispatch-form .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+.notice { border-left: 4px solid var(--accent); padding: 0.5rem 1rem; background: var(--surface); }
+.small-print { font-size: 0.95rem; color: var(--muted); }
+
 /* The ledger (private dashboard): plain, scrollable tables */
 .ledger .table-scroll { overflow-x: auto; margin: 0.75rem 0 2rem; }
 .ledger .table-scroll:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }

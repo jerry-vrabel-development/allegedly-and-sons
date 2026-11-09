@@ -8,6 +8,7 @@ import { CATALOG } from "../core/catalog";
 import { BADGES, cardId, rankFor, TOTAL_AWARDS } from "../core/dossier";
 import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
+import { dispatchSection, type DispatchView } from "./dispatch-pages";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout } from "./pages";
 
@@ -17,7 +18,7 @@ function agentNumber(n: number): string {
   return String(n).padStart(4, "0");
 }
 
-export function dossierPage(agent: Agent | undefined): SafeHtml {
+export function dossierPage(agent: Agent | undefined, dispatch: DispatchView): SafeHtml {
   const earned = new Set(agent?.awards.map((award) => award.id) ?? []);
   const count = earned.size;
   const { rank, next } = rankFor(count);
@@ -49,6 +50,8 @@ export function dossierPage(agent: Agent | undefined): SafeHtml {
         <h1>Your Dossier</h1>
         ${header}
       </div>
+
+      ${dispatchSection(dispatch)}
 
       <section aria-labelledby="cards-heading">
         <h2 id="cards-heading">Exhibit cards</h2>
