@@ -58,8 +58,18 @@ export interface ShareRow {
   readonly orders: number;
 }
 
+/** The vault lever (note 0003, G2): does the daily pull bring agents back? */
+export interface VaultRow {
+  readonly pullers: number;
+  readonly pulls: number;
+  readonly bonusPulls: number;
+  /** Agents who pulled on more than one day in the period. */
+  readonly returners: number;
+}
+
 export interface Ledger {
   readonly period: Period;
+  readonly vault: VaultRow;
   readonly items: readonly ItemRow[];
   readonly sources: readonly SourceRow[];
   readonly shares: readonly ShareRow[];
@@ -153,14 +163,27 @@ export async function readLedger(
          GROUP BY s.channel`,
       )
       .bind(since),
+    db
+      .prepare(
+        `SELECT COUNT(DISTINCT visitor_id) AS pullers,
+           COUNT(*) AS pulls,
+           SUM(kind = 'bonus') AS bonus_pulls,
+           (SELECT COUNT(*) FROM (
+              SELECT visitor_id FROM vault_pulls WHERE pulled_at >= ?1
+              GROUP BY visitor_id HAVING COUNT(DISTINCT day) > 1
+            )) AS returners
+         FROM vault_pulls WHERE pulled_at >= ?1`,
+      )
+      .bind(since),
   ]);
 
   // A batch returns one result per statement, in order.
-  const [items, orders, sources, shares] = results.map((result) => result.results) as [
+  const [items, orders, sources, shares, [vault]] = results.map((result) => result.results) as [
     Row[],
     Row[],
     Row[],
     Row[],
+    [Row],
   ];
   const byItem = new Map(items.map((row) => [row["item_slug"], row]));
   const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
@@ -168,6 +191,12 @@ export async function readLedger(
 
   return {
     period,
+    vault: {
+      pullers: num(vault["pullers"]),
+      pulls: num(vault["pulls"]),
+      bonusPulls: num(vault["bonus_pulls"]),
+      returners: num(vault["returners"]),
+    },
     items: CATALOG.map((item) => {
       const row = byItem.get(item.slug);
       const sold = ordersByItem.get(item.slug);
@@ -343,6 +372,30 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
                   <td class="num">${String(row.orders)}</td>
                 </tr>`,
             )}
+          </tbody>
+        </table>`,
+      )}
+      ${scrollTable(
+        "The Vault",
+        html`<table>
+          <caption>
+            The Vault: does the daily pull bring agents back?
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">Agents who pulled</th>
+              <th scope="col" class="num">Pulls</th>
+              <th scope="col" class="num">Bonus pulls</th>
+              <th scope="col">Came back another day (of pullers)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">${String(ledger.vault.pullers)}</td>
+              <td class="num">${String(ledger.vault.pulls)}</td>
+              <td class="num">${String(ledger.vault.bonusPulls)}</td>
+              <td>${describeRate(wilson(ledger.vault.returners, ledger.vault.pullers))}</td>
+            </tr>
           </tbody>
         </table>`,
       )}

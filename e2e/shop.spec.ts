@@ -9,6 +9,7 @@ const PAGES = [
   { name: "fine print", path: "/disclaimer" },
   { name: "thank you", path: "/thanks" },
   { name: "dossier", path: "/dossier" },
+  { name: "vault", path: "/vault" },
   { name: "not found", path: "/items/the-other-three-xenoclips" },
 ] as const;
 
@@ -254,4 +255,48 @@ test("finishing a case file earns its card in your dossier", async ({ page, brow
   await page.getByRole("link", { name: "Your Dossier" }).click();
   await expect(page.getByText("Card AS-0002 · Collected")).toBeVisible();
   await expect(page.getByText(/Agent No\. \d{4}/)).toBeVisible();
+});
+
+test("pulling the vault lever opens the vault once a day", async ({ page, browserName }) => {
+  // Like the dossier test: the lever needs the Secure visitor cookie, which
+  // WebKit won't keep on http://localhost. Pull rules are covered by
+  // test/vault-worker.test.ts.
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.goto("/");
+  await page.getByRole("link", { name: "The Vault" }).click();
+  await expect(page.getByText("Your free pull for today is ready.")).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Every pull draws one card at these odds" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Pull the lever" }).click();
+  await expect(page).toHaveURL(/\/vault\?opened=1#latest-pull$/);
+  const latest = page.getByRole("region", { name: "Your latest pull" });
+  await expect(latest.getByText("The vault creaks open…")).toBeVisible();
+  await expect(
+    latest.getByText(/Vault card V-00\d · (Common|Uncommon|Rare) · New to your file/),
+  ).toBeVisible();
+  await expect(page.getByText("The lever is locked until tomorrow.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pull the lever" })).toHaveCount(0);
+  // Check the page at rest: mid-swing, axe can't measure the turning card's contrast.
+  await latest.locator(".vault-card").evaluate(async (card) => {
+    await Promise.all(card.getAnimations().map((animation) => animation.finished));
+  });
+  await expectNoAxeViolations(page);
+
+  await page
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Your Dossier" })
+    .click();
+  await expect(page.getByText("(collected)")).toBeVisible();
+});
+
+test("the vault's opening respects reduced motion", async ({ page, browserName }) => {
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/vault");
+  await page.getByRole("button", { name: "Pull the lever" }).click();
+  const card = page.locator(".latest-pull .vault-card");
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  await expect(page.getByText("The vault creaks open…")).toBeVisible();
 });

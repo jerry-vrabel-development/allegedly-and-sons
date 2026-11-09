@@ -365,7 +365,7 @@ describe("the Bureau's methods", () => {
     expect(text).toContain("lasts a year from your latest visit");
     expect(text).toContain("it’s deleted when you close your browser");
     expect(text).toContain(
-      "If you earn badges or cards, we keep them with the first cookie’s number",
+      "If you earn badges or cards, or pull the vault lever, we keep them and your pulls with the first cookie’s number",
     );
     expect(text).not.toContain("one cookie");
     expect(text).toContain("we pass the first one’s number to Stripe with your order");

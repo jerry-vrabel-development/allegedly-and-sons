@@ -150,7 +150,7 @@ describe("GET /dossier", () => {
     const html = await page(A);
     expect(html).toMatch(/Agent No\. 000\d/);
     expect(html).toMatch(/Codename: [A-Z][a-z]+ [A-Z][a-z]+/);
-    expect(html).toContain("<strong>Rank: Junior Field Agent.</strong> 2 of 8 commendations.");
+    expect(html).toContain("<strong>Rank: Junior Field Agent.</strong> 2 of 12 commendations.");
     expect(html).toContain("1 more for Field Agent.");
     expect(html).toContain("Card AS-0001 · Collected");
     expect(html).toContain("Card AS-0002 · Sealed");
@@ -170,6 +170,10 @@ describe("GET /dossier", () => {
         "card:alien-paperclip",
         "card:second-best-quill",
         "card:viking-participation-trophy",
+        "vault:left-sock-of-atlantis",
+        "vault:yetis-library-card",
+        "vault:jar-of-pre-owned-thunder",
+        "vault:the-moons-receipt",
       ],
       NOW,
     );

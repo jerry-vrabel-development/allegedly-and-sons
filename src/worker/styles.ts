@@ -135,6 +135,23 @@ footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--mute
 .card.sealed { border-style: dashed; background: transparent; }
 .badges { padding-left: 1.25rem; }
 
+/* The vault: rarity and status are in words on every card, never color alone */
+.lever .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+.lever .button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.latest-pull:focus { outline: none; }
+.latest-pull .vault-card { border-width: 3px; border-style: double; max-width: 44rem; }
+.creak { font-style: italic; color: var(--muted); margin: 0 0 0.75rem; }
+.latest-pull.opening .vault-card { animation: vault-open 900ms ease-out both; transform-origin: left center; }
+@keyframes vault-open {
+  from { transform: perspective(60rem) rotateY(-70deg); }
+  to { transform: none; }
+}
+.vault-card h4, .vault .odds caption { margin: 1rem 0 0.25rem; }
+table.odds { border-collapse: collapse; width: 100%; font-size: 1rem; }
+table.odds caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem; }
+table.odds th, table.odds td { text-align: left; padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--muted); }
+table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
+
 /* The ledger (private dashboard): plain, scrollable tables */
 .ledger .table-scroll { overflow-x: auto; margin: 0.75rem 0 2rem; }
 .ledger .table-scroll:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }

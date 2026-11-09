@@ -39,7 +39,10 @@ too).
 
 Every visitor can become a Bureau agent: `/dossier` shows their badges, exhibit
 cards and rank, awarded by the Worker from what they actually do (read a case
-file to the end, share, bring someone in, acquire). See
+file to the end, share, bring someone in, acquire). At `/vault`, each agent
+gets one free pull of the vault lever a day (plus a bonus pull for each of four
+commendations, never for buying) and draws a vault card at posted odds. The
+Worker enforces the limits and does the drawing. See
 [0003](docs/design/0003-gamification.md) for the full gamification roadmap.
 
 ## How a purchase works

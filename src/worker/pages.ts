@@ -56,6 +56,7 @@ export function layout({
               <ul>
                 <li><a href="/">The Collection</a></li>
                 <li><a href="/dossier">Your Dossier</a></li>
+                <li><a href="/vault">The Vault</a></li>
               </ul>
             </nav>
           </div>
@@ -431,9 +432,9 @@ export const METHODS_TERMS: readonly Term[] = [
     number to Stripe with your order, so we can tell which visits led to a sale. We also note which
     item pages are viewed, whether you read their case files, which share buttons you press, the
     country your connection comes from, and the website that sent you. If you earn badges or cards,
-    we keep them with the first cookie’s number, along with an agent number and a codename made from
-    it. Our records don’t include your IP address, and we don’t use third-party trackers or ad
-    networks.`,
+    or pull the vault lever, we keep them and your pulls with the first cookie’s number, along with
+    an agent number and a codename made from it. Our records don’t include your IP address, and we
+    don’t use third-party trackers or ad networks.`,
   },
 ];
 

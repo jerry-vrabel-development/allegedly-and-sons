@@ -54,6 +54,10 @@ import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
 import { readDossier } from "./dossier";
 import { DOSSIER_PATH, dossierPage } from "./dossier-page";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
+import { pullLever, readVault, secureUint32 } from "./vault";
+import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
+import { rollFrom } from "../core/vault";
+import { visitorIdFromCookie } from "../core/visitor";
 
 /**
  * Secrets the Worker reads. Set each with `npx wrangler secret put <NAME>`, and
@@ -82,6 +86,8 @@ export interface Deps extends WebhookDeps, AnalyticsDeps, AccessDeps {
   /** Stripe secret key, or undefined when checkout isn't configured. */
   readonly stripeKey: string | undefined;
   readonly fetch: typeof fetch;
+  /** Random 32-bit numbers for the vault lever. Defaults to the secure generator. */
+  readonly randomUint32?: () => number;
 }
 
 const TEXT = "text/plain; charset=utf-8";
@@ -274,12 +280,44 @@ async function bureau(request: Request, pathname: string, deps: Deps): Promise<R
   return response;
 }
 
+/**
+ * The vault lever: POST /vault/pull, a plain form on /vault. Only an agent
+ * who already has the visitor cookie can pull (a first visit sets it), bots
+ * never pull, and the Worker alone decides whether a pull is allowed and what
+ * it draws. Always answers with a redirect back to /vault (post, redirect,
+ * get), so reloading the result page never pulls again.
+ */
+async function vaultPull(request: Request, deps: Deps): Promise<Response> {
+  const { origin } = new URL(request.url);
+  const sentFrom = request.headers.get("Origin");
+  if (sentFrom !== null && sentFrom !== origin) {
+    return new Response("Forbidden.\n", { status: 403, headers: { "Content-Type": TEXT } });
+  }
+  const back = (location: string) =>
+    new Response(null, {
+      status: 303,
+      headers: { Location: location, "Cache-Control": "no-store" },
+    });
+  const fromCookie = visitorIdFromCookie(request.headers.get("Cookie"));
+  if (
+    deps.visitorId === null ||
+    fromCookie !== deps.visitorId ||
+    isAutomated(request.headers.get("User-Agent"))
+  ) {
+    return back(VAULT_PATH);
+  }
+  const roll = rollFrom(deps.randomUint32 ?? secureUint32);
+  const result = await pullLever(deps.db, deps.visitorId, deps.nowSeconds(), roll);
+  return back(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+}
+
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
     const { pathname: postPath } = new URL(request.url);
     if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
     if (postPath === EVENTS_PATH) return storyRead(request, deps);
+    if (postPath === VAULT_PULL_PATH) return vaultPull(request, deps);
     const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
     if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
     const slug = CHECKOUT_PATH.exec(postPath)?.[1];
@@ -304,6 +342,11 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       return returnPage(new URL(request.url), deps);
     case DOSSIER_PATH:
       return page(dossierPage(await readDossier(deps.db, deps.visitorId)));
+    case VAULT_PATH: {
+      const now = deps.nowSeconds();
+      const opened = new URL(request.url).searchParams.get("opened") === "1";
+      return page(vaultPage(await readVault(deps.db, deps.visitorId, now), now, opened));
+    }
     case STORY_SCRIPT_PATH:
       return new Response(STORY_JS, {
         headers: {
