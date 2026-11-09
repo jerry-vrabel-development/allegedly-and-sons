@@ -137,7 +137,7 @@ describe("the ON AIR banner", () => {
       const { html } = await get(path);
       expect(html).toContain('<p class="on-air-banner"> <strong>On air:</strong>');
       expect(html).toContain(
-        `${segment.item.name}, ${formatPrice(specialPriceCents(segment.item, "rolling"))} (15% off) until 3:00 PM Chicago time.`,
+        `${segment.item.name}, ${formatPrice(specialPriceCents(segment.item, "rolling"))} (15% off)<span class="banner-detail"> until 3:00 PM Chicago time</span>.`,
       );
       expect(html).toContain('<a href="/broadcast">Watch the broadcast</a>');
     }
@@ -162,10 +162,18 @@ describe("on-air prices across the shop", () => {
       expect(html).toContain(`(regularly ${formatPrice(segment.item.priceCents)})`);
       expect(html).toContain("This price ends at 3:00 PM Chicago time.");
     }
-    expect((await get(`/items/${segment.item.slug}`)).html).toContain(
-      "<dt>Smuggler&#39;s Special Value</dt>",
+    const onAirPage = (await get(`/items/${segment.item.slug}`)).html;
+    expect(onAirPage).toContain('<p class="on-air-tag"> <strong>On air</strong> ·');
+    expect(onAirPage).toContain("Smuggler's Special Value · </span>15% off");
+    expect(onAirPage).toContain(
+      `<span class="phone-only">, regularly ${formatPrice(segment.item.priceCents)}</span>`,
+    );
+    // The buy button comes before the on-air note, so it stays on a phone's first screen.
+    expect(onAirPage.indexOf("Acquire this exhibit")).toBeLessThan(
+      onAirPage.indexOf("on-air-note"),
     );
     expect((await get(`/items/${offAir.slug}`)).html).toContain("<dt>Your price</dt>");
+    expect((await get(`/items/${offAir.slug}`)).html).not.toContain("on-air-tag");
   });
 
   it("say so when the item is in the Midnight Auction", async () => {

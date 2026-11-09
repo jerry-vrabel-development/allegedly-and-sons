@@ -116,7 +116,11 @@ test.describe("item page", () => {
     for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
       await page.goto(`/items/${slug}`);
       await expect(page.locator(".buybox .price")).toBeInViewport();
-      await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport();
+      // The whole button, not a sliver: whichever item is on air (and the
+      // ON AIR banner) must still leave it on the first screen.
+      await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport({
+        ratio: 1,
+      });
     }
   });
 

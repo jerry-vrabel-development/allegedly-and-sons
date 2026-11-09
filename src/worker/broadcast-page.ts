@@ -133,10 +133,13 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
 /** The ON AIR strip at the top of other pages. */
 export function onAirBanner(nowSeconds: number): SafeHtml {
   const segment = segmentAt(nowSeconds);
+  // On phones the end time is dropped (the broadcast page has it) so the
+  // banner stays short and the item page's buy button stays on screen.
+  const price = formatPrice(specialPriceCents(segment.item, segment.kind));
+  // prettier-ignore
+  const detail = html`<span class="banner-detail"> until ${chicagoTime(segment.endsAt)} Chicago time</span>`;
   return html`<p class="on-air-banner">
-    <strong>On air:</strong> ${segment.item.name},
-    ${formatPrice(specialPriceCents(segment.item, segment.kind))} (${discount(segment)}) until
-    ${chicagoTime(segment.endsAt)} Chicago time.
+    <strong>On air:</strong> ${segment.item.name}, ${price} (${discount(segment)})${detail}.
     <a href="${BROADCAST_PATH}">Watch the broadcast</a>
   </p>`;
 }

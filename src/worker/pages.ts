@@ -158,6 +158,21 @@ function priceLine(offer: Offer): SafeHtml {
     <span class="regular">(regularly ${formatPrice(offer.regularCents)})</span>`;
 }
 
+/** One short line above the price when the item is on air (keeps the buy button on screen). */
+function onAirTag(offer: Offer): SafeHtml {
+  if (offer.segment === undefined) return html``;
+  const percent = Math.round((1 - offer.priceCents / offer.regularCents) * 100);
+  // On phones the regular price moves up here, so the price row stays one line.
+  const regular = formatPrice(offer.regularCents);
+  // prettier-ignore
+  const wide = html`<span class="wide-only">Smuggler's Special Value · </span>`;
+  // prettier-ignore
+  const phone = html`<span class="phone-only">, regularly ${regular}</span>`;
+  return html`<p class="on-air-tag">
+    <strong>On air</strong> · ${wide}${String(percent)}% off${phone}
+  </p>`;
+}
+
 function onAirNote(offer: Offer): SafeHtml {
   if (offer.segment === undefined) return html``;
   const where = offer.segment.kind === "auction" ? ", in the Midnight Auction" : "";
@@ -186,16 +201,17 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
           <div class="buybox">
             <p class="kicker">Exhibit ${item.exhibit}</p>
             <h1>${item.name}</h1>
+            ${onAirTag(offer)}
             <dl class="pricing">
               <dt>Estimated value</dt>
               <dd class="anchor">${item.estimatedValue}</dd>
-              <dt>${offer.segment === undefined ? "Your price" : "Smuggler's Special Value"}</dt>
+              <dt>Your price</dt>
               <dd class="price">${priceLine(offer)}</dd>
             </dl>
-            ${onAirNote(offer)}
             <p class="acquire">
               <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
             </p>
+            ${onAirNote(offer)}
             <p class="secure-note">
               Secure checkout by Stripe. US shipping only, for now.
               <a href="${TERMS_PATH}">Terms of sale</a>.

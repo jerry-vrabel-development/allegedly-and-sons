@@ -40,6 +40,8 @@ body {
   line-height: 1.6;
 }
 img { display: block; max-width: 100%; height: auto; }
+/* Text for phones only (the wide layout says it elsewhere) */
+.phone-only { display: none; }
 /* hidden always hides, even on elements styled with display (like .button) */
 [hidden] { display: none !important; }
 a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.15em; }
@@ -231,12 +233,22 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Phones: keep the name, price and call to action on the first screen */
 @media (max-width: 51.99rem) {
-  header.site { padding: 0.6rem 0; }
-  main { padding-top: 1rem; }
-  .exhibit { gap: 1rem; }
-  .exhibit figure.art img { aspect-ratio: 3 / 2; object-fit: cover; object-position: 50% 100%; }
-  .buybox { padding: 1rem 1.25rem; }
-  .buybox h1 { font-size: 1.9rem; }
+  .on-air-banner { font-size: 0.85rem; padding: 0.3rem 0.75rem; line-height: 1.35; }
+  .banner-detail { display: none; }
+  .buybox .on-air-tag { margin: 0 0 0.4rem; padding: 0.1rem 0.5rem; font-size: 0.85rem; font-variant: normal; letter-spacing: 0; }
+  .buybox .regular, .wide-only { display: none; }
+  .phone-only { display: inline; }
+  header.site { padding: 0.5rem 0; }
+  header.site .wrap { gap: 0.25rem 1rem; }
+  .brand { font-size: 1.1rem; }
+  header.site nav { font-size: 1rem; }
+  header.site nav ul { gap: 0.25rem 1rem; }
+  main { padding-top: 0.75rem; }
+  .exhibit { gap: 0.75rem; }
+  .exhibit figure.art img { aspect-ratio: 2 / 1; object-fit: cover; object-position: 50% 75%; }
+  .buybox { padding: 0.85rem 1.1rem; }
+  .buybox h1 { font-size: 1.75rem; margin-bottom: 0.35rem; }
+  .buybox dl.pricing { margin-bottom: 0.6rem; }
   .buybox .hook { margin-top: 1rem; }
 }
 @media (min-width: 52rem) {
