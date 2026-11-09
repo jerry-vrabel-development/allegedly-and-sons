@@ -13,6 +13,7 @@ import { NETWORKS, type Network } from "../core/share";
 import { describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
 import { html, type SafeHtml } from "./html";
 import { layout } from "./pages";
+import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
 
 export const LEDGER_PATH = "/bureau/ledger";
 
@@ -70,6 +71,7 @@ export interface VaultRow {
 export interface Ledger {
   readonly period: Period;
   readonly vault: VaultRow;
+  readonly dispatch: DispatchCounts;
   readonly items: readonly ItemRow[];
   readonly sources: readonly SourceRow[];
   readonly shares: readonly ShareRow[];
@@ -175,16 +177,13 @@ export async function readLedger(
          FROM vault_pulls WHERE pulled_at >= ?1`,
       )
       .bind(since),
+    dispatchCountsQuery(db, since),
   ]);
 
   // A batch returns one result per statement, in order.
-  const [items, orders, sources, shares, [vault]] = results.map((result) => result.results) as [
-    Row[],
-    Row[],
-    Row[],
-    Row[],
-    [Row],
-  ];
+  const [items, orders, sources, shares, [vault], [dispatch]] = results.map(
+    (result) => result.results,
+  ) as [Row[], Row[], Row[], Row[], [Row], [Row]];
   const byItem = new Map(items.map((row) => [row["item_slug"], row]));
   const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
   const sharesByChannel = new Map(shares.map((row) => [row["channel"], row]));
@@ -196,6 +195,12 @@ export async function readLedger(
       pulls: num(vault["pulls"]),
       bonusPulls: num(vault["bonus_pulls"]),
       returners: num(vault["returners"]),
+    },
+    dispatch: {
+      registered: num(dispatch["registered"]),
+      unsubscribed: num(dispatch["unsubscribed"]),
+      confirmations: num(dispatch["confirmations"]),
+      recoveries: num(dispatch["recoveries"]),
     },
     items: CATALOG.map((item) => {
       const row = byItem.get(item.slug);
@@ -395,6 +400,31 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
               <td class="num">${String(ledger.vault.pulls)}</td>
               <td class="num">${String(ledger.vault.bonusPulls)}</td>
               <td>${describeRate(wilson(ledger.vault.returners, ledger.vault.pullers))}</td>
+            </tr>
+          </tbody>
+        </table>`,
+      )}
+      ${scrollTable(
+        "The Bureau Dispatch",
+        html`<table>
+          <caption>
+            The Bureau Dispatch (registered and unsubscribed are right now; links used are in the
+            period)
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">Registered</th>
+              <th scope="col" class="num">Unsubscribed</th>
+              <th scope="col" class="num">Confirmations</th>
+              <th scope="col" class="num">Files opened on another device</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">${String(ledger.dispatch.registered)}</td>
+              <td class="num">${String(ledger.dispatch.unsubscribed)}</td>
+              <td class="num">${String(ledger.dispatch.confirmations)}</td>
+              <td class="num">${String(ledger.dispatch.recoveries)}</td>
             </tr>
           </tbody>
         </table>`,

@@ -29,6 +29,17 @@
     "ACCESS_TEAM_DOMAIN": "allegedlyandsons.cloudflareaccess.com",
     "ACCESS_AUD": "758a0a900d0124c2c9b0f2e33817c9c1b7b7926e2947210926a115cd7f548c60",
   },
+  // The Bureau Dispatch (design note 0007): Cloudflare Email Service. The
+  // domain is onboarded once with `npx wrangler email sending enable
+  // allegedlyandsons.com`. The binding may only send from the Dispatch address.
+  // Nothing sends until DISPATCH_POSTAL_ADDRESS is set (a public var, since it's
+  // printed in every email): add it to "vars" above when the address is ready.
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["dispatch@allegedlyandsons.com"],
+    },
+  ],
   "observability": {
     "enabled": true,
   },

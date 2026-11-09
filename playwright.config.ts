@@ -28,10 +28,11 @@ export default defineConfig({
     { name: "iphone", use: { ...devices["iPhone 14"] } },
   ],
   webServer: {
-    // A fake Stripe key opens the checkout page; tests stub Stripe.js and the session
+    // A test postal address opens the Dispatch form (wrangler dev only simulates
+    // sending: nothing leaves the machine). A fake Stripe key opens the checkout page; tests stub Stripe.js and the session
     // request, so it never reaches Stripe. Local D1 gets the migrations first, so
     // item pages can record their views.
-    command: `npx wrangler d1 migrations apply DB --local && npx wrangler dev --port ${String(PORT)} --var STRIPE_SECRET_KEY:sk_test_e2e_not_a_real_key`,
+    command: `npx wrangler d1 migrations apply DB --local && npx wrangler dev --port ${String(PORT)} --var STRIPE_SECRET_KEY:sk_test_e2e_not_a_real_key --var "DISPATCH_POSTAL_ADDRESS:PO Box 0, Testville"`,
     url: `http://localhost:${String(PORT)}/healthz`,
     reuseExistingServer: process.env["CI"] === undefined,
     timeout: 60_000,

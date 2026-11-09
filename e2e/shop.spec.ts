@@ -10,6 +10,9 @@ const PAGES = [
   { name: "thank you", path: "/thanks" },
   { name: "dossier", path: "/dossier" },
   { name: "vault", path: "/vault" },
+  { name: "dispatch sent", path: "/dispatch/sent" },
+  { name: "dispatch confirm link", path: `/dispatch/confirm?t=${"0".repeat(64)}` },
+  { name: "dispatch expired link", path: "/dispatch/recover?t=expired" },
   { name: "not found", path: "/items/the-other-three-xenoclips" },
 ] as const;
 
@@ -47,8 +50,10 @@ for (const { name, path } of PAGES) {
       const errors: string[] = [];
       page.on("console", (message) => {
         if (message.type() !== "error") return;
-        // The 404 page reports its own status as a console error; that one is expected.
-        const ownStatus = new URL(message.location().url).pathname === path;
+        // A 404 page (not found, an expired link) reports its own status as a
+        // console error; that one is expected.
+        const source = new URL(message.location().url);
+        const ownStatus = `${source.pathname}${source.search}` === path;
         if (!ownStatus) errors.push(message.text());
       });
       page.on("pageerror", (error) => errors.push(error.message));
@@ -299,4 +304,26 @@ test("the vault's opening respects reduced motion", async ({ page, browserName }
   await expect(card).toBeVisible();
   expect(await card.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
   await expect(page.getByText("The vault creaks open…")).toBeVisible();
+});
+
+test("registering with the Dispatch ends on the same 'check your inbox' page", async ({
+  page,
+  browserName,
+}) => {
+  // The form needs the Secure visitor cookie, which WebKit won't keep on
+  // http://localhost. The flows are covered by test/dispatch-worker.test.ts.
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.goto("/dossier");
+  const dispatch = page.getByRole("region", { name: "The Bureau Dispatch" });
+  await dispatch.getByLabel("Your email").fill("agent@example.com");
+  await expectNoAxeViolations(page);
+  await dispatch.getByRole("button", { name: "Register with the Bureau" }).click();
+  await expect(page).toHaveURL(/\/dispatch\/sent$/);
+  await expect(page.getByRole("heading", { name: "Check your inbox" })).toBeVisible();
+});
+
+test("an email's link shows a button and never acts on its own", async ({ page }) => {
+  await page.goto(`/dispatch/confirm?t=${"0".repeat(64)}`);
+  await page.getByRole("button", { name: "Confirm my registration" }).click();
+  await expect(page.getByRole("heading", { name: "That link has expired" })).toBeVisible();
 });

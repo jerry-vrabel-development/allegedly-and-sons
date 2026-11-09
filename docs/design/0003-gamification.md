@@ -1,6 +1,7 @@
 # 0003 — Gamification, collectibles and the lore rule
 
-- **Status:** Decided; G1 (the Agent Dossier) shipped; building G2 (the Vault Lever)
+- **Status:** Decided; G1 (the Agent Dossier) and G2 (the Vault Lever) shipped; building G3
+  part 1 (note 0007)
 - **Date:** 2026-11-05, rewritten 2026-11-08
 - **Author:** Jerry Vrabel
 
@@ -75,7 +76,7 @@ value," anything about health or safety). Bureau certificates read as comedy
 Each is a small PR into `dev` with tests, and each mechanic gets a row in the
 Ledger, so we can see which hooks actually hook.
 
-1. **G1 — the Agent Dossier (this PR).** Server-side, keyed to the visitor
+1. **G1 — the Agent Dossier (shipped).** Server-side, keyed to the visitor
    cookie (migration 0006: `agents`, `awards`). Awards come only from events
    the Worker recorded itself, so nothing can be claimed from the browser:
    - First Contact (opened a case file), Case Closed (finished one), Town Crier
@@ -89,7 +90,7 @@ Ledger, so we can see which hooks actually hook.
    - `/dossier`, linked from every page's header. Sealed cards and locked
      badges say so in words, never color alone.
    - Granting never breaks what triggered it, and is idempotent.
-2. **G2 — the Vault Lever (this PR).** `/vault`, a plain form with no script
+2. **G2 — the Vault Lever (shipped).** `/vault`, a plain form with no script
    (migration 0007: `vault_pulls`).
    - One free pull per agent per UTC day, enforced by a unique index, so two
      quick presses can't both win. A pull needs the visitor cookie already
@@ -111,7 +112,9 @@ Ledger, so we can see which hooks actually hook.
 3. **G3 — the Bureau Dispatch.** Email sign-up framed as agent registration
    (Cloudflare Email Sending): new acquisitions, "your pull is ready," set
    reminders. It also lets a dossier follow the agent across devices. This is
-   the outside trigger that closes the loop.
+   the outside trigger that closes the loop. Part 1 (registration, recovery,
+   unsubscribe) is decided in [note 0007](0007-dispatch.md); the mailings
+   themselves are part 2.
 4. **G4 — streaks, limited editions, card sets.** Duty streaks with a freeze;
    real numbered editions ("No. 12 of 50") with true remaining counts; set
    completion rewards and set bundles at checkout.

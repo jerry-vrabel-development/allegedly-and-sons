@@ -263,7 +263,7 @@ export const MAX_SHIP_DAYS = 30;
  * When the terms last changed (YYYY-MM-DD). Orders are governed by the terms
  * posted when they were placed, so bump this with every change to the terms.
  */
-export const TERMS_LAST_AMENDED = "2026-11-08";
+export const TERMS_LAST_AMENDED = "2026-11-09";
 
 /** A clause of The Fine Print: black-market flavor, then what it actually means. */
 export interface Term {
@@ -435,6 +435,18 @@ export const METHODS_TERMS: readonly Term[] = [
     or pull the vault lever, we keep them and your pulls with the first cookie’s number, along with
     an agent number and a codename made from it. Our records don’t include your IP address, and we
     don’t use third-party trackers or ad networks.`,
+  },
+  {
+    heading: "Correspondence",
+    flavor:
+      "Agents who leave a forwarding address receive the occasional sealed envelope. Burn after reading is optional.",
+    plainly: html`If you register with the Bureau Dispatch, we keep the email address you give us
+      with your file, once you’ve confirmed it from the link we send. We use it to send you that
+      link, to let you open your file on another device, and for Bureau mail. We never sell it,
+      share it, or put it in our analytics. Every Bureau email has a link to unsubscribe, which
+      works immediately; your address stays on file so you can still open your file elsewhere. To
+      have it deleted entirely, write to
+      <a href="mailto:${ORDER_CONTACT_EMAIL}">${ORDER_CONTACT_EMAIL}</a>.`,
   },
 ];
 
