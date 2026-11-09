@@ -122,10 +122,20 @@ export function rollFrom(nextUint32: () => number): number {
 }
 
 /**
- * Commendations that each earn one bonus pull, once. Never "acquirer", and
- * never cards (a card can come from a purchase): no purchase ever buys a pull.
+ * Commendations that each earn one bonus pull, once: four for doing things,
+ * and the four duty-streak milestones. Never "acquirer", and never cards (a
+ * card can come from a purchase): no purchase ever buys a pull directly.
  */
-export const BONUS_BADGES = ["first-contact", "case-closed", "town-crier", "recruiter"] as const;
+export const BONUS_BADGES = [
+  "first-contact",
+  "case-closed",
+  "town-crier",
+  "recruiter",
+  "streak-regular",
+  "streak-made",
+  "streak-fixer",
+  "streak-kingpin",
+] as const;
 
 const DAY_SECONDS = 86_400;
 

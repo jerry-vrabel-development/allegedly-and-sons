@@ -51,6 +51,31 @@ export const BADGES: readonly Badge[] = [
     earned: "Made your first acquisition.",
     hint: "Some relics must be held to be believed.",
   },
+  // Duty streaks (G4): days in a row at the vault lever. See core/streak.ts.
+  {
+    id: "streak-regular",
+    name: "Regular",
+    earned: "Three days running at the vault. The Bureau noticed.",
+    hint: "Show up three days running.",
+  },
+  {
+    id: "streak-made",
+    name: "Made",
+    earned: "A week without missing a day. You're one of us now.",
+    hint: "Seven days. No excuses.",
+  },
+  {
+    id: "streak-fixer",
+    name: "Fixer",
+    earned: "Two straight weeks. People come to you now.",
+    hint: "Fourteen days. Ask around.",
+  },
+  {
+    id: "streak-kingpin",
+    name: "Kingpin",
+    earned: "Thirty days. The vault answers to you.",
+    hint: "Thirty days. Nobody's done it twice.",
+  },
 ];
 
 const BADGE_IDS = new Set(BADGES.map((badge) => badge.id));

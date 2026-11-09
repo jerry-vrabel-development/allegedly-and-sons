@@ -9,6 +9,8 @@ import { BADGES, cardId, rankFor, TOTAL_AWARDS } from "../core/dossier";
 import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
 import { dispatchSection, type DispatchView } from "./dispatch-pages";
+import type { Streak } from "../core/streak";
+import { streakPanel } from "./streak-panel";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout } from "./pages";
 
@@ -18,7 +20,13 @@ function agentNumber(n: number): string {
   return String(n).padStart(4, "0");
 }
 
-export function dossierPage(agent: Agent | undefined, dispatch: DispatchView): SafeHtml {
+export function dossierPage(
+  agent: Agent | undefined,
+  dispatch: DispatchView,
+  streak: Streak,
+  nowSeconds: number,
+  repairOpen: boolean,
+): SafeHtml {
   const earned = new Set(agent?.awards.map((award) => award.id) ?? []);
   const count = earned.size;
   const { rank, next } = rankFor(count);
@@ -51,7 +59,7 @@ export function dossierPage(agent: Agent | undefined, dispatch: DispatchView): S
         ${header}
       </div>
 
-      ${dispatchSection(dispatch)}
+      ${streakPanel(streak, nowSeconds, false, repairOpen)} ${dispatchSection(dispatch)}
 
       <section aria-labelledby="cards-heading">
         <h2 id="cards-heading">Exhibit cards</h2>

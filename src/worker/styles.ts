@@ -152,6 +152,11 @@ table.odds caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem;
 table.odds th, table.odds td { text-align: left; padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--muted); }
 table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* Duty streak: the stakes are in words; the rule is a second cue, not the only one */
+.streak-due { border-left: 4px solid var(--accent); padding-left: 0.75rem; }
+
+.repair { border: 3px double var(--rule); border-radius: 8px; padding: 0.75rem 1rem; background: var(--surface); }
+
 /* The Dispatch form: a visible label, a full-size field, a worded button */
 .dispatch-form { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: end; margin: 1rem 0; }
 .dispatch-form label { flex-basis: 100%; font-weight: bold; }

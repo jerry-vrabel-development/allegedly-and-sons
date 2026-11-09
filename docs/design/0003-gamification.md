@@ -18,7 +18,11 @@ deliberately on two frameworks:
   "White hat" drives (meaning, accomplishment, creativity, ownership) make
   people feel good and stay; "black hat" drives (scarcity, unpredictability,
   loss avoidance) create urgency and sell, but burn people out if they lead.
-  **We lead with white hat and use black hat at the moment of purchase.**
+  **Revised 2026-11-09: every mechanic is judged on traffic, conversion and
+  sales.** This is a black-market shop, and it leans into black hat drives
+  (loss aversion, urgency, scarcity, guilt-trip copy in the smuggler's voice)
+  wherever they convert. Each mechanic gets a Ledger row so we keep what
+  works. The one limit is the section below: law and money, not taste.
 
 ## The loop
 
@@ -46,7 +50,7 @@ comes right after the lever.
 | 5 Social           | Shareable cards, Recruiter badge, a recruiter leaderboard                      |
 | 6 Scarcity         | Real limited editions, one free pull a day, the locked vault, rank-gated items |
 | 7 Unpredictability | The lever, secret pages, surprise acquisitions, seasonal operations            |
-| 8 Loss Avoidance   | Duty streaks, with a streak freeze so it never feels punishing                 |
+| 8 Loss Avoidance   | Duty streaks with real deadlines; freezes earned, repairs bought (G4)          |
 
 ## Lines we don't cross (law and money, not taste)
 
@@ -115,9 +119,28 @@ Ledger, so we can see which hooks actually hook.
    the outside trigger that closes the loop. Part 1 (registration, recovery,
    unsubscribe) is decided in [note 0007](0007-dispatch.md); the mailings
    themselves are part 2.
-4. **G4 — streaks, limited editions, card sets.** Duty streaks with a freeze;
-   real numbered editions ("No. 12 of 50") with true remaining counts; set
-   completion rewards and set bundles at checkout.
+4. **G4 — streaks, limited editions, card sets.**
+   - **PR 1, duty streaks.** The duty is the daily free vault pull,
+     the habit we already have. Worked out from `vault_pulls`, so nothing new
+     is stored and it can't drift. Every 7 days earns a freeze (up to 2) that
+     covers a missed day automatically ("bend, not break": Duolingo found a
+     broken long streak loses the user, a saved one brings them back).
+     Milestones at 3, 7, 14 and 30 days award black-market ranks (Regular,
+     Made, Fixer, Kingpin), each also a bonus pull. The Vault and dossier
+     name the stakes and the real time left ("Your 9-day streak dies at
+     midnight UTC: 4 hours left. Walk away now and it dies with you."). The
+     Ledger shows alive and dead streaks by length and freezes spent.
+   - **PR 2, "Grease the Clerk" (this PR).** A dead streak can be bought
+     back for $2.99 on the day it died and the next (until midnight UTC),
+     on Stripe's hosted checkout, cards only, nothing shipped. The webhook
+     records the order and, in the same transaction, a repair that bridges
+     the missed days (migration 0009), so the streak comes back due: today's
+     pull is still owed. No Acquirer badge or card for a buy-back. Repair
+     revenue counts in the Ledger's sales. A definite
+     item for a price, not a chance, so it stays legal while vault prizes
+     have no money value (revisit if discount codes ever become prizes).
+   - Later: real numbered editions ("No. 12 of 50") with true remaining
+     counts; set completion rewards and set bundles at checkout.
 5. **G5 — social.** Shareable card images (Open Graph), a "recruit an agent"
    referral reward (credit for both sides; not chance-based), a recruiter
    leaderboard.

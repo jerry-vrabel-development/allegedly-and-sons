@@ -9,6 +9,9 @@
  */
 
 import { codenameFor } from "../core/dossier";
+import { milestoneBadges } from "../core/streak";
+import { grantAwards } from "./dossier";
+import { readStreak } from "./streak";
 import { BONUS_BADGES, cardForRoll, findVaultCard, vaultDay, type VaultCard } from "../core/vault";
 
 export type PullKind = "daily" | "bonus";
@@ -147,6 +150,12 @@ export async function pullLever(
     )
     .bind(visitorId)
     .run();
+  // A free pull extends the duty streak: grant any milestone it reached
+  // (idempotent; each milestone badge is also a bonus pull).
+  if (kind === "daily") {
+    const streak = await readStreak(db, visitorId, nowSeconds);
+    await grantAwards(db, visitorId, milestoneBadges(streak.days), nowSeconds);
+  }
   return { ok: true, kind, card };
 }
 

@@ -18,6 +18,8 @@ import {
 import { html, type SafeHtml } from "./html";
 import { layout } from "./pages";
 import type { VaultState } from "./vault";
+import type { Streak } from "../core/streak";
+import { streakPanel } from "./streak-panel";
 
 export const VAULT_PATH = "/vault";
 export const VAULT_PULL_PATH = "/vault/pull";
@@ -93,7 +95,13 @@ function latestPull(state: VaultState, opened: boolean): SafeHtml {
   </section>`;
 }
 
-export function vaultPage(state: VaultState, nowSeconds: number, opened: boolean): SafeHtml {
+export function vaultPage(
+  state: VaultState,
+  streak: Streak,
+  nowSeconds: number,
+  opened: boolean,
+  repairOpen: boolean,
+): SafeHtml {
   return layout({
     title: "The Vault",
     description: "One free pull a day. Vault cards are never for sale.",
@@ -108,7 +116,7 @@ export function vaultPage(state: VaultState, nowSeconds: number, opened: boolean
         ${leverStatus(state, nowSeconds)}
       </div>
 
-      ${latestPull(state, opened)}
+      ${streakPanel(streak, nowSeconds, true, repairOpen)} ${latestPull(state, opened)}
 
       <section aria-labelledby="vault-cards-heading">
         <h2 id="vault-cards-heading">Vault cards</h2>
