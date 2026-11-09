@@ -256,7 +256,11 @@ describe("GET /vault", () => {
     );
     expect(html).toContain("You've earned 0 of 8.");
     expect(html).not.toContain("latest-pull");
-    expect(html).not.toContain("<script");
+    // Our own reel script only, and the reel's card names for it to spin through.
+    expect(html).toContain('<script src="/assets/vault.js" defer></script>');
+    expect(html).toContain(
+      'data-reel="[&quot;The Left Sock of Atlantis&quot;,&quot;The Yeti&#39;s Library Card&quot;,&quot;A Jar of Pre-Owned Thunder&quot;,&quot;The Moon&#39;s Receipt&quot;]"',
+    );
     expect(html).toContain('<meta name="robots" content="noindex" />');
   });
 

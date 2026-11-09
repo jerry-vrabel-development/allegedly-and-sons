@@ -6,7 +6,8 @@
  * form-action allows our own checkout form and the redirect it gets to
  * Stripe-hosted Checkout (browsers check redirects after a form post too).
  *
- * Two kinds of page get a looser policy. The embedded checkout page (design
+ * Three kinds of page get a looser policy. The Vault (note 0008) runs our own
+ * reel script, like item pages. And two more: The embedded checkout page (design
  * note 0005, Option B): only there may Stripe.js load, frame Stripe's Checkout
  * and talk to Stripe's API. And item pages (note 0001, C4): our own story
  * script may run and report reads to our own origin, nothing else. Every other
@@ -14,6 +15,9 @@
  */
 
 import { ITEM_PATH } from "../core/catalog";
+
+/** The Vault page (design note 0008): our own reel script, talking to our own origin. */
+const VAULT_PAGE = "/vault";
 import { CHECKOUT_PATH } from "../core/checkout";
 
 type Directives = Readonly<Record<string, readonly string[]>>;
@@ -69,6 +73,13 @@ function serialize(directives: Directives): string {
     .join("; ");
 }
 
+/**
+ * The Vault: the strict policy plus our own reel script ('self', from
+ * /assets/vault.js, never inline) and its pull request to our own origin.
+ * First-party only: no other host may load or receive anything.
+ */
+const VAULT_DIRECTIVES: Directives = ITEM_DIRECTIVES;
+
 /** The policy every page gets unless it's the embedded checkout page. */
 export const STRICT_CSP = serialize(STRICT_DIRECTIVES);
 
@@ -104,6 +115,14 @@ const ITEM_HEADERS: Readonly<Record<string, string>> = {
   "Content-Security-Policy": ITEM_CSP,
 };
 
+/** The policy for the Vault page only. */
+export const VAULT_CSP = serialize(VAULT_DIRECTIVES);
+
+const VAULT_HEADERS: Readonly<Record<string, string>> = {
+  ...SECURITY_HEADERS,
+  "Content-Security-Policy": VAULT_CSP,
+};
+
 /**
  * The security headers for one response. Only a successful (200) response on
  * /checkout/<item> gets the checkout policy, and only a successful item page
@@ -117,6 +136,7 @@ export function securityHeadersFor(
   if (status !== 200) return SECURITY_HEADERS;
   if (CHECKOUT_PATH.test(pathname)) return CHECKOUT_HEADERS;
   if (ITEM_PATH.test(pathname)) return ITEM_HEADERS;
+  if (pathname === VAULT_PAGE) return VAULT_HEADERS;
   return SECURITY_HEADERS;
 }
 

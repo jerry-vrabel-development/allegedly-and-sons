@@ -56,13 +56,20 @@ import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
 import { readDossier } from "./dossier";
 import { DOSSIER_PATH, dossierPage } from "./dossier-page";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
-import { pullLever, readVault, secureUint32 } from "./vault";
+import { pullJson, pullLever, readVault, secureUint32 } from "./vault";
 import { readStreak } from "./streak";
 import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
 import { canRepair } from "../core/streak";
 import { vaultDay } from "../core/vault";
 import { repairReturnPage, repairUnavailablePage } from "./repair-page";
-import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
+import {
+  VAULT_OPENED_LOCATION,
+  VAULT_PATH,
+  VAULT_PULL_PATH,
+  VAULT_SCRIPT_PATH,
+  vaultPage,
+} from "./vault-page";
+import { VAULT_JS } from "./vault-script";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
 import {
@@ -334,11 +341,23 @@ async function bureau(request: Request, pathname: string, deps: Deps): Promise<R
  */
 async function vaultPull(request: Request, deps: Deps): Promise<Response> {
   if (!fromOwnSite(request)) return forbidden();
+  // The Vault's own script asks for JSON so it can play the reel in place
+  // (design note 0008). The result is decided here, before any animation.
+  const wantsJson = (request.headers.get("Accept") ?? "").includes("application/json");
   const visitorId = returningVisitor(request, deps);
-  if (visitorId === undefined) return seeOther(VAULT_PATH);
+  if (visitorId === undefined) {
+    return wantsJson ? json({ ok: false, reason: "no-file" }, 403) : seeOther(VAULT_PATH);
+  }
   const roll = rollFrom(deps.randomUint32 ?? secureUint32);
-  const result = await pullLever(deps.db, visitorId, deps.nowSeconds(), roll);
-  return seeOther(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+  const now = deps.nowSeconds();
+  const result = await pullLever(deps.db, visitorId, now, roll);
+  if (!wantsJson) return seeOther(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+  if (!result.ok) return json({ ok: false, reason: "none-left" }, 409);
+  const [vault, streak] = await Promise.all([
+    readVault(deps.db, visitorId, now),
+    readStreak(deps.db, visitorId, now),
+  ]);
+  return json(pullJson(result.card, result.kind, vault, streak));
 }
 
 /**
@@ -587,6 +606,13 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     }
     case STORY_SCRIPT_PATH:
       return new Response(STORY_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    case VAULT_SCRIPT_PATH:
+      return new Response(VAULT_JS, {
         headers: {
           "Content-Type": "text/javascript; charset=utf-8",
           "Cache-Control": "public, max-age=300",
