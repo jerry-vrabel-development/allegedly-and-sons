@@ -56,13 +56,24 @@ import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
 import { readDossier } from "./dossier";
 import { DOSSIER_PATH, dossierPage } from "./dossier-page";
 import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
-import { pullLever, readVault, secureUint32 } from "./vault";
+import { pullJson, pullLever, readVault, secureUint32 } from "./vault";
 import { readStreak } from "./streak";
+import { BROADCAST_PATH, offerFor, segmentAt } from "../core/broadcast";
+import { effectsOn } from "../core/effects";
+import { broadcastPage, onAirBanner, wantsBanner, withBanner } from "./broadcast-page";
+import { COUNTDOWN_JS, COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
 import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
 import { canRepair } from "../core/streak";
 import { vaultDay } from "../core/vault";
 import { repairReturnPage, repairUnavailablePage } from "./repair-page";
-import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
+import {
+  VAULT_OPENED_LOCATION,
+  VAULT_PATH,
+  VAULT_PULL_PATH,
+  VAULT_SCRIPT_PATH,
+  vaultPage,
+} from "./vault-page";
+import { VAULT_JS } from "./vault-script";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
 import {
@@ -177,7 +188,7 @@ async function checkout(request: Request, slug: string, deps: Deps): Promise<Res
 
   const result = await createCheckoutSession(
     deps.stripeKey,
-    checkoutSessionForm(item, origin, deps.visitorId),
+    checkoutSessionForm(item, origin, deps.visitorId, offerFor(item, deps.nowSeconds())),
     deps.fetch,
   );
   if (!result.ok) {
@@ -211,7 +222,7 @@ async function embeddedSession(request: Request, slug: string, deps: Deps): Prom
 
   const result = await createEmbeddedCheckoutSession(
     deps.stripeKey,
-    embeddedCheckoutSessionForm(item, origin, deps.visitorId),
+    embeddedCheckoutSessionForm(item, origin, deps.visitorId, offerFor(item, deps.nowSeconds())),
     deps.fetch,
   );
   if (!result.ok) {
@@ -334,11 +345,23 @@ async function bureau(request: Request, pathname: string, deps: Deps): Promise<R
  */
 async function vaultPull(request: Request, deps: Deps): Promise<Response> {
   if (!fromOwnSite(request)) return forbidden();
+  // The Vault's own script asks for JSON so it can play the reel in place
+  // (design note 0008). The result is decided here, before any animation.
+  const wantsJson = (request.headers.get("Accept") ?? "").includes("application/json");
   const visitorId = returningVisitor(request, deps);
-  if (visitorId === undefined) return seeOther(VAULT_PATH);
+  if (visitorId === undefined) {
+    return wantsJson ? json({ ok: false, reason: "no-file" }, 403) : seeOther(VAULT_PATH);
+  }
   const roll = rollFrom(deps.randomUint32 ?? secureUint32);
-  const result = await pullLever(deps.db, visitorId, deps.nowSeconds(), roll);
-  return seeOther(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+  const now = deps.nowSeconds();
+  const result = await pullLever(deps.db, visitorId, now, roll);
+  if (!wantsJson) return seeOther(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+  if (!result.ok) return json({ ok: false, reason: "none-left" }, 409);
+  const [vault, streak] = await Promise.all([
+    readVault(deps.db, visitorId, now),
+    readStreak(deps.db, visitorId, now),
+  ]);
+  return json(pullJson(result.card, result.kind, vault, streak));
 }
 
 /**
@@ -511,8 +534,36 @@ async function unsubscribePost(request: Request, deps: Deps): Promise<Response> 
   return response;
 }
 
-/** Routes a request. Kept separate from `fetch` so it stays easy to test. */
+/**
+ * Routes a request, then puts the ON AIR banner (note 0009) on HTML pages
+ * that carry it. Kept separate from `fetch` so it stays easy to test.
+ */
 export async function route(request: Request, deps: Deps): Promise<Response> {
+  const response = await routeRequest(request, deps);
+  const { pathname } = new URL(request.url);
+  if (
+    response.status !== 200 ||
+    !String(response.headers.get("Content-Type")).startsWith("text/html") ||
+    !wantsBanner(pathname)
+  ) {
+    return response;
+  }
+  const page = withBanner(await response.text(), onAirBanner(deps.nowSeconds()));
+  return new Response(page, response);
+}
+
+/** The broadcast page, with the real count of orders in this segment. */
+async function broadcast(deps: Deps): Promise<Response> {
+  const now = deps.nowSeconds();
+  const { results } = await deps.db
+    .prepare("SELECT COUNT(*) AS sold FROM orders WHERE segment = ?")
+    .bind(segmentAt(now).id)
+    .all<{ sold: number }>();
+  const [row] = results as [{ sold: number }];
+  return page(broadcastPage(now, row.sold));
+}
+
+async function routeRequest(request: Request, deps: Deps): Promise<Response> {
   if (request.method === "POST") {
     const { pathname: postPath } = new URL(request.url);
     if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
@@ -583,10 +634,27 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
         readVault(deps.db, deps.visitorId, now),
         readStreak(deps.db, deps.visitorId, now),
       ]);
-      return page(vaultPage(vault, streak, now, opened, deps.stripeKey !== undefined));
+      const fx = effectsOn(deps.visitorId, new URL(request.url).searchParams.get("fx"));
+      return page(vaultPage(vault, streak, now, opened, deps.stripeKey !== undefined, fx));
     }
     case STORY_SCRIPT_PATH:
       return new Response(STORY_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    case BROADCAST_PATH:
+      return broadcast(deps);
+    case COUNTDOWN_SCRIPT_PATH:
+      return new Response(COUNTDOWN_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    case VAULT_SCRIPT_PATH:
+      return new Response(VAULT_JS, {
         headers: {
           "Content-Type": "text/javascript; charset=utf-8",
           "Cache-Control": "public, max-age=300",
@@ -621,7 +689,7 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   const item = slug === undefined ? undefined : findItem(slug);
   if (item) {
     recordItemView(request, item, deps);
-    return page(itemPage(item, origin));
+    return page(itemPage(item, origin, offerFor(item, deps.nowSeconds())));
   }
 
   // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
@@ -629,7 +697,9 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   const checkoutItem = checkoutSlug === undefined ? undefined : findItem(checkoutSlug);
   if (checkoutItem) {
     if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
-    const response = page(checkoutPage(checkoutItem, deps.publishableKey));
+    const response = page(
+      checkoutPage(checkoutItem, deps.publishableKey, offerFor(checkoutItem, deps.nowSeconds())),
+    );
     response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
     return response;
   }

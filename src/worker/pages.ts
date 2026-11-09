@@ -1,5 +1,6 @@
 import { CATALOG, formatPrice, type Item } from "../core/catalog";
-import { checkoutPath, checkoutSessionPath } from "../core/checkout";
+import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
+import { BROADCAST_PATH, chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
 import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
@@ -147,7 +148,42 @@ export function homePage(): SafeHtml {
   });
 }
 
-export function itemPage(item: Item, origin: string): SafeHtml {
+/**
+ * The price line for an item: on air, the Smuggler's Special Value with the
+ * real regular price and the real end time beside it, in words.
+ */
+function priceLine(offer: Offer): SafeHtml {
+  if (offer.segment === undefined) return html`${formatPrice(offer.priceCents)}`;
+  return html`${formatPrice(offer.priceCents)}
+    <span class="regular">(regularly ${formatPrice(offer.regularCents)})</span>`;
+}
+
+/** One short line above the price when the item is on air (keeps the buy button on screen). */
+function onAirTag(offer: Offer): SafeHtml {
+  if (offer.segment === undefined) return html``;
+  const percent = Math.round((1 - offer.priceCents / offer.regularCents) * 100);
+  // On phones the regular price moves up here, so the price row stays one line.
+  const regular = formatPrice(offer.regularCents);
+  // prettier-ignore
+  const wide = html`<span class="wide-only">Smuggler's Special Value · </span>`;
+  // prettier-ignore
+  const phone = html`<span class="phone-only">, regularly ${regular}</span>`;
+  return html`<p class="on-air-tag">
+    <strong>On air</strong> · ${wide}${String(percent)}% off${phone}
+  </p>`;
+}
+
+function onAirNote(offer: Offer): SafeHtml {
+  if (offer.segment === undefined) return html``;
+  const where = offer.segment.kind === "auction" ? ", in the Midnight Auction" : "";
+  return html`<p class="on-air-note">
+    <strong>On air now${where}.</strong>
+    This price ends at ${chicagoTime(offer.segment.endsAt)} Chicago time.
+    <a href="${BROADCAST_PATH}">Watch the broadcast</a>.
+  </p>`;
+}
+
+export function itemPage(item: Item, origin: string, offer: Offer = regularOffer(item)): SafeHtml {
   const { story } = item;
   const [opening, ...rest] = story.paragraphs;
   const others = CATALOG.filter((other) => other.slug !== item.slug);
@@ -165,15 +201,17 @@ export function itemPage(item: Item, origin: string): SafeHtml {
           <div class="buybox">
             <p class="kicker">Exhibit ${item.exhibit}</p>
             <h1>${item.name}</h1>
+            ${onAirTag(offer)}
             <dl class="pricing">
               <dt>Estimated value</dt>
               <dd class="anchor">${item.estimatedValue}</dd>
               <dt>Your price</dt>
-              <dd class="price">${formatPrice(item.priceCents)}</dd>
+              <dd class="price">${priceLine(offer)}</dd>
             </dl>
             <p class="acquire">
               <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
             </p>
+            ${onAirNote(offer)}
             <p class="secure-note">
               Secure checkout by Stripe. US shipping only, for now.
               <a href="${TERMS_PATH}">Terms of sale</a>.
@@ -357,6 +395,14 @@ export function saleTerms(email: string = ORDER_CONTACT_EMAIL): readonly Term[] 
       longer, we'll email you, and you can cancel for a full refund.`,
     },
     {
+      heading: "Prices Change When the Cameras Do",
+      flavor:
+        "When an exhibit is on the air, the Bureau's host is authorized to let it go cheap. When the segment ends, so does the generosity.",
+      plainly: html`An exhibit on the Back-Room Broadcast sells at its Smuggler's Special Value
+      until the segment ends, at the time shown. The price you see when you start checkout is the
+      price you pay, even if the segment ends while you're paying.`,
+    },
+    {
       heading: "Sold As Found",
       flavor: "The Bureau vouches for nothing. Least of all itself.",
       plainly: html`Items are sold as-is, with no warranties beyond the ones the law requires.`,
@@ -415,10 +461,15 @@ export const METHODS_TERMS: readonly Term[] = [
     heading: "What Runs in Your Browser",
     flavor:
       "The Bureau's agents work quietly: one watches the reading room, one minds the checkout desk, and nobody else gets in.",
-    plainly: html`Two kinds of page run a script, and only our own or Stripe’s. Item pages run a
+    plainly: html`Four kinds of page run a script, and only our own or Stripe’s. Item pages run a
       small one of ours that notes when you open a case file and whether you read it to the end. The
-      checkout page runs Stripe’s, which shows the payment form, and a small one of ours that loads
-      it. Stripe may collect information about your device to help prevent fraud; see
+      Vault runs one of ours that animates the lever and plays its sounds; if you turn the sound
+      off, your browser remembers that, and nothing about it is sent to us. Half of visitors get
+      that animated lever and half get a plain one, so we can tell whether it helps; which half
+      you're in comes from the first cookie's random number, and nothing more is recorded for it.
+      The Vault and the Back-Room Broadcast run one that counts down their clocks. The checkout page
+      runs Stripe’s, which shows the payment form, and a small one of ours that loads it. Stripe may
+      collect information about your device to help prevent fraud; see
       <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight to
       Stripe and never touch our servers.`,
   },
@@ -617,7 +668,11 @@ export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
  * so nobody gets stuck. The page itself creates nothing at Stripe: the script
  * asks `data-session-url` for a session when it runs.
  */
-export function checkoutPage(item: Item, publishableKey?: string): SafeHtml {
+export function checkoutPage(
+  item: Item,
+  publishableKey?: string,
+  offer: Offer = regularOffer(item),
+): SafeHtml {
   const embedded = publishableKey !== undefined;
   return layout({
     title: `Acquire ${item.name}`,
@@ -627,7 +682,8 @@ export function checkoutPage(item: Item, publishableKey?: string): SafeHtml {
     body: html` <div class="prose checkout">
       <p class="kicker">Exhibit ${item.exhibit}</p>
       <h1>Acquire ${item.name}</h1>
-      <p class="price">${formatPrice(item.priceCents)}</p>
+      <p class="price">${priceLine(offer)}</p>
+      ${onAirNote(offer)}
       <p id="checkout-status" class="checkout-status" role="status"></p>
       ${
         embedded

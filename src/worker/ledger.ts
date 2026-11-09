@@ -17,6 +17,7 @@ import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
 import { STREAK_BUCKETS, type StreakSummary } from "../core/streak";
 import { readStreakSummary } from "./streak";
 import { REPAIR_SLUG } from "../core/repair";
+import { FX_SQL } from "../core/effects";
 
 export const LEDGER_PATH = "/bureau/ledger";
 
@@ -71,12 +72,27 @@ export interface VaultRow {
   readonly returners: number;
 }
 
+export interface EffectsRow {
+  readonly variant: "fx" | "plain";
+  readonly pullers: number;
+  readonly pulls: number;
+  /** Pullers who pulled on more than one day in the period. */
+  readonly returners: number;
+}
+
 export interface Ledger {
   readonly period: Period;
   readonly vault: VaultRow;
   readonly dispatch: DispatchCounts;
   /** Duty streaks right now (not by period: a streak is about today). */
   readonly streaks: StreakSummary;
+  /** Exhibit sales in the period, on air (in a broadcast segment) and off (note 0009). */
+  readonly broadcast: {
+    readonly onAir: { readonly orders: number; readonly revenueCents: number };
+    readonly offAir: { readonly orders: number; readonly revenueCents: number };
+  };
+  /** The Vault with and without sound and motion (note 0008, PR 3), in the period. */
+  readonly effects: readonly EffectsRow[];
   /** Streaks bought back in the period ("Grease the Clerk"). */
   readonly repairs: { readonly count: number; readonly revenueCents: number };
   readonly items: readonly ItemRow[];
@@ -191,13 +207,45 @@ export async function readLedger(
          WHERE item_slug = ? AND paid_at >= ?`,
       )
       .bind(REPAIR_SLUG, since),
+    db
+      .prepare(
+        `SELECT
+           SUM(segment IS NOT NULL) AS on_orders,
+           SUM(CASE WHEN segment IS NOT NULL THEN amount_cents ELSE 0 END) AS on_revenue,
+           SUM(segment IS NULL) AS off_orders,
+           SUM(CASE WHEN segment IS NULL THEN amount_cents ELSE 0 END) AS off_revenue
+         FROM orders WHERE paid_at >= ? AND item_slug != ?`,
+      )
+      .bind(since, REPAIR_SLUG),
+    db
+      .prepare(
+        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+           COUNT(DISTINCT visitor_id) AS pullers,
+           COUNT(*) AS pulls,
+           COUNT(DISTINCT CASE WHEN visitor_id IN (
+             SELECT visitor_id FROM vault_pulls WHERE pulled_at >= ?1
+             GROUP BY visitor_id HAVING COUNT(DISTINCT day) > 1
+           ) THEN visitor_id END) AS returners
+         FROM vault_pulls WHERE pulled_at >= ?1 GROUP BY variant`,
+      )
+      .bind(since),
   ]);
 
   // A batch returns one result per statement, in order.
   const streaks = await readStreakSummary(db, nowSeconds);
-  const [items, orders, sources, shares, [vault], [dispatch], [repairs]] = results.map(
-    (result) => result.results,
-  ) as [Row[], Row[], Row[], Row[], [Row], [Row], [Row]];
+  const [items, orders, sources, shares, [vault], [dispatch], [repairs], [onAir], effects] =
+    results.map((result) => result.results) as [
+      Row[],
+      Row[],
+      Row[],
+      Row[],
+      [Row],
+      [Row],
+      [Row],
+      [Row],
+      Row[],
+    ];
+  const effectsByVariant = new Map(effects.map((row) => [row["variant"], row]));
   const byItem = new Map(items.map((row) => [row["item_slug"], row]));
   const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
   const sharesByChannel = new Map(shares.map((row) => [row["channel"], row]));
@@ -206,6 +254,19 @@ export async function readLedger(
     period,
     streaks,
     repairs: { count: num(repairs["count"]), revenueCents: num(repairs["revenue"]) },
+    effects: (["fx", "plain"] as const).map((variant) => {
+      const row = effectsByVariant.get(variant);
+      return {
+        variant,
+        pullers: num(row?.["pullers"]),
+        pulls: num(row?.["pulls"]),
+        returners: num(row?.["returners"]),
+      };
+    }),
+    broadcast: {
+      onAir: { orders: num(onAir["on_orders"]), revenueCents: num(onAir["on_revenue"]) },
+      offAir: { orders: num(onAir["off_orders"]), revenueCents: num(onAir["off_revenue"]) },
+    },
     vault: {
       pullers: num(vault["pullers"]),
       pulls: num(vault["pulls"]),
@@ -420,6 +481,64 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
               <td class="num">${String(ledger.vault.pulls)}</td>
               <td class="num">${String(ledger.vault.bonusPulls)}</td>
               <td>${describeRate(wilson(ledger.vault.returners, ledger.vault.pullers))}</td>
+            </tr>
+          </tbody>
+        </table>`,
+      )}
+      ${scrollTable(
+        "Vault effects",
+        html`<table>
+          <caption>
+            The Vault with sound and motion (half of agents) and without: do the effects bring more
+            pulls and more returns?
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Group</th>
+              <th scope="col" class="num">Agents who pulled</th>
+              <th scope="col" class="num">Pulls per agent</th>
+              <th scope="col">Came back another day (of pullers)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ledger.effects.map(
+              (row) =>
+                html`<tr>
+                  <th scope="row">${row.variant === "fx" ? "Reel and sound" : "Plain lever"}</th>
+                  <td class="num">${String(row.pullers)}</td>
+                  <td class="num">
+                    ${row.pullers === 0 ? "–" : (row.pulls / row.pullers).toFixed(1)}
+                  </td>
+                  <td>${describeRate(wilson(row.returners, row.pullers))}</td>
+                </tr>`,
+            )}
+          </tbody>
+        </table>`,
+      )}
+      ${scrollTable(
+        "The Back-Room Broadcast",
+        html`<table>
+          <caption>
+            The Back-Room Broadcast: exhibit sales on air (in a segment, at the special price) and
+            off air
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col" class="num">Orders</th>
+              <th scope="col" class="num">Sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">On air</th>
+              <td class="num">${String(ledger.broadcast.onAir.orders)}</td>
+              <td class="num">${formatPrice(ledger.broadcast.onAir.revenueCents)}</td>
+            </tr>
+            <tr>
+              <th scope="row">Off air</th>
+              <td class="num">${String(ledger.broadcast.offAir.orders)}</td>
+              <td class="num">${formatPrice(ledger.broadcast.offAir.revenueCents)}</td>
             </tr>
           </tbody>
         </table>`,

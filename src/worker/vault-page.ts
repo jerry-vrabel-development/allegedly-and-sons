@@ -20,9 +20,13 @@ import { layout } from "./pages";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
+import { COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
 
 export const VAULT_PATH = "/vault";
 export const VAULT_PULL_PATH = "/vault/pull";
+
+/** The Vault's own script (vault-script.ts): the lever plays in place. */
+export const VAULT_SCRIPT_PATH = "/assets/vault.js";
 
 /** Where a pull sends the agent back to: the result, with the door opening. */
 export const VAULT_OPENED_LOCATION = `${VAULT_PATH}?opened=1#latest-pull`;
@@ -101,12 +105,18 @@ export function vaultPage(
   nowSeconds: number,
   opened: boolean,
   repairOpen: boolean,
+  effects: boolean,
 ): SafeHtml {
   return layout({
     title: "The Vault",
     description: "One free pull a day. Vault cards are never for sale.",
     noindex: true,
-    body: html`<div class="prose vault">
+    // The reel only for the "fx" group (note 0008, PR 3); the clock for everyone.
+    scripts: effects ? [VAULT_SCRIPT_PATH, COUNTDOWN_SCRIPT_PATH] : [COUNTDOWN_SCRIPT_PATH],
+    body: html`<div
+        class="prose vault"
+        data-reel="${JSON.stringify(VAULT_CARDS.map((card) => card.name))}"
+      >
         <h1>The Vault</h1>
         <p class="tagline">Some relics are never for sale. They are only ever found.</p>
         <p>

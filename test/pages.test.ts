@@ -344,11 +344,12 @@ describe("terms of sale", () => {
 });
 
 describe("the Bureau's methods", () => {
-  it("says plainly what runs in the browser: item pages and checkout, only Stripe and us", () => {
+  it("says plainly what runs in the browser: item pages, the Vault and checkout, only Stripe and us", () => {
     expect(pages.disclaimer).toContain("What Runs in Your Browser");
     expect(pages.disclaimer).toContain(
-      "Two kinds of page run a script, and only our own or Stripe’s.",
+      "Four kinds of page run a script, and only our own or Stripe’s.",
     );
+    expect(pages.disclaimer).toContain("The Vault runs one of ours that animates the lever");
     expect(pages.disclaimer).toContain(
       "notes when you open a case file and whether you read it to the end",
     );

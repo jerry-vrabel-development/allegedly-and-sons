@@ -92,7 +92,7 @@ describe("the streak panel", () => {
     for (const path of ["/vault", "/dossier"]) {
       const page = await html(path, A);
       expect(page).toContain(
-        "<strong>Your 4-day streak dies at midnight UTC: 9 hours left.</strong> Walk away now and it dies with you.",
+        `Your 4-day streak dies at midnight UTC: <span class="clock" data-seconds-left="32400">9 hours</span> left.</strong> Walk away now and it dies with you.`,
       );
       expect(page).toContain("Freezes held: 0 of 2.");
       expect(page).toContain("3 more days to Made.");

@@ -40,6 +40,10 @@ body {
   line-height: 1.6;
 }
 img { display: block; max-width: 100%; height: auto; }
+/* Text for phones only (the wide layout says it elsewhere) */
+.phone-only { display: none; }
+/* hidden always hides, even on elements styled with display (like .button) */
+[hidden] { display: none !important; }
 a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.15em; }
 a:focus-visible, summary:focus-visible, main:focus-visible {
   outline: 3px solid var(--focus);
@@ -152,6 +156,58 @@ table.odds caption { text-align: left; font-weight: 700; padding-bottom: 0.5rem;
 table.odds th, table.odds td { text-align: left; padding: 0.45rem 0.75rem 0.45rem 0; border-bottom: 1px solid var(--muted); }
 table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 
+/* The Back-Room Broadcast (note 0009): "On air" is always written out, never color alone */
+.on-air-banner { margin: 0; padding: 0.5rem 1.25rem; background: var(--accent); color: var(--on-accent); text-align: center; font-size: 1rem; }
+.on-air-banner a { color: var(--on-accent); }
+.on-air-banner a:focus-visible { outline: 3px solid var(--on-accent); outline-offset: 2px; }
+.on-air-tag { display: inline-block; margin: 0; padding: 0.2rem 0.6rem; border: 2px solid var(--accent); border-radius: 4px; font-variant: small-caps; letter-spacing: 0.05em; }
+.broadcast h1 { margin-top: 0.5rem; }
+.broadcast .buybox h2 { margin: 0.25rem 0 0.75rem; font-size: 1.8rem; }
+.regular { display: block; font-size: 1rem; font-weight: normal; color: var(--muted); }
+.countdown .clock { font-variant-numeric: tabular-nums; font-weight: bold; }
+.tally { font-size: 1rem; }
+.on-air-note { border-left: 4px solid var(--accent); padding-left: 0.75rem; font-size: 1rem; }
+.patter p { font-size: 1.2rem; font-style: italic; }
+
+/* The reel (design note 0008): rarity is always in the text too, never color alone */
+.lever.pulling .button { animation: lever-pull 380ms ease-in; }
+@keyframes lever-pull { 40% { transform: translateY(6px) scale(0.97); } 100% { transform: none; } }
+.sound-toggle { font: inherit; font-size: 0.95rem; background: transparent; color: var(--text); border: 2px solid var(--muted); border-radius: 6px; padding: 0.35rem 0.75rem; min-height: 44px; margin: 0.5rem 0 0; cursor: pointer; }
+.sound-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.reel-dialog { max-width: min(30rem, calc(100vw - 2rem)); width: 100%; border: 3px double var(--rule); border-radius: 12px; background: var(--surface); color: var(--text); padding: 1.25rem 1.5rem 1.5rem; text-align: center; }
+.reel-dialog::backdrop { background: rgb(0 0 0 / 0.7); }
+.reel-dialog h2 { margin: 0 0 1rem; font-size: 1.4rem; font-style: italic; }
+.reel-window { border: 2px solid var(--muted); border-radius: 8px; padding: 1rem 0.5rem; min-height: 4.5rem; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.reel-name { margin: 0; font-size: 1.35rem; font-weight: bold; }
+.reel-window.landed { animation: land-pop 300ms ease-out; }
+.reel-window.rarity-uncommon { border-width: 3px; border-color: var(--accent); animation: land-pop 300ms ease-out, glint 900ms ease-out; }
+.reel-window.rarity-rare { border: 4px double var(--accent); animation: land-pop 300ms ease-out, rare-flash 1400ms ease-out; }
+@keyframes land-pop { 0% { transform: scale(0.92); } 60% { transform: scale(1.06); } 100% { transform: none; } }
+@keyframes glint { 0% { box-shadow: 0 0 0 0 var(--accent); } 40% { box-shadow: 0 0 1.5rem 0.25rem var(--accent); } 100% { box-shadow: none; } }
+@keyframes rare-flash {
+  0% { box-shadow: 0 0 0 0 #e8b931; background: var(--surface); }
+  15% { box-shadow: 0 0 3rem 1.5rem #e8b931; background: #fff4cf; color: #1b1b1b; }
+  50% { box-shadow: 0 0 2rem 0.75rem #e8b931; }
+  100% { box-shadow: none; background: var(--surface); }
+}
+.reel-result h3 { margin: 0.25rem 0; font-size: 1.4rem; }
+.reel-window.new-card::after { content: "New"; position: absolute; top: 0.35rem; right: 0.5rem; font-size: 0.8rem; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); animation: land-pop 400ms ease-out; }
+.reel-window { position: relative; }
+.milestone { position: relative; margin: 1rem 0 0.5rem; padding: 0.75rem 1rem; border: 3px double var(--accent); border-radius: 8px; animation: land-pop 450ms ease-out; }
+.milestone-title { margin: 0; font-size: 1.3rem; font-weight: bold; }
+.milestone p:last-of-type { margin: 0.25rem 0 0; }
+.confetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.confetti-bit { position: absolute; width: 0.5rem; height: 0.8rem; border-radius: 2px; background: var(--accent); opacity: 0; animation: confetti 1100ms ease-out forwards; }
+.confetti-bit:nth-child(3n) { background: #e8b931; }
+.confetti-bit:nth-child(3n + 1) { background: var(--muted); }
+@keyframes confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)); }
+}
+.reel-result:empty { display: none; }
+.reel-dialog .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+.reel-dialog .button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
 /* Duty streak: the stakes are in words; the rule is a second cue, not the only one */
 .streak-due { border-left: 4px solid var(--accent); padding-left: 0.75rem; }
 
@@ -177,12 +233,22 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Phones: keep the name, price and call to action on the first screen */
 @media (max-width: 51.99rem) {
-  header.site { padding: 0.6rem 0; }
-  main { padding-top: 1rem; }
-  .exhibit { gap: 1rem; }
-  .exhibit figure.art img { aspect-ratio: 3 / 2; object-fit: cover; object-position: 50% 100%; }
-  .buybox { padding: 1rem 1.25rem; }
-  .buybox h1 { font-size: 1.9rem; }
+  .on-air-banner { font-size: 0.85rem; padding: 0.3rem 0.75rem; line-height: 1.35; }
+  .banner-detail { display: none; }
+  .buybox .on-air-tag { margin: 0 0 0.4rem; padding: 0.1rem 0.5rem; font-size: 0.85rem; font-variant: normal; letter-spacing: 0; }
+  .buybox .regular, .wide-only { display: none; }
+  .phone-only { display: inline; }
+  header.site { padding: 0.5rem 0; }
+  header.site .wrap { gap: 0.25rem 1rem; }
+  .brand { font-size: 1.1rem; }
+  header.site nav { font-size: 1rem; }
+  header.site nav ul { gap: 0.25rem 1rem; }
+  main { padding-top: 0.75rem; }
+  .exhibit { gap: 0.75rem; }
+  .exhibit figure.art img { aspect-ratio: 2 / 1; object-fit: cover; object-position: 50% 75%; }
+  .buybox { padding: 0.85rem 1.1rem; }
+  .buybox h1 { font-size: 1.75rem; margin-bottom: 0.35rem; }
+  .buybox dl.pricing { margin-bottom: 0.6rem; }
   .buybox .hook { margin-top: 1rem; }
 }
 @media (min-width: 52rem) {
