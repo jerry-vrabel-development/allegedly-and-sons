@@ -53,6 +53,8 @@ describe("D1 schema (migrations/0001_orders.sql)", () => {
       ["shipped_at", "INTEGER", 0, 0],
       // Added by migrations/0003_orders_visitor.sql.
       ["visitor_id", "TEXT", 0, 0],
+      // Added by migrations/0010_orders_segment.sql.
+      ["segment", "TEXT", 0, 0],
     ]);
   });
 

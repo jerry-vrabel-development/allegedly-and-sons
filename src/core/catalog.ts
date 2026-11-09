@@ -49,6 +49,11 @@ export interface Item {
   readonly priceCents: number;
   readonly specs: readonly Spec[];
   readonly story: Story;
+  /**
+   * The Back-Room Broadcast host's pitch (note 0009), one line per beat.
+   * Lore rule: outlandish, never plausible; the price is never in here.
+   */
+  readonly pitch: readonly [string, ...string[]];
 }
 
 export const THE_BUREAU: Author = {
@@ -82,6 +87,12 @@ export const CATALOG: readonly [Item, ...Item[]] = [
       ],
       author: THE_BUREAU,
     },
+    pitch: [
+      "Folks, I've been told not to say where this came from. I'm going to say it anyway: space.",
+      "Look at that curve. No human hand bent that. Possibly no hand at all.",
+      "It held the minutes of three secret meetings and it is ready to hold your grocery list.",
+      "My producer is waving at me. The feds are waving at my producer. We do not have long.",
+    ],
   },
   {
     slug: "second-best-quill",
@@ -106,6 +117,12 @@ export const CATALOG: readonly [Item, ...Item[]] = [
       ],
       author: THE_BUREAU,
     },
+    pitch: [
+      "Every treaty in history had a best quill. This one was right there. Right there, folks.",
+      "It stood by at a royal wedding in case of blots. Do you know what that kind of loyalty costs?",
+      "It signed a pharaoh's lunch order. For eleven minutes it was the most powerful pen on Earth.",
+      "Second place is still a place. Tonight it can be your place.",
+    ],
   },
   {
     slug: "viking-participation-trophy",
@@ -130,6 +147,12 @@ export const CATALOG: readonly [Item, ...Item[]] = [
       ],
       author: THE_BUREAU,
     },
+    pitch: [
+      "Bjorn the Adequate showed up. That's it. That's the whole saga. And they gave him this.",
+      "You show up to things. Meetings. Birthdays. The dentist, mostly. Where's your trophy?",
+      "Bronze-colored, horned, and buried with honor. Well. Buried.",
+      "His family traded it for a sandwich. I'm asking a little more than a sandwich.",
+    ],
   },
 ];
 

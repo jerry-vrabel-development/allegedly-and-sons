@@ -1,6 +1,6 @@
 # 0008 — Sound and motion: the vault as a slot machine
 
-- **Status:** Decided; building (PR 1, the reel)
+- **Status:** Decided; PR 1 (the reel), PR 2 (celebrations) and PR 3 (measuring) built
 - **Date:** 2026-11-09
 - **Author:** Jerry Vrabel
 
@@ -45,12 +45,27 @@ machine dopamine, and animation and sound for conversion (note 0003, revised
   lever is the same plain form as before. A lost answer reloads the Vault
   instead of posting again, so a pull is never doubled.
 
-## Next
+## PR 2 — celebrations
 
-- **PR 2 — celebrations:** milestone badges, new cards, a saved streak; a low
-  ticking sound when the streak dies tonight.
-- **PR 3 — measure it:** half of agents (by visitor id) get effects, half
-  don't; the Ledger compares pulls per agent and return rate.
+- A free pull that reaches a streak milestone gets a second moment after the
+  card lands: "Day 7: you're Made", a fanfare and a confetti burst (no
+  confetti under reduced motion). The pull's JSON says which milestone.
+- A new card gets a "New" mark and a sparkle; the result says how many bonus
+  pulls are left, so the next pull is one tap away.
+- "Streak dies tonight" ticks visibly, second by second (`countdown.js`).
+  Browsers don't allow sound before a click, so the ticking is on screen,
+  not in the speakers.
+- Not done: a celebration for a streak saved by a freeze (the pull doesn't
+  know a freeze was spent; worth adding with the next streak change).
+
+## PR 3 — measuring it
+
+- Half of agents get the reel and sounds ("fx"), half the plain lever, by
+  the last hex digit of the visitor id: stable, and nothing stored.
+- `?fx=on` / `?fx=off` overrides the group for one view, to check both.
+- The Ledger compares the groups: agents who pulled, pulls per agent, and
+  how many came back on another day.
+- The Fine Print says half of visitors get the animated lever and why.
 
 ## What would change our mind
 

@@ -10,6 +10,7 @@ const PAGES = [
   { name: "thank you", path: "/thanks" },
   { name: "dossier", path: "/dossier" },
   { name: "vault", path: "/vault" },
+  { name: "broadcast", path: "/broadcast" },
   { name: "dispatch sent", path: "/dispatch/sent" },
   { name: "dispatch confirm link", path: `/dispatch/confirm?t=${"0".repeat(64)}` },
   { name: "dispatch expired link", path: "/dispatch/recover?t=expired" },
@@ -115,7 +116,11 @@ test.describe("item page", () => {
     for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
       await page.goto(`/items/${slug}`);
       await expect(page.locator(".buybox .price")).toBeInViewport();
-      await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport();
+      // The whole button, not a sliver: whichever item is on air (and the
+      // ON AIR banner) must still leave it on the first screen.
+      await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport({
+        ratio: 1,
+      });
     }
   });
 
@@ -266,8 +271,8 @@ test("pulling the lever spins the reel and lands on the card", async ({ page, br
   // The lever needs the Secure visitor cookie, which WebKit won't keep on
   // http://localhost. Pull rules are covered by test/vault-worker.test.ts.
   test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
-  await page.goto("/");
-  await page.getByRole("link", { name: "The Vault" }).click();
+  // ?fx=on: half of agents get the plain lever (note 0008, PR 3); this tests the reel.
+  await page.goto("/vault?fx=on");
   await expect(page.getByText("Your free pull for today is ready.")).toBeVisible();
   await expect(
     page.getByRole("table", { name: "Every pull draws one card at these odds" }),
@@ -294,7 +299,7 @@ test("pulling the lever spins the reel and lands on the card", async ({ page, br
   await expectNoAxeViolations(page);
 
   await collect.click();
-  await expect(page).toHaveURL(/\/vault#latest-pull$/);
+  await expect(page).toHaveURL(/\/vault\?fx=on#latest-pull$/);
   const latest = page.getByRole("region", { name: "Your latest pull" });
   await expect(
     latest.getByText(/Vault card V-00\d · (Common|Uncommon|Rare) · New to your file/),
@@ -316,7 +321,7 @@ test("pulling the lever spins the reel and lands on the card", async ({ page, br
 test("with reduced motion the reel skips the spin and the flash", async ({ page, browserName }) => {
   test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/vault");
+  await page.goto("/vault?fx=on");
   await page.getByRole("button", { name: "Pull the lever" }).click();
   const reel = page.getByRole("dialog", { name: "The vault creaks open…" });
   // No spin: the result is there straight away.
@@ -327,7 +332,7 @@ test("with reduced motion the reel skips the spin and the flash", async ({ page,
 });
 
 test("the sound toggle says its state in words and is remembered", async ({ page }) => {
-  await page.goto("/vault");
+  await page.goto("/vault?fx=on");
   const toggle = page.getByRole("button", { name: "Sound: on" });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await toggle.click();
@@ -337,6 +342,12 @@ test("the sound toggle says its state in words and is remembered", async ({ page
   );
   await page.reload();
   await expect(page.getByRole("button", { name: "Sound: off" })).toBeVisible();
+});
+
+test("the plain group gets the plain lever", async ({ page }) => {
+  await page.goto("/vault?fx=off");
+  await expect(page.getByRole("button", { name: "Pull the lever" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Sound:/ })).toHaveCount(0);
 });
 
 test("without JavaScript the lever still works as a plain form", async ({
@@ -374,4 +385,18 @@ test("an email's link shows a button and never acts on its own", async ({ page }
   await page.goto(`/dispatch/confirm?t=${"0".repeat(64)}`);
   await page.getByRole("button", { name: "Confirm my registration" }).click();
   await expect(page.getByRole("heading", { name: "That link has expired" })).toBeVisible();
+});
+
+test("the ON AIR banner leads to the broadcast, where the clock ticks", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Watch the broadcast" }).click();
+  await expect(
+    page.getByRole("heading", { name: "The Back-Room Broadcast", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText("Smuggler's Special Value")).toBeVisible();
+  const clock = page.locator(".countdown .clock");
+  await expect(clock).toHaveText(/^\d+:\d\d:\d\d$/);
+  const first = await clock.textContent();
+  await expect(clock).not.toHaveText(first ?? "", { timeout: 3_000 });
+  await expect(page.getByRole("link", { name: /^Acquire it for \$/ })).toBeVisible();
 });

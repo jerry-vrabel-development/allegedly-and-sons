@@ -16,8 +16,11 @@
 
 import { ITEM_PATH } from "../core/catalog";
 
-/** The Vault page (design note 0008): our own reel script, talking to our own origin. */
-const VAULT_PAGE = "/vault";
+/**
+ * Pages that run our own scripts and talk only to our own origin: the Vault
+ * (note 0008: the reel) and the Back-Room Broadcast (note 0009: the clock).
+ */
+const OWN_SCRIPT_PAGES = new Set(["/vault", "/broadcast"]);
 import { CHECKOUT_PATH } from "../core/checkout";
 
 type Directives = Readonly<Record<string, readonly string[]>>;
@@ -136,7 +139,7 @@ export function securityHeadersFor(
   if (status !== 200) return SECURITY_HEADERS;
   if (CHECKOUT_PATH.test(pathname)) return CHECKOUT_HEADERS;
   if (ITEM_PATH.test(pathname)) return ITEM_HEADERS;
-  if (pathname === VAULT_PAGE) return VAULT_HEADERS;
+  if (OWN_SCRIPT_PAGES.has(pathname)) return VAULT_HEADERS;
   return SECURITY_HEADERS;
 }
 

@@ -6,6 +6,12 @@
  */
 
 import type { Item } from "./catalog";
+import type { Offer } from "./broadcast";
+
+/** An item at its regular price, off air. */
+export function regularOffer(item: Item): Offer {
+  return { priceCents: item.priceCents, regularCents: item.priceCents, segment: undefined };
+}
 
 /** Where buyers land after paying. */
 export const THANKS_PATH = "/thanks";
@@ -98,12 +104,14 @@ export function paymentDescription(item: Item): string {
  * and comes back on the completed session, so the order can be joined to the
  * visits before it.
  */
-function baseSessionForm(item: Item, visitorId: string | null): URLSearchParams {
+function baseSessionForm(item: Item, visitorId: string | null, offer: Offer): URLSearchParams {
   const form = new URLSearchParams({
     mode: "payment",
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": String(item.priceCents),
+    // The price is locked here, when checkout starts (note 0009): an on-air
+    // special holds even if the segment ends while the buyer is paying.
+    "line_items[0][price_data][unit_amount]": String(offer.priceCents),
     "line_items[0][price_data][product_data][name]": item.name,
     "line_items[0][price_data][product_data][description]": item.tagline,
     "metadata[slug]": item.slug,
@@ -116,6 +124,11 @@ function baseSessionForm(item: Item, visitorId: string | null): URLSearchParams 
     customer_creation: "always",
   });
   if (visitorId !== null) form.set("client_reference_id", visitorId);
+  if (offer.segment !== undefined) {
+    // Which broadcast segment sold it, for the Ledger's on-air numbers.
+    form.set("metadata[segment]", offer.segment.id);
+    form.set("payment_intent_data[metadata][segment]", offer.segment.id);
+  }
   for (const [key, value] of Object.entries(CHECKOUT_BRANDING)) {
     form.set(`branding_settings[${key}]`, value);
   }
@@ -134,8 +147,9 @@ export function checkoutSessionForm(
   item: Item,
   origin: string,
   visitorId: string | null = null,
+  offer: Offer = regularOffer(item),
 ): URLSearchParams {
-  const form = baseSessionForm(item, visitorId);
+  const form = baseSessionForm(item, visitorId, offer);
   form.set("success_url", returnUrl(origin));
   form.set("cancel_url", `${origin}/items/${item.slug}`);
   return form;
@@ -152,8 +166,9 @@ export function embeddedCheckoutSessionForm(
   item: Item,
   origin: string,
   visitorId: string | null = null,
+  offer: Offer = regularOffer(item),
 ): URLSearchParams {
-  const form = baseSessionForm(item, visitorId);
+  const form = baseSessionForm(item, visitorId, offer);
   form.set("ui_mode", "embedded");
   form.set("return_url", returnUrl(origin));
   return form;

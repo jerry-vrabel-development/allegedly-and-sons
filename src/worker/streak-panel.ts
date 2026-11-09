@@ -83,6 +83,10 @@ export function streakPanel(
   const deadline = repairDeadline(streak);
   const offer = repairOpen && deadline !== undefined && nowSeconds < deadline;
   const wait = describeWait(nextDailyAt(nowSeconds) - nowSeconds);
+  // Words for everyone; the countdown script (on the Vault) ticks it live.
+  const secondsLeft = String(nextDailyAt(nowSeconds) - nowSeconds);
+  // prettier-ignore
+  const clock = html`<span class="clock" data-seconds-left="${secondsLeft}">${wait}</span>`;
   const goPull = onVault
     ? html``
     : html`<p><a class="button" href="/vault">Pull the lever before it's gone</a></p>`;
@@ -95,7 +99,7 @@ export function streakPanel(
       ${freezes(streak)} ${milestoneLine(streak)}`;
   } else if (streak.status === "due") {
     body = html`<p class="streak-count streak-due">
-        <strong>Your ${String(streak.days)}-day streak dies at midnight UTC: ${wait} left.</strong>
+        <strong>Your ${String(streak.days)}-day streak dies at midnight UTC: ${clock} left.</strong>
         Walk away now and it dies with you.
       </p>
       ${

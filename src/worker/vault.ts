@@ -9,7 +9,7 @@
  */
 
 import { codenameFor } from "../core/dossier";
-import { milestoneBadges } from "../core/streak";
+import { MILESTONES, milestoneBadges } from "../core/streak";
 import { grantAwards } from "./dossier";
 import { readStreak } from "./streak";
 import { BONUS_BADGES, cardForRoll, findVaultCard, vaultDay, type VaultCard } from "../core/vault";
@@ -189,5 +189,7 @@ export function pullJson(
     duplicate: vault.latest?.duplicate === true,
     next: { dailyReady: vault.dailyReady, bonusLeft: vault.bonusLeft },
     streakDays: streak.days,
+    // A free pull that lands exactly on a milestone just earned it (note 0008, PR 2).
+    milestone: kind === "daily" ? (MILESTONES.find((m) => m.days === streak.days) ?? null) : null,
   };
 }

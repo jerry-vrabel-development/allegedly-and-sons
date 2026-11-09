@@ -17,6 +17,10 @@ updates:
       # so lint would stop. Drop this once typescript-eslint supports TS 7.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # @types/node follows the Node the shop runs (.nvmrc: 22). Newer majors
+      # describe APIs Node 22 doesn't have. Move it with .nvmrc, by hand.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

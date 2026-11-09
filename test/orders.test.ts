@@ -73,6 +73,7 @@ describe("orderFromCompletedSession", () => {
         amountCents: 99_900,
         paidAt: PAID_AT,
         visitorId: null,
+        segment: null,
       },
     });
     expect(JSON.stringify(orderFromCompletedSession(session(), PAID_AT))).not.toMatch(

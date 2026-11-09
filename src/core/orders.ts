@@ -6,6 +6,7 @@
  */
 
 import { VISITOR_ID } from "./analytics";
+import { isSegmentId } from "./broadcast";
 
 /** The event types the webhook acts on. Others are acknowledged and ignored. */
 export const CHECKOUT_COMPLETED = "checkout.session.completed";
@@ -29,6 +30,8 @@ export interface NewOrder {
   readonly paidAt: number;
   /** The visitor cookie's id, from client_reference_id, or null when absent or malformed. */
   readonly visitorId: string | null;
+  /** The broadcast segment it sold in (note 0009), or null when bought off air. */
+  readonly segment: string | null;
 }
 
 /** What to do with a completed Checkout Session. Reasons are short and safe to log. */
@@ -86,6 +89,7 @@ export function orderFromCompletedSession(session: unknown, paidAt: number): Ses
   if (currency !== "usd") return { kind: "invalid", reason: "unexpected currency" };
 
   const slug = isRecord(metadata) ? metadata["slug"] : undefined;
+  const segment = isRecord(metadata) ? metadata["segment"] : undefined;
   return {
     kind: "order",
     order: {
@@ -99,6 +103,7 @@ export function orderFromCompletedSession(session: unknown, paidAt: number): Ses
         typeof client_reference_id === "string" && VISITOR_ID.test(client_reference_id)
           ? client_reference_id
           : null,
+      segment: isSegmentId(segment) ? segment : null,
     },
   };
 }

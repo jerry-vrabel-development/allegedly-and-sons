@@ -84,6 +84,11 @@ export const VAULT_JS = `"use strict";
       [523, 659, 784].forEach(function (f, i) { tone(f, i * 0.1, 0.35, "triangle", 0.25); });
       tone(1568, 0.3, 0.5, "sine", 0.08);
     },
+    sparkle: function () { [2637, 3136, 3520].forEach(function (f, i) { tone(f, i * 0.06, 0.18, "sine", 0.06); }); },
+    milestone: function () {
+      [392, 523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.09, 0.4, "square", 0.07); });
+      [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.5, 1.2, "triangle", 0.12); });
+    },
     Rare: function () {
       [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.5, "sawtooth", 0.12); });
       [1047, 1319, 1568].forEach(function (f) { tone(f, 0.45, 1.4, "triangle", 0.15); });
@@ -147,8 +152,39 @@ export const VAULT_JS = `"use strict";
     result.appendChild(el("h3", null, card.name));
     result.appendChild(el("p", null, card.summary));
     if (data.streakDays > 0) result.appendChild(el("p", null, "Duty streak: " + data.streakDays + (data.streakDays === 1 ? " day." : " days.")));
+    if (data.next && data.next.bonusLeft > 0) {
+      result.appendChild(el("p", null, "You have " + data.next.bonusLeft + (data.next.bonusLeft === 1 ? " bonus pull" : " bonus pulls") + " left."));
+    }
+    if (!data.duplicate) {
+      windowBox.classList.add("new-card");
+      setTimeout(sounds.sparkle, 250);
+    }
+    if (data.milestone) {
+      // The bigger moment comes second, once the card has landed.
+      setTimeout(function () { celebrate(data.milestone); }, reduced ? 0 : 900);
+    }
     collect.hidden = false;
     collect.focus();
+  }
+
+  function celebrate(milestone) {
+    var box = el("div", "milestone");
+    box.appendChild(el("p", "milestone-title", "Day " + milestone.days + ": you're " + milestone.name + "."));
+    box.appendChild(el("p", null, "A new rank, and a bonus pull is yours."));
+    if (!reduced) {
+      var burst = el("div", "confetti");
+      burst.setAttribute("aria-hidden", "true");
+      for (var i = 0; i < 18; i++) {
+        var bit = el("span", "confetti-bit");
+        bit.style.setProperty("--x", String(Math.round(Math.random() * 240 - 120)) + "px");
+        bit.style.setProperty("--y", String(Math.round(-60 - Math.random() * 120)) + "px");
+        bit.style.setProperty("--r", String(Math.round(Math.random() * 720 - 360)) + "deg");
+        burst.appendChild(bit);
+      }
+      box.appendChild(burst);
+    }
+    result.appendChild(box);
+    sounds.milestone();
   }
 
   function spin(data) {

@@ -96,6 +96,14 @@ describe("the Vault script", () => {
     expect(VAULT_JS).not.toContain("form.submit()");
   });
 
+  it("celebrates milestones and new cards, and says what's left", () => {
+    expect(VAULT_JS).toContain("if (data.milestone)");
+    expect(VAULT_JS).toContain('"Day " + milestone.days + ": you\'re " + milestone.name + "."');
+    expect(VAULT_JS).toContain('burst.setAttribute("aria-hidden", "true")');
+    expect(VAULT_JS).toContain("bonus pull");
+    expect(VAULT_JS).toContain('windowBox.classList.add("new-card")');
+  });
+
   it("reveals the server's draw, spinning evenly through every card (no teasing)", () => {
     expect(VAULT_JS).toContain("names.indexOf(data.card.name)");
     expect(VAULT_JS).toContain("names[step % names.length]");
@@ -123,9 +131,33 @@ describe("POST /vault/pull for the script", () => {
       duplicate: false,
       next: { dailyReady: false, bonusLeft: 1 },
       streakDays: 1,
+      milestone: null,
     });
     const bonus = await (await route(pull(), deps())).json<Record<string, unknown>>();
     expect(bonus).toMatchObject({ kind: "bonus", duplicate: true, next: { bonusLeft: 0 } });
+  });
+
+  it("announces a streak milestone on the free pull that reaches it", async () => {
+    await grantAwards(env.DB, A, ["first-contact"], NOW);
+    const today = Math.floor(NOW / 86_400);
+    await env.DB.batch(
+      [2, 1].map((ago) =>
+        env.DB.prepare(
+          `INSERT INTO vault_pulls (visitor_id, day, kind, card, pulled_at)
+           VALUES (?, ?, 'daily', 'left-sock-of-atlantis', ?)`,
+        ).bind(A, today - ago, NOW - ago * 86_400),
+      ),
+    );
+    const body = await (await route(pull(), deps())).json<Record<string, unknown>>();
+    expect(body).toMatchObject({
+      streakDays: 3,
+      milestone: { days: 3, badge: "streak-regular", name: "Regular" },
+      // first-contact and Regular: two bonus pulls.
+      next: { bonusLeft: 2 },
+    });
+    // A bonus pull the same day celebrates nothing new.
+    const bonus = await (await route(pull(), deps())).json<Record<string, unknown>>();
+    expect(bonus).toMatchObject({ kind: "bonus", milestone: null });
   });
 
   it("says why, in JSON, when there's nothing to pull or no file yet", async () => {
