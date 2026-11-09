@@ -8,6 +8,7 @@
 
 import type { AnalyticsEvent } from "./analytics";
 import { CATALOG, findItem } from "./catalog";
+import { findVaultCard, VAULT_CARDS } from "./vault";
 
 export interface Badge {
   readonly id: string;
@@ -61,11 +62,12 @@ export function cardId(slug: string): string {
 
 export function isAward(id: string): boolean {
   if (BADGE_IDS.has(id)) return true;
+  if (id.startsWith("vault:")) return findVaultCard(id.slice("vault:".length)) !== undefined;
   return id.startsWith("card:") && findItem(id.slice("card:".length)) !== undefined;
 }
 
-/** How many awards (badges plus cards) there are to earn in all. */
-export const TOTAL_AWARDS = BADGES.length + CATALOG.length;
+/** How many awards (badges, exhibit cards and vault cards) there are to earn in all. */
+export const TOTAL_AWARDS = BADGES.length + CATALOG.length + VAULT_CARDS.length;
 
 export interface Rank {
   readonly title: string;
