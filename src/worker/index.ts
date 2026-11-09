@@ -35,6 +35,7 @@ import {
   homePage,
   itemPage,
   notFoundPage,
+  ORDER_CONTACT_EMAIL,
   STYLESHEET_PATH,
   thanksPage,
   type ReturnView,
@@ -57,7 +58,36 @@ import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
 import { pullLever, readVault, secureUint32 } from "./vault";
 import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
 import { rollFrom } from "../core/vault";
-import { visitorIdFromCookie } from "../core/visitor";
+import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
+import {
+  DISPATCH_CONFIRM_PATH,
+  DISPATCH_FROM,
+  TOKEN,
+  UNSUBSCRIBE_TOKEN,
+  DISPATCH_PATH,
+  DISPATCH_RECOVER_PATH,
+  DISPATCH_SENT_PATH,
+  DISPATCH_UNSUBSCRIBE_PATH,
+  normalizeEmail,
+  type OutgoingEmail,
+} from "../core/dispatch";
+import {
+  confirmRegistration,
+  readRegistration,
+  recoverFile,
+  requestLink,
+  unsubscribe,
+  type Opened,
+} from "./dispatch";
+import {
+  dispatchClosedPage,
+  dispatchNoticeFrom,
+  linkExpiredPage,
+  linkPage,
+  sentPage,
+  unsubscribedPage,
+  type LinkKind,
+} from "./dispatch-pages";
 
 /**
  * Secrets the Worker reads. Set each with `npx wrangler secret put <NAME>`, and
@@ -77,6 +107,11 @@ export interface PublicVars {
   readonly ACCESS_TEAM_DOMAIN?: string;
   /** The Access application's Audience (AUD) tag for /bureau. Unset keeps /bureau closed. */
   readonly ACCESS_AUD?: string;
+  /**
+   * The postal address every Dispatch email carries (CAN-SPAM). Public: it's
+   * in every email. Unset keeps the Dispatch closed (note 0007).
+   */
+  readonly DISPATCH_POSTAL_ADDRESS?: string;
 }
 
 /** What `route` needs from the outside world, so tests can swap in fakes. */
@@ -88,6 +123,10 @@ export interface Deps extends WebhookDeps, AnalyticsDeps, AccessDeps {
   readonly fetch: typeof fetch;
   /** Random 32-bit numbers for the vault lever. Defaults to the secure generator. */
   readonly randomUint32?: () => number;
+  /** Sends one Dispatch email. Undefined when the Worker has no email binding. */
+  readonly sendEmail?: ((email: OutgoingEmail) => Promise<void>) | undefined;
+  /** The Dispatch footer's postal address. Undefined keeps the Dispatch closed. */
+  readonly postalAddress?: string | undefined;
 }
 
 const TEXT = "text/plain; charset=utf-8";
@@ -288,27 +327,142 @@ async function bureau(request: Request, pathname: string, deps: Deps): Promise<R
  * get), so reloading the result page never pulls again.
  */
 async function vaultPull(request: Request, deps: Deps): Promise<Response> {
-  const { origin } = new URL(request.url);
-  const sentFrom = request.headers.get("Origin");
-  if (sentFrom !== null && sentFrom !== origin) {
-    return new Response("Forbidden.\n", { status: 403, headers: { "Content-Type": TEXT } });
-  }
-  const back = (location: string) =>
-    new Response(null, {
-      status: 303,
-      headers: { Location: location, "Cache-Control": "no-store" },
-    });
-  const fromCookie = visitorIdFromCookie(request.headers.get("Cookie"));
-  if (
-    deps.visitorId === null ||
-    fromCookie !== deps.visitorId ||
-    isAutomated(request.headers.get("User-Agent"))
-  ) {
-    return back(VAULT_PATH);
-  }
+  if (!fromOwnSite(request)) return forbidden();
+  const visitorId = returningVisitor(request, deps);
+  if (visitorId === undefined) return seeOther(VAULT_PATH);
   const roll = rollFrom(deps.randomUint32 ?? secureUint32);
-  const result = await pullLever(deps.db, deps.visitorId, deps.nowSeconds(), roll);
-  return back(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+  const result = await pullLever(deps.db, visitorId, deps.nowSeconds(), roll);
+  return seeOther(result.ok ? VAULT_OPENED_LOCATION : VAULT_PATH);
+}
+
+/**
+ * A form post that came from our own pages. Browsers send Origin on form
+ * posts; one with no Origin is allowed, as on checkout, since the cookie is
+ * SameSite=Lax and isn't sent on cross-site posts anyway.
+ */
+function fromOwnSite(request: Request): boolean {
+  const sentFrom = request.headers.get("Origin");
+  return sentFrom === null || sentFrom === new URL(request.url).origin;
+}
+
+function forbidden(): Response {
+  return new Response("Forbidden.\n", { status: 403, headers: { "Content-Type": TEXT } });
+}
+
+function seeOther(location: string, setCookie?: string): Response {
+  const headers = new Headers({ Location: location, "Cache-Control": "no-store" });
+  if (setCookie !== undefined) headers.append("Set-Cookie", setCookie);
+  return new Response(null, { status: 303, headers });
+}
+
+/**
+ * The visitor id of a person who already has our cookie (a first visit sets
+ * it), or undefined for a first visit or a bot. Actions that write anything
+ * for a visitor need one.
+ */
+function returningVisitor(request: Request, deps: Deps): string | undefined {
+  const fromCookie = visitorIdFromCookie(request.headers.get("Cookie"));
+  if (deps.visitorId === null || fromCookie !== deps.visitorId) return undefined;
+  if (isAutomated(request.headers.get("User-Agent"))) return undefined;
+  return deps.visitorId;
+}
+
+/** The largest form we'll read. Real ones are well under 400 bytes. */
+const MAX_FORM_BYTES = 2048;
+
+/** One field of a url-encoded form, or undefined. */
+async function formField(request: Request, name: string): Promise<string | undefined> {
+  const text = await request.text();
+  if (text.length > MAX_FORM_BYTES) return undefined;
+  return new URLSearchParams(text).get(name) ?? undefined;
+}
+
+/** An error's code (Email Service errors have one), never its message. */
+function errorCode(error: unknown): string {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String(error.code)
+    : "unknown";
+}
+
+const DOSSIER_DISPATCH = `${DOSSIER_PATH}#dispatch`;
+
+/**
+ * The Dispatch form: POST /dispatch with an email (design note 0007). Always
+ * ends on the same "check your inbox" page, whatever was typed, and sends
+ * after responding, so neither the page nor its timing says whether an
+ * address is registered.
+ */
+async function dispatchRegister(request: Request, deps: Deps): Promise<Response> {
+  if (!fromOwnSite(request)) return forbidden();
+  const { postalAddress, sendEmail } = deps;
+  if (postalAddress === undefined || sendEmail === undefined) {
+    return page(dispatchClosedPage(), 503);
+  }
+  const requester = returningVisitor(request, deps);
+  if (requester === undefined) return seeOther(DOSSIER_DISPATCH);
+  const email = normalizeEmail(await formField(request, "email"));
+  if (email === undefined) return seeOther(`${DOSSIER_PATH}?dispatch=invalid#dispatch`);
+
+  const result = await requestLink(deps.db, {
+    email,
+    requester,
+    nowSeconds: deps.nowSeconds(),
+    origin: new URL(request.url).origin,
+    postalAddress,
+  });
+  if (result.outcome === "sent") {
+    deps.waitUntil(
+      sendEmail(result.email).catch((error: unknown) => {
+        console.error(`dispatch: could not send a ${result.purpose} email (${errorCode(error)})`);
+      }),
+    );
+  }
+  return seeOther(DISPATCH_SENT_PATH);
+}
+
+/** An email link opens a page with a button; only the button acts. */
+function linkLanding(url: URL, kind: LinkKind): Response {
+  const token = url.searchParams.get(kind === "unsubscribe" ? "u" : "t") ?? "";
+  const valid = (kind === "unsubscribe" ? UNSUBSCRIBE_TOKEN : TOKEN).test(token);
+  const response = valid ? page(linkPage(kind, token)) : page(linkExpiredPage(), 404);
+  response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
+  return response;
+}
+
+/**
+ * The button on a confirm or recover link. Opens the file on this browser by
+ * setting the visitor cookie to it, then shows the dossier.
+ */
+async function useLink(
+  request: Request,
+  kind: "confirm" | "recover",
+  deps: Deps,
+): Promise<Response> {
+  if (!fromOwnSite(request)) return forbidden();
+  const token = (await formField(request, "t")) ?? "";
+  const now = deps.nowSeconds();
+  const opened: Opened | undefined =
+    kind === "confirm"
+      ? await confirmRegistration(deps.db, token, now)
+      : await recoverFile(deps.db, token, now);
+  if (opened === undefined) return page(linkExpiredPage(), 410);
+  const notice = opened.recovered ? "recovered" : "confirmed";
+  return seeOther(`${DOSSIER_PATH}?dispatch=${notice}#dispatch`, visitorCookie(opened.visitorId));
+}
+
+/**
+ * Unsubscribe: the button on the unsubscribe page, or a mail app's one-click
+ * POST to the List-Unsubscribe URL (RFC 8058, token in the query string). No
+ * Origin check: mail providers post from their own servers, and the token is
+ * the only thing that can unsubscribe anyone.
+ */
+async function unsubscribePost(request: Request, deps: Deps): Promise<Response> {
+  const token = new URL(request.url).searchParams.get("u") ?? (await formField(request, "u")) ?? "";
+  if (!UNSUBSCRIBE_TOKEN.test(token)) return page(linkExpiredPage(), 404);
+  await unsubscribe(deps.db, token, deps.nowSeconds());
+  const response = page(unsubscribedPage());
+  response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
+  return response;
 }
 
 /** Routes a request. Kept separate from `fetch` so it stays easy to test. */
@@ -318,6 +472,10 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
     if (postPath === WEBHOOK_PATH) return stripeWebhook(request, deps);
     if (postPath === EVENTS_PATH) return storyRead(request, deps);
     if (postPath === VAULT_PULL_PATH) return vaultPull(request, deps);
+    if (postPath === DISPATCH_PATH) return dispatchRegister(request, deps);
+    if (postPath === DISPATCH_CONFIRM_PATH) return useLink(request, "confirm", deps);
+    if (postPath === DISPATCH_RECOVER_PATH) return useLink(request, "recover", deps);
+    if (postPath === DISPATCH_UNSUBSCRIBE_PATH) return unsubscribePost(request, deps);
     const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
     if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
     const slug = CHECKOUT_PATH.exec(postPath)?.[1];
@@ -340,8 +498,27 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
       return page(disclaimerPage());
     case THANKS_PATH:
       return returnPage(new URL(request.url), deps);
-    case DOSSIER_PATH:
-      return page(dossierPage(await readDossier(deps.db, deps.visitorId)));
+    case DOSSIER_PATH: {
+      const [agent, registration] = await Promise.all([
+        readDossier(deps.db, deps.visitorId),
+        readRegistration(deps.db, deps.visitorId),
+      ]);
+      return page(
+        dossierPage(agent, {
+          open: deps.postalAddress !== undefined && deps.sendEmail !== undefined,
+          registration,
+          notice: dispatchNoticeFrom(new URL(request.url).searchParams.get("dispatch")),
+        }),
+      );
+    }
+    case DISPATCH_SENT_PATH:
+      return page(sentPage());
+    case DISPATCH_CONFIRM_PATH:
+      return linkLanding(new URL(request.url), "confirm");
+    case DISPATCH_RECOVER_PATH:
+      return linkLanding(new URL(request.url), "recover");
+    case DISPATCH_UNSUBSCRIBE_PATH:
+      return linkLanding(new URL(request.url), "unsubscribe");
     case VAULT_PATH: {
       const now = deps.nowSeconds();
       const opened = new URL(request.url).searchParams.get("opened") === "1";
@@ -442,14 +619,37 @@ export function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+/** Reads the Dispatch footer's postal address, treating blank as unset. */
+export function postalAddressFrom(vars: PublicVars): string | undefined {
+  return secretValue(vars.DISPATCH_POSTAL_ADDRESS);
+}
+
+/** Wraps the email binding so the rest of the Worker sends plain OutgoingEmails. */
+export function emailSender(
+  binding: SendEmail | undefined,
+): ((email: OutgoingEmail) => Promise<void>) | undefined {
+  if (binding === undefined) return undefined;
+  return async (email) => {
+    await binding.send({
+      from: DISPATCH_FROM,
+      replyTo: ORDER_CONTACT_EMAIL,
+      to: email.to,
+      subject: email.subject,
+      text: email.text,
+      ...(email.headers === undefined ? {} : { headers: { ...email.headers } }),
+    });
+  };
+}
+
+/** The bindings and vars the Worker runs with. EMAIL is optional so tests can leave it out. */
+type WorkerEnv = Omit<Env, "EMAIL"> & { readonly EMAIL?: SendEmail } & Secrets & PublicVars;
+
 export default {
-  async fetch(
-    request: Request,
-    env: Env & Secrets & PublicVars,
-    ctx: ExecutionContext,
-  ): Promise<Response> {
+  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const visitorId = visitorIdFor(request);
     const response = await route(request, {
+      sendEmail: emailSender(env.EMAIL),
+      postalAddress: postalAddressFrom(env),
       visitorId,
       access: accessConfigFrom(env),
       stripeKey: stripeKeyFrom(env),
@@ -469,4 +669,4 @@ export default {
       landingFromRequest(url, request.headers.get("Referer"), url.hostname),
     );
   },
-} satisfies ExportedHandler<Env & Secrets & PublicVars>;
+} satisfies ExportedHandler<WorkerEnv>;
