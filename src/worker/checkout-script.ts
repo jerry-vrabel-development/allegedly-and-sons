@@ -1,5 +1,5 @@
 /**
- * The shop's only JavaScript: mounts Stripe's embedded Checkout on the
+ * The checkout page's script: mounts Stripe's embedded Checkout on the
  * checkout page (design note 0005, PR 3). Served from /assets/checkout.js so
  * the CSP never needs 'unsafe-inline'.
  *

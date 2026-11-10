@@ -1,7 +1,9 @@
 /**
- * The Vault page, /vault (design note 0003, G2). No script: the lever is a
- * plain form that posts to /vault/pull and comes back here. Odds are posted
- * on the page. Results say exactly what was drawn: no near misses, no teasing
+ * The Vault page, /vault (design note 0003, G2). The lever is a plain form
+ * that posts to /vault/pull and comes back here, so it works without script.
+ * A countdown script ticks the clocks, and for the effects group the Vault's
+ * own script plays the reel in place (note 0008). Odds are posted on the
+ * page. Results say exactly what was drawn: no near misses, no teasing
  * what you almost got. The opening animation is CSS only, and reduced motion
  * turns it off; the words "The vault creaks open" carry it either way.
  */

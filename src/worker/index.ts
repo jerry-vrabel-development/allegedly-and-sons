@@ -25,7 +25,7 @@ import {
   recordStoryRead,
   type AnalyticsDeps,
 } from "./analytics";
-import { EVENTS_PATH, STORY_JS, STORY_SCRIPT_PATH } from "./story-script";
+import { EVENTS_PATH } from "./story-script";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -47,7 +47,7 @@ import {
   createEmbeddedCheckoutSession,
   retrieveCheckoutSession,
 } from "./stripe";
-import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
+import { scriptResponse } from "./scripts";
 import { SITE_CSS } from "./styles";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { landingFromRequest } from "../core/landing";
@@ -61,20 +61,12 @@ import { readStreak } from "./streak";
 import { BROADCAST_PATH, offerFor, segmentAt } from "../core/broadcast";
 import { effectsOn } from "../core/effects";
 import { broadcastPage, onAirBanner, wantsBanner, withBanner } from "./broadcast-page";
-import { COUNTDOWN_JS, COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
 import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
 import { canRepair } from "../core/streak";
 import { vaultDay } from "../core/vault";
 import { repairReturnPage, repairUnavailablePage } from "./repair-page";
-import {
-  VAULT_OPENED_LOCATION,
-  VAULT_PATH,
-  VAULT_PULL_PATH,
-  VAULT_SCRIPT_PATH,
-  vaultPage,
-} from "./vault-page";
-import { VAULT_JS } from "./vault-script";
-import { SOUND_JS, SOUND_SCRIPT_PATH, wantsSound, withSound } from "./sound-script";
+import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
+import { wantsSound, withSound } from "./sound-script";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
 import {
@@ -645,43 +637,8 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
       const fx = effectsOn(deps.visitorId, new URL(request.url).searchParams.get("fx"));
       return page(vaultPage(vault, streak, now, opened, deps.stripeKey !== undefined, fx));
     }
-    case STORY_SCRIPT_PATH:
-      return new Response(STORY_JS, {
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-        },
-      });
     case BROADCAST_PATH:
       return broadcast(deps);
-    case COUNTDOWN_SCRIPT_PATH:
-      return new Response(COUNTDOWN_JS, {
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-        },
-      });
-    case VAULT_SCRIPT_PATH:
-      return new Response(VAULT_JS, {
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-        },
-      });
-    case SOUND_SCRIPT_PATH:
-      return new Response(SOUND_JS, {
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-        },
-      });
-    case CHECKOUT_SCRIPT_PATH:
-      return new Response(CHECKOUT_JS, {
-        headers: {
-          "Content-Type": "text/javascript; charset=utf-8",
-          "Cache-Control": "public, max-age=300",
-        },
-      });
     case STYLESHEET_PATH:
       return new Response(SITE_CSS, {
         headers: {
@@ -692,6 +649,9 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   }
+
+  const script = scriptResponse(pathname);
+  if (script !== undefined) return script;
 
   if (pathname === "/bureau" || pathname.startsWith("/bureau/")) {
     return bureau(request, pathname, deps);
