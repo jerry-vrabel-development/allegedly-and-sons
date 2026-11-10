@@ -10,14 +10,21 @@
 
 import { CATALOG, formatPrice } from "../core/catalog";
 import { NETWORKS, type Network } from "../core/share";
-import { describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
+import { clearlyDifferent, describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
 import { html, type SafeHtml } from "./html";
 import { layout } from "./pages";
 import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
 import { STREAK_BUCKETS, type StreakSummary } from "../core/streak";
 import { readStreakSummary } from "./streak";
 import { REPAIR_SLUG } from "../core/repair";
-import { FX_SQL } from "../core/effects";
+import {
+  FX_SQL,
+  TARGET_PULLERS,
+  TEST_DAYS,
+  TEST_STARTED,
+  testStatus,
+  type TestStatus,
+} from "../core/effects";
 
 export const LEDGER_PATH = "/bureau/ledger";
 
@@ -74,6 +81,12 @@ export interface VaultRow {
 
 export interface EffectsRow {
   readonly variant: "fx" | "plain";
+  /** Visitors who viewed an exhibit, and of them: opened, finished, shared, bought (note 0011). */
+  readonly visitors: number;
+  readonly opened: number;
+  readonly finished: number;
+  readonly sharers: number;
+  readonly buyers: number;
   readonly pullers: number;
   readonly pulls: number;
   /** Pullers who pulled on more than one day in the period. */
@@ -91,8 +104,10 @@ export interface Ledger {
     readonly onAir: { readonly orders: number; readonly revenueCents: number };
     readonly offAir: { readonly orders: number; readonly revenueCents: number };
   };
-  /** The Vault with and without sound and motion (note 0008, PR 3), in the period. */
+  /** The shop with and without sound and motion (notes 0008 and 0011), in the period. */
   readonly effects: readonly EffectsRow[];
+  /** The stopping rule, counted since the test began, whatever the period. */
+  readonly effectsTest: TestStatus;
   /** Streaks bought back in the period ("Grease the Clerk"). */
   readonly repairs: { readonly count: number; readonly revenueCents: number };
   readonly items: readonly ItemRow[];
@@ -103,6 +118,54 @@ export interface Ledger {
 type Row = Record<string, unknown>;
 
 const num = (value: unknown): number => (typeof value === "number" ? value : 0);
+
+function groupName(variant: "fx" | "plain"): string {
+  return variant === "fx" ? "Sound and motion" : "Plain";
+}
+
+/** Where the stopping rule stands (note 0011), in words. */
+function effectsTestStatus(status: TestStatus): SafeHtml {
+  const progress = html`Agents who pulled since the test began:
+    <strong>${String(status.fxPullers)}</strong> with sound and motion and
+    <strong>${String(status.plainPullers)}</strong> plain, of ${String(TARGET_PULLERS)} each.`;
+  if (status.ended === undefined) {
+    return html`<p>Day ${String(status.day)} of ${String(TEST_DAYS)}. ${progress}</p>`;
+  }
+  const why =
+    status.ended === "target"
+      ? `Both groups reached ${String(TARGET_PULLERS)} agents who pulled.`
+      : `${String(TEST_DAYS)} days have passed.`;
+  return html`<p>
+    <strong>The stopping rule is met.</strong> ${why} ${progress} Time to decide: ship a clear
+    winner to everyone, and if there's none, give everyone the effects (note 0011).
+  </p>`;
+}
+
+/**
+ * The measures where the groups clearly differ, in words: both have enough
+ * trials to mean something (as the table's "too few to say"), and their 95%
+ * intervals don't overlap.
+ */
+function effectsDifferences(rows: readonly EffectsRow[]): SafeHtml {
+  const [fx, plain] = rows as readonly [EffectsRow, EffectsRow];
+  const measures: readonly [string, (row: EffectsRow) => [number, number]][] = [
+    ["opening a case file", (row) => [row.opened, row.visitors]],
+    ["finishing it", (row) => [row.finished, row.opened]],
+    ["sharing", (row) => [row.sharers, row.visitors]],
+    ["buying", (row) => [row.buyers, row.visitors]],
+    ["coming back to the Vault", (row) => [row.returners, row.pullers]],
+  ];
+  const clear = measures.flatMap(([name, of]) => {
+    const a = wilson(...of(fx));
+    const b = wilson(...of(plain));
+    if (a === undefined || b === undefined) return [];
+    if (Math.min(a.trials, b.trials) < MIN_VISITORS_TO_RANK || !clearlyDifferent(a, b)) return [];
+    return [`${name} (${a.rate > b.rate ? groupName("fx") : groupName("plain")} is higher)`];
+  });
+  return clear.length === 0
+    ? html`<p>Clear differences so far: none yet.</p>`
+    : html`<p>Clear differences so far: ${clear.join("; ")}.</p>`;
+}
 
 /**
  * Gathers the ledger's numbers for events since `since` (Unix seconds).
@@ -229,23 +292,67 @@ export async function readLedger(
          FROM vault_pulls WHERE pulled_at >= ?1 GROUP BY variant`,
       )
       .bind(since),
+    db
+      .prepare(
+        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+           COUNT(DISTINCT CASE WHEN event = 'item_viewed' THEN visitor_id END) AS visitors,
+           COUNT(DISTINCT CASE WHEN event = 'lore_expanded' AND read_depth = 'opened' THEN visitor_id END) AS opened,
+           COUNT(DISTINCT CASE WHEN event = 'lore_expanded' AND read_depth = 'finished' THEN visitor_id END) AS finished,
+           COUNT(DISTINCT CASE WHEN event = 'share_clicked' THEN visitor_id END) AS sharers
+         FROM analytics_events WHERE ts >= ? AND visitor_id IS NOT NULL GROUP BY variant`,
+      )
+      .bind(since),
+    db
+      .prepare(
+        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+           COUNT(DISTINCT visitor_id) AS buyers
+         FROM orders WHERE paid_at >= ? AND visitor_id IS NOT NULL AND item_slug != ?
+         GROUP BY variant`,
+      )
+      .bind(since, REPAIR_SLUG),
+    db
+      .prepare(
+        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+           COUNT(DISTINCT visitor_id) AS pullers
+         FROM vault_pulls WHERE pulled_at >= ? GROUP BY variant`,
+      )
+      .bind(TEST_STARTED),
   ]);
 
   // A batch returns one result per statement, in order.
   const streaks = await readStreakSummary(db, nowSeconds);
-  const [items, orders, sources, shares, [vault], [dispatch], [repairs], [onAir], effects] =
-    results.map((result) => result.results) as [
-      Row[],
-      Row[],
-      Row[],
-      Row[],
-      [Row],
-      [Row],
-      [Row],
-      [Row],
-      Row[],
-    ];
-  const effectsByVariant = new Map(effects.map((row) => [row["variant"], row]));
+  const [
+    items,
+    orders,
+    sources,
+    shares,
+    [vault],
+    [dispatch],
+    [repairs],
+    [onAir],
+    effects,
+    effectsEvents,
+    effectsBuyers,
+    testPullers,
+  ] = results.map((result) => result.results) as [
+    Row[],
+    Row[],
+    Row[],
+    Row[],
+    [Row],
+    [Row],
+    [Row],
+    [Row],
+    Row[],
+    Row[],
+    Row[],
+    Row[],
+  ];
+  const byVariant = (rows: Row[]) => new Map(rows.map((row) => [row["variant"], row]));
+  const effectsByVariant = byVariant(effects);
+  const eventsByVariant = byVariant(effectsEvents);
+  const buyersByVariant = byVariant(effectsBuyers);
+  const pullersByVariant = byVariant(testPullers);
   const byItem = new Map(items.map((row) => [row["item_slug"], row]));
   const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
   const sharesByChannel = new Map(shares.map((row) => [row["channel"], row]));
@@ -254,10 +361,21 @@ export async function readLedger(
     period,
     streaks,
     repairs: { count: num(repairs["count"]), revenueCents: num(repairs["revenue"]) },
+    effectsTest: testStatus(
+      nowSeconds,
+      num(pullersByVariant.get("fx")?.["pullers"]),
+      num(pullersByVariant.get("plain")?.["pullers"]),
+    ),
     effects: (["fx", "plain"] as const).map((variant) => {
       const row = effectsByVariant.get(variant);
+      const events = eventsByVariant.get(variant);
       return {
         variant,
+        visitors: num(events?.["visitors"]),
+        opened: num(events?.["opened"]),
+        finished: num(events?.["finished"]),
+        sharers: num(events?.["sharers"]),
+        buyers: num(buyersByVariant.get(variant)?.["buyers"]),
         pullers: num(row?.["pullers"]),
         pulls: num(row?.["pulls"]),
         returners: num(row?.["returners"]),
@@ -485,16 +603,26 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
           </tbody>
         </table>`,
       )}
+      <section class="prose" aria-labelledby="effects-test-heading">
+        <h2 id="effects-test-heading">The effects test</h2>
+        ${effectsTestStatus(ledger.effectsTest)} ${effectsDifferences(ledger.effects)}
+      </section>
       ${scrollTable(
-        "Vault effects",
+        "The effects test, by group",
         html`<table>
           <caption>
-            The Vault with sound and motion (half of agents) and without: do the effects bring more
-            pulls and more returns?
+            The shop with sound and motion (half of agents) and without, in this period: rates are
+            of visitors who viewed an exhibit, except finished (of openers) and came back (of
+            pullers)
           </caption>
           <thead>
             <tr>
               <th scope="col">Group</th>
+              <th scope="col" class="num">Visitors</th>
+              <th scope="col">Opened a case file</th>
+              <th scope="col">Finished it (of openers)</th>
+              <th scope="col">Shared</th>
+              <th scope="col">Bought</th>
               <th scope="col" class="num">Agents who pulled</th>
               <th scope="col" class="num">Pulls per agent</th>
               <th scope="col">Came back another day (of pullers)</th>
@@ -504,7 +632,12 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
             ${ledger.effects.map(
               (row) =>
                 html`<tr>
-                  <th scope="row">${row.variant === "fx" ? "Reel and sound" : "Plain lever"}</th>
+                  <th scope="row">${groupName(row.variant)}</th>
+                  <td class="num">${String(row.visitors)}</td>
+                  <td>${describeRate(wilson(row.opened, row.visitors))}</td>
+                  <td>${describeRate(wilson(row.finished, row.opened))}</td>
+                  <td>${describeRate(wilson(row.sharers, row.visitors))}</td>
+                  <td>${describeRate(wilson(row.buyers, row.visitors))}</td>
                   <td class="num">${String(row.pullers)}</td>
                   <td class="num">
                     ${row.pullers === 0 ? "–" : (row.pulls / row.pullers).toFixed(1)}
