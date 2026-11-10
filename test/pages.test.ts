@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CATALOG, formatPrice, type Item } from "../src/core/catalog";
+import { AVAILABLE_ITEMS, CATALOG, formatPrice, isAvailable, type Item } from "../src/core/catalog";
 import {
   checkoutClosedPage,
   checkoutPage,
   checkoutUnavailablePage,
   disclaimerPage,
+  CROSS_SELL_COUNT,
+  crossSells,
   homePage,
   MAX_SHIP_DAYS,
   MERCHANDISE_TERMS,
@@ -161,10 +163,21 @@ describe("layout", () => {
 });
 
 describe("home page", () => {
-  it("lists every item with a link and a price", () => {
+  it("lists every item with a link, and a price for each one on sale", () => {
     for (const item of CATALOG) {
       expect(pages.home).toContain(`href="${itemPath(item)}"`);
-      expect(pages.home).toContain(formatPrice(item.priceCents));
+      if (isAvailable(item)) expect(pages.home).toContain(formatPrice(item.priceCents));
+    }
+  });
+
+  it("labels acquisition-pending exhibits in words instead of a price", () => {
+    const pending = CATALOG.filter((item) => !isAvailable(item));
+    expect(pending.length).toBeGreaterThan(0);
+    for (const item of pending) {
+      const card = pages.home.slice(pages.home.indexOf(`href="${itemPath(item)}"`));
+      expect(card.slice(0, card.indexOf("</li>"))).toContain(
+        '<p class="pending">Acquisition pending</p>',
+      );
     }
   });
 });
@@ -235,12 +248,26 @@ describe("item page details", () => {
     expect(page).not.toContain("<details>");
   });
 
-  it("cross-sells every other item, but not itself", () => {
+  it("cross-sells three others, its own wing first, never itself", () => {
+    for (const item of CATALOG) {
+      const picks = crossSells(item);
+      expect(picks).toHaveLength(CROSS_SELL_COUNT);
+      expect(picks.map((pick) => pick.slug)).not.toContain(item.slug);
+      const wingmates = CATALOG.filter((o) => o.wing === item.wing && o.slug !== item.slug);
+      expect(picks.slice(0, wingmates.length)).toEqual(wingmates.slice(0, CROSS_SELL_COUNT));
+      // Outside its wing, exhibits for sale come before pending ones.
+      const outside = picks.slice(wingmates.length).map(isAvailable);
+      expect(outside).toEqual([...outside].sort((a, b) => Number(b) - Number(a)));
+    }
+  });
+
+  it("shows the cross-sells on the page", () => {
     const item = firstItem();
     const page = squish(itemPage(item, ORIGIN));
     const more = page.slice(page.indexOf("Other recent acquisitions"));
     for (const other of CATALOG) {
-      expect(more.includes(`href="/items/${other.slug}"`)).toBe(other.slug !== item.slug);
+      const picked = crossSells(item).includes(other);
+      expect(more.includes(`href="/items/${other.slug}"`)).toBe(picked);
     }
   });
 });
@@ -378,7 +405,7 @@ describe("the Bureau's methods", () => {
 
 describe("terms beside every place a buyer pays", () => {
   it("links the terms of sale from each item's buy box", () => {
-    for (const item of CATALOG) {
+    for (const item of AVAILABLE_ITEMS) {
       expect(squish(itemPage(item, ORIGIN))).toContain(
         `<a href="${TERMS_PATH}">Terms of sale</a>.`,
       );
@@ -397,8 +424,23 @@ describe("terms beside every place a buyer pays", () => {
   });
 });
 
+describe("acquisition pending (note 0010)", () => {
+  for (const item of CATALOG.filter((candidate) => !isAvailable(candidate))) {
+    it(`${item.slug} has its case file and an expected price, but nothing to buy`, () => {
+      const page = squish(itemPage(item, ORIGIN));
+      expect(page).toContain("<dt>Expected price</dt>");
+      expect(page).toContain(formatPrice(item.priceCents));
+      expect(page).toContain("<strong>Acquisition pending.</strong>");
+      expect(page).toContain(item.story.headline);
+      expect(page).not.toContain("Acquire this exhibit");
+      expect(page).not.toContain(`/checkout/${item.slug}`);
+      expect(page).not.toContain("Secure checkout by Stripe");
+    });
+  }
+});
+
 describe("buying", () => {
-  for (const item of CATALOG) {
+  for (const item of AVAILABLE_ITEMS) {
     it(`${item.slug} links to its own checkout page`, () => {
       // A plain link: it only navigates, and the checkout page creates nothing at Stripe
       // until the buyer is there, so a crawler following it is harmless (nofollow anyway).

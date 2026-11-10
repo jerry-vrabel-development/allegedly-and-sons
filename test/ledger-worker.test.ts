@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { CATALOG } from "../src/core/catalog";
 import { route, type Deps } from "../src/worker/index";
 import { LEDGER_PATH, periodFrom, readLedger } from "../src/worker/ledger";
 import { AUD, NOW, OTHER, SIGNER, TEAM, token, urlOf } from "./access-signing";
@@ -129,7 +130,7 @@ describe("readLedger", () => {
 
   it("lists every catalog item, even ones nobody has seen", async () => {
     const ledger = await readLedger(env.DB, 30, NOW, "allegedly.example");
-    expect(ledger.items.map((row) => row.visitors)).toEqual([0, 0, 0]);
+    expect(ledger.items.map((row) => row.visitors)).toEqual(CATALOG.map(() => 0));
   });
 
   it("names where visitors came from, and who later bought", async () => {

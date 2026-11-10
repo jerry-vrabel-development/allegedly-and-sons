@@ -1,4 +1,4 @@
-import { CATALOG, formatPrice, type Item } from "../core/catalog";
+import { AVAILABLE_ITEMS, CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
 import { BROADCAST_PATH, chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
@@ -109,13 +109,35 @@ function card(item: Item): SafeHtml {
       <p class="kicker">Exhibit ${item.exhibit}</p>
       <h3><a href="${itemPath(item)}">${item.name}</a></h3>
       <p>${item.tagline}</p>
-      <p class="price">${formatPrice(item.priceCents)}</p>
+      ${
+        isAvailable(item)
+          ? html`<p class="price">${formatPrice(item.priceCents)}</p>`
+          : html`<p class="pending">Acquisition pending</p>`
+      }
     </div>
   </li>`;
 }
 
+/** The buy box's action: the button, or, while the Bureau is still recovering it, why not. */
+function acquireBlock(item: Item, offer: Offer): SafeHtml {
+  if (!isAvailable(item)) {
+    return html`<p class="pending-note">
+      <strong>Acquisition pending.</strong> The Bureau is still recovering this one. Read the case
+      file now; it goes on sale when it arrives.
+    </p>`;
+  }
+  return html`<p class="acquire">
+      <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
+    </p>
+    ${onAirNote(offer)}
+    <p class="secure-note">
+      Secure checkout by Stripe. US shipping only, for now.
+      <a href="${TERMS_PATH}">Terms of sale</a>.
+    </p>`;
+}
+
 export function homePage(): SafeHtml {
-  const [featured] = CATALOG;
+  const [featured] = AVAILABLE_ITEMS;
   const hero = html`<section class="hero" aria-labelledby="featured-heading">
     <figure class="art">${art(featured, featured.artAlt, true)}</figure>
     <div class="hero-copy">
@@ -183,10 +205,27 @@ function onAirNote(offer: Offer): SafeHtml {
   </p>`;
 }
 
+/** How many other exhibits an item page suggests. */
+export const CROSS_SELL_COUNT = 3;
+
+/**
+ * The other exhibits an item page suggests: the rest of its wing first (one
+ * step closer to a wing commendation, note 0010), then exhibits for sale,
+ * then pending ones.
+ */
+export function crossSells(item: Item): readonly Item[] {
+  const others = CATALOG.filter((other) => other.slug !== item.slug);
+  const sameWing = others.filter((other) => other.wing === item.wing);
+  const rest = others.filter((other) => other.wing !== item.wing);
+  const forSale = rest.filter(isAvailable);
+  const pending = rest.filter((other) => !isAvailable(other));
+  return [...sameWing, ...forSale, ...pending].slice(0, CROSS_SELL_COUNT);
+}
+
 export function itemPage(item: Item, origin: string, offer: Offer = regularOffer(item)): SafeHtml {
   const { story } = item;
   const [opening, ...rest] = story.paragraphs;
-  const others = CATALOG.filter((other) => other.slug !== item.slug);
+  const others = crossSells(item);
   const links = shareLinks(item.slug);
 
   return layout({
@@ -205,17 +244,10 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
             <dl class="pricing">
               <dt>Estimated value</dt>
               <dd class="anchor">${item.estimatedValue}</dd>
-              <dt>Your price</dt>
+              <dt>${isAvailable(item) ? "Your price" : "Expected price"}</dt>
               <dd class="price">${priceLine(offer)}</dd>
             </dl>
-            <p class="acquire">
-              <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
-            </p>
-            ${onAirNote(offer)}
-            <p class="secure-note">
-              Secure checkout by Stripe. US shipping only, for now.
-              <a href="${TERMS_PATH}">Terms of sale</a>.
-            </p>
+            ${acquireBlock(item, offer)}
             <p class="hook">${item.hook}</p>
             <h2 class="small">Included</h2>
             <ul class="included">

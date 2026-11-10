@@ -13,7 +13,7 @@
  * off the real regular price, and the price is locked when checkout starts.
  */
 
-import { CATALOG, type Item } from "./catalog";
+import { AVAILABLE_ITEMS, type Item } from "./catalog";
 
 export const BROADCAST_PATH = "/broadcast";
 
@@ -106,14 +106,15 @@ function pad(n: number): string {
 }
 
 /**
- * The item a slot features: slots rotate through the catalog, and each day
- * starts one item further along, so the lineup (and the Midnight Auction's
- * item) changes from day to day whatever the catalog's size.
+ * The item a slot features: slots rotate through the items for sale (never
+ * an acquisition-pending one, note 0010), and each day starts one item
+ * further along, so the lineup (and the Midnight Auction's item) changes from
+ * day to day whatever the catalog's size.
  */
 function itemForSlot(dayNumber: number, slot: number): Item {
-  const turn = (dayNumber + slot) % CATALOG.length;
-  // Rotate the catalog so the slot's item comes first (the catalog is never empty).
-  const [item] = [...CATALOG.slice(turn), ...CATALOG] as [Item, ...Item[]];
+  const turn = (dayNumber + slot) % AVAILABLE_ITEMS.length;
+  // Rotate so the slot's item comes first (there's always one for sale).
+  const [item] = [...AVAILABLE_ITEMS.slice(turn), ...AVAILABLE_ITEMS] as [Item, ...Item[]];
   return item;
 }
 

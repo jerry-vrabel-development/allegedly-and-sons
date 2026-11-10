@@ -252,6 +252,12 @@ describe("checkout", () => {
     expect(sent).toHaveLength(0);
   });
 
+  it("returns 404 for an acquisition-pending exhibit, without calling Stripe", async () => {
+    const { deps: d, sent } = deps(() => Response.json({ url: STRIPE_URL }));
+    expect((await route(post("/checkout/martian-rubber-band"), d)).status).toBe(404);
+    expect(sent).toHaveLength(0);
+  });
+
   it("shows a friendly 502 page when Stripe fails, and logs only the reason", async () => {
     const { deps: d } = deps(() => new Response("{}", { status: 500 }));
     const errors: unknown[] = [];

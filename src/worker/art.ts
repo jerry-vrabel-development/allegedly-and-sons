@@ -101,11 +101,73 @@ const TROPHY = board(
   </g>`,
 );
 
-/** SVG artwork by item slug. */
+const RUBBER_BAND = board(
+  "AS-0004",
+  `<circle cx="190" cy="300" r="78" fill="#b5462e"/>
+  <path d="M140 270 C170 250 210 260 230 285" fill="none" stroke="#d9714f" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="225" cy="340" r="10" fill="#8e3420"/>
+  <circle cx="160" cy="330" r="6" fill="#8e3420"/>
+  <circle cx="610" cy="300" r="78" fill="#2f6fa8"/>
+  <path d="M570 260 C600 250 630 270 640 300 C620 320 590 310 580 290 Z" fill="#5fa86b"/>
+  <path d="M600 340 C620 335 640 345 645 360" fill="none" stroke="#5fa86b" stroke-width="12" stroke-linecap="round"/>
+  <path d="M190 218 C330 250 470 250 610 218" fill="none" stroke="#e0503a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M190 382 C330 350 470 350 610 382" fill="none" stroke="#e0503a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M190 218 C330 250 470 250 610 218" fill="none" stroke="#ffb3a3" stroke-width="3" stroke-opacity="0.7" transform="translate(0 -4)"/>
+  <g fill="#ffffff">
+    <circle cx="100" cy="110" r="2"/><circle cx="330" cy="130" r="1.5"/><circle cx="480" cy="90" r="2"/>
+    <circle cx="720" cy="140" r="1.5"/><circle cx="400" cy="470" r="1.5"/><circle cx="80" cy="480" r="2"/>
+  </g>`,
+);
+
+const BUTTON = board(
+  "AS-0005",
+  `<path d="M0 470 C160 430 300 455 420 440 C560 425 680 450 800 430 V600 H0 Z" fill="#8f939b"/>
+  <ellipse cx="180" cy="520" rx="46" ry="12" fill="#6f737b"/>
+  <ellipse cx="520" cy="505" rx="30" ry="8" fill="#6f737b"/>
+  <g transform="translate(640 120)">
+    <circle r="54" fill="#2f6fa8"/>
+    <path d="M-30 -20 C-10 -35 20 -25 25 0 C5 10 -20 5 -30 -20 Z" fill="#5fa86b"/>
+    <path d="M-10 25 C5 20 25 30 28 40" fill="none" stroke="#5fa86b" stroke-width="10" stroke-linecap="round"/>
+  </g>
+  <ellipse cx="400" cy="300" rx="200" ry="180" fill="url(#glow)"/>
+  <g transform="translate(400 290)">
+    <circle r="120" fill="#e9e2cf"/>
+    <circle r="120" fill="none" stroke="#c9bfa4" stroke-width="10"/>
+    <circle r="92" fill="none" stroke="#d5ccb3" stroke-width="4"/>
+    <circle cx="-30" cy="-30" r="14" fill="#151a23"/>
+    <circle cx="30" cy="-30" r="14" fill="#151a23"/>
+    <circle cx="-30" cy="30" r="14" fill="#151a23"/>
+    <circle cx="30" cy="30" r="14" fill="#151a23"/>
+    <path d="M-80 -60 A100 100 0 0 1 -20 -100" fill="none" stroke="#ffffff" stroke-width="6" stroke-opacity="0.7" stroke-linecap="round"/>
+  </g>`,
+);
+
+const BUS_TOKEN = board(
+  "AS-0006",
+  `<ellipse cx="400" cy="300" rx="230" ry="200" fill="#e0a95b" fill-opacity="0.12"/>
+  <g transform="translate(400 290)">
+    <circle r="150" fill="#b58a3c"/>
+    <circle r="138" fill="#d6aa55"/>
+    <circle r="138" fill="none" stroke="#9b7430" stroke-width="4" stroke-dasharray="6 8"/>
+    <circle r="62" fill="#9b7430"/>
+    <circle r="54" fill="#f0d79a"/>
+    <path d="M0 0 V-38" stroke="#5e3d17" stroke-width="6" stroke-linecap="round"/>
+    <path d="M0 0 L26 14" stroke="#5e3d17" stroke-width="6" stroke-linecap="round"/>
+    <circle r="6" fill="#5e3d17"/>
+    <text y="-88" text-anchor="middle" font-family="Georgia, serif" font-size="24" font-weight="bold" fill="#5e3d17" letter-spacing="3">ROUTE 88</text>
+    <text y="92" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#5e3d17" letter-spacing="1">GOOD FOR ONE RIDE</text>
+    <path d="M-110 -70 A130 130 0 0 1 -40 -125" fill="none" stroke="#fff3d0" stroke-width="6" stroke-opacity="0.7" stroke-linecap="round"/>
+  </g>`,
+);
+
+/** SVG artwork by item slug. Every catalog item has one (a test checks). */
 export const ART: Readonly<Record<string, string>> = {
   "alien-paperclip": PAPERCLIP,
   "second-best-quill": QUILL,
   "viking-participation-trophy": TROPHY,
+  "martian-rubber-band": RUBBER_BAND,
+  "moonwalkers-spare-button": BUTTON,
+  "time-travelers-bus-token": BUS_TOKEN,
 };
 
 export function artPath(slug: string): string {

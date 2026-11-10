@@ -10,7 +10,7 @@ import {
   segmentAt,
   specialPriceCents,
 } from "../src/core/broadcast";
-import { CATALOG, findItem } from "../src/core/catalog";
+import { CATALOG, findItem, isAvailable } from "../src/core/catalog";
 import { checkoutSessionForm, embeddedCheckoutSessionForm } from "../src/core/checkout";
 import { orderFromCompletedSession } from "../src/core/orders";
 
@@ -150,6 +150,15 @@ describe("prices", () => {
     expect(orderFromCompletedSession(session("not-a-segment"), 1)).toMatchObject({
       order: { segment: null },
     });
+  });
+
+  it("only ever airs exhibits that are for sale (note 0010)", () => {
+    // Every segment for 40 days, which covers every slot of every rotation.
+    let segment = segmentAt(NOON);
+    for (let i = 0; i < 40 * 9; i += 1) {
+      expect(isAvailable(segment.item), segment.id).toBe(true);
+      segment = segmentAt(segment.endsAt);
+    }
   });
 
   it("every item has a host pitch, and none of it quotes a price", () => {

@@ -6,6 +6,7 @@ const PAGES = [
   { name: "alien paperclip", path: "/items/alien-paperclip" },
   { name: "second-best quill", path: "/items/second-best-quill" },
   { name: "viking trophy", path: "/items/viking-participation-trophy" },
+  { name: "pending exhibit", path: "/items/martian-rubber-band" },
   { name: "fine print", path: "/disclaimer" },
   { name: "thank you", path: "/thanks" },
   { name: "dossier", path: "/dossier" },
@@ -155,7 +156,7 @@ test.describe("item page", () => {
 
   test("cross-sells the other items", async ({ page }) => {
     const more = page.getByRole("region", { name: "Other recent acquisitions" });
-    await expect(more.getByRole("link")).toHaveCount(2);
+    await expect(more.getByRole("link")).toHaveCount(3);
   });
 
   test("links the terms of sale from the buy box, landing on the terms", async ({ page }) => {
