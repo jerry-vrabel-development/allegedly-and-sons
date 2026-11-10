@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { AnalyticsEvent } from "../src/core/analytics";
-import { CATALOG } from "../src/core/catalog";
+import { CATALOG, wingItems } from "../src/core/catalog";
 import {
   awardsForEvent,
   awardsForOrder,
@@ -12,6 +12,9 @@ import {
   RANKS,
   rankFor,
   TOTAL_AWARDS,
+  wingAwardId,
+  wingCommendations,
+  withWingAwards,
 } from "../src/core/dossier";
 import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 
@@ -46,7 +49,13 @@ describe("awards", () => {
     ]) {
       expect(isAward(bogus)).toBe(false);
     }
-    expect(TOTAL_AWARDS).toBe(BADGES.length + CATALOG.length + VAULT_CARDS.length);
+    expect(TOTAL_AWARDS).toBe(
+      BADGES.length + wingCommendations().length + CATALOG.length + VAULT_CARDS.length,
+    );
+  });
+
+  it("never grants a wing commendation directly: it's worked out from cards", () => {
+    for (const wing of wingCommendations()) expect(isAward(wingAwardId(wing.id))).toBe(false);
   });
 
   it("gives every badge a name, what earned it, and a hint (never icons alone)", () => {
@@ -74,6 +83,29 @@ describe("awards", () => {
   });
 });
 
+describe("wing commendations (note 0010)", () => {
+  const offWorld = wingItems("off-world").map((item) => cardId(item.slug));
+
+  it("comes with all four of a wing's cards", () => {
+    expect(withWingAwards(offWorld).has(wingAwardId("off-world"))).toBe(true);
+  });
+
+  it("doesn't come with three of four", () => {
+    expect(withWingAwards(offWorld.slice(1)).has(wingAwardId("off-world"))).toBe(false);
+  });
+
+  it("isn't offered for a wing that isn't full yet", () => {
+    const royal = wingItems("royal-legendary");
+    expect(royal.length).toBeLessThan(4);
+    const held = withWingAwards(royal.map((item) => cardId(item.slug)));
+    expect(held.has(wingAwardId("royal-legendary"))).toBe(false);
+  });
+
+  it("keeps everything else the agent holds", () => {
+    expect(withWingAwards(["acquirer"]).has("acquirer")).toBe(true);
+  });
+});
+
 describe("ranks", () => {
   it("climb with commendations, topping out at all of them", () => {
     expect(rankFor(0)).toEqual({ rank: RANKS[0], next: RANKS[1] });
@@ -87,6 +119,16 @@ describe("ranks", () => {
 
   it("treat a nonsense count as a civilian", () => {
     expect(rankFor(-1).rank.title).toBe("Civilian Informant");
+  });
+
+  it("never move an existing threshold, so no agent loses a rank", () => {
+    const at = (title: string) => RANKS.find((rank) => rank.title === title)?.at;
+    expect(at("Junior Field Agent")).toBe(1);
+    expect(at("Field Agent")).toBe(3);
+    expect(at("Senior Field Agent")).toBe(5);
+    expect(at("Senior Treasure Hunter")).toBe(6);
+    expect(at("Case Officer")).toBe(10);
+    expect(at("Station Chief")).toBe(15);
   });
 
   it("are in order and reachable", () => {

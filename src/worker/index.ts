@@ -1,4 +1,4 @@
-import { findItem, ITEM_PATH } from "../core/catalog";
+import { findAvailableItem, findItem, ITEM_PATH } from "../core/catalog";
 import { isAutomated, parseReadBeacon } from "../core/analytics";
 import {
   isNetwork,
@@ -174,7 +174,8 @@ function page(body: SafeHtml, status = 200): Response {
 
 /** Starts checkout for one item: POST /checkout/<slug> → 303 to Stripe. */
 async function checkout(request: Request, slug: string, deps: Deps): Promise<Response> {
-  const item = findItem(slug);
+  // Acquisition-pending exhibits can't be bought (note 0010).
+  const item = findAvailableItem(slug);
   if (!item) return page(notFoundPage(), 404);
 
   // A cross-site page can't start checkouts on our behalf. Browsers send Origin on form posts.
@@ -212,7 +213,7 @@ function json(body: unknown, status = 200): Response {
  * header is required and must be ours (browsers always send it on fetch POSTs).
  */
 async function embeddedSession(request: Request, slug: string, deps: Deps): Promise<Response> {
-  const item = findItem(slug);
+  const item = findAvailableItem(slug);
   if (!item) return json({ error: "not found" }, 404);
 
   const { origin } = new URL(request.url);
@@ -694,7 +695,7 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
 
   // The embedded checkout page. Nothing links here until PR 3 mounts Stripe's form.
   const checkoutSlug = CHECKOUT_PATH.exec(pathname)?.[1];
-  const checkoutItem = checkoutSlug === undefined ? undefined : findItem(checkoutSlug);
+  const checkoutItem = checkoutSlug === undefined ? undefined : findAvailableItem(checkoutSlug);
   if (checkoutItem) {
     if (deps.stripeKey === undefined) return page(checkoutClosedPage(checkoutItem), 503);
     const response = page(

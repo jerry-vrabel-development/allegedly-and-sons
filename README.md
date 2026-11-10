@@ -19,7 +19,10 @@ built on serious engineering underneath.
 Live at **[allegedlyandsons.com](https://allegedlyandsons.com)**, taking payments
 in **Stripe's sandbox** (test cards only; no real money moves yet).
 
-- The collection, three illustrated item pages, share links and The Fine Print.
+- The collection, illustrated item pages, share links and The Fine Print.
+  Exhibits are grouped into wings of four; new ones arrive as **acquisition
+  pending** (case file and card live, nothing to buy) until the object is in
+  hand. See [0010](docs/design/0010-exhibit-pipeline.md) for how to add one.
 - **Embedded checkout:** buyers pay inside the shop's own page, in Stripe's
   embedded form, with Stripe's hosted page as a fallback.
 - **Orders recorded by verified Stripe webhooks** in D1, idempotently.
@@ -176,6 +179,10 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
 - [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md) (built)
 - [0005 — Hosted or embedded checkout](docs/design/0005-checkout-ui.md) (built)
+- [0007 — The Bureau Dispatch](docs/design/0007-dispatch.md)
+- [0008 — Sound and motion](docs/design/0008-sound-and-motion.md) (built)
+- [0009 — The Back-Room Broadcast](docs/design/0009-back-room-broadcast.md)
+- [0010 — The exhibit pipeline: adding products, wings and prices](docs/design/0010-exhibit-pipeline.md)
 
 ## Branch flow
 

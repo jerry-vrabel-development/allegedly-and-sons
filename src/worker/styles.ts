@@ -125,7 +125,7 @@ summary { cursor: pointer; color: var(--accent); text-decoration: underline; pad
 .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
 .card img { background: #151a23; }
 .card-body { padding: 1rem 1.25rem 1.25rem; }
-.card h3 { margin: 0.25rem 0; font-size: 1.3rem; }
+.card h3, .card h4 { margin: 0.25rem 0; font-size: 1.3rem; }
 .card-body > :last-child { margin-bottom: 0; }
 
 dl.specs { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; }
@@ -166,6 +166,9 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 .regular { display: block; font-size: 1rem; font-weight: normal; color: var(--muted); }
 .countdown .clock { font-variant-numeric: tabular-nums; font-weight: bold; }
 .tally { font-size: 1rem; }
+/* Acquisition pending (note 0010): said in words, with a dashed rule as a second cue */
+.pending { margin: 0.25rem 0; font-variant: small-caps; letter-spacing: 0.05em; font-weight: bold; }
+.pending-note { border-left: 4px dashed var(--muted); padding-left: 0.75rem; font-size: 1rem; }
 .on-air-note { border-left: 4px solid var(--accent); padding-left: 0.75rem; font-size: 1rem; }
 .patter p { font-size: 1.2rem; font-style: italic; }
 
