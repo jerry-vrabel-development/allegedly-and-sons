@@ -1,6 +1,6 @@
 # 0011 — Sound for the whole shop
 
-- **Status:** Decided; PR 1 (the shared module, toggle and shop sounds) building
+- **Status:** Decided; PR 1 (the shared module, toggle and shop sounds) and PR 2 (Tune in, the certificate stamp) built
 - **Date:** 2026-11-10
 - **Author:** Jerry Vrabel
 

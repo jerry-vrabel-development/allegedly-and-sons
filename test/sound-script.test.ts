@@ -3,10 +3,12 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
-import { itemPage, STYLESHEET_PATH } from "../src/worker/pages";
+import { COUNTDOWN_JS, SEGMENT_END_EVENT } from "../src/worker/broadcast-script";
+import { itemPage, STYLESHEET_PATH, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
 import {
   CARD_EVENT,
+  HOST_LINE_MS,
   LEGACY_MUTE_KEY,
   LINK_DELAY_MS,
   SOUND_JS,
@@ -161,5 +163,60 @@ describe("case closed (note 0011)", () => {
     expect(STORY_JS).toContain('"Case closed. Card " + card + " is in your dossier."');
     expect(STORY_JS).toContain(`new Event(${JSON.stringify(CARD_EVENT)})`);
     expect(STORY_JS).not.toMatch(/innerHTML|outerHTML/);
+  });
+});
+
+describe("tune in to the Broadcast (note 0011, PR 2)", () => {
+  it("marks the broadcast page so the sound module can add the button", async () => {
+    expect(await html("/broadcast", FX)).toContain('class="broadcast" data-broadcast');
+  });
+
+  it("says its state in words and with aria-pressed, and plays static then the stinger", () => {
+    expect(SOUND_JS).toContain('button("Tune in")');
+    expect(SOUND_JS).toContain('tune.textContent = "Tuned in"');
+    expect(SOUND_JS).toContain('tune.setAttribute("aria-pressed", "true")');
+    expect(SOUND_JS).toContain('play("static")');
+    expect(SOUND_JS).toContain('play("stinger")');
+  });
+
+  it("lights the host's lines one at a time, but not under reduced motion", () => {
+    expect(HOST_LINE_MS).toBeGreaterThanOrEqual(3000);
+    expect(SOUND_JS).toContain('classList.add("speaking")');
+    expect(SOUND_JS).toContain("if (!reduced) setTimeout(nextLine");
+  });
+
+  it("plays the stinger when the segment ends, only for listeners who tuned in", () => {
+    expect(COUNTDOWN_JS).toContain(`new Event(${JSON.stringify(SEGMENT_END_EVENT)})`);
+    // The event fires before the reload, so the stinger has time to start.
+    expect(COUNTDOWN_JS.indexOf("dispatchEvent")).toBeLessThan(COUNTDOWN_JS.indexOf("reload()"));
+    expect(SOUND_JS).toContain(
+      `addEventListener(${JSON.stringify(SEGMENT_END_EVENT)}, function () { if (tuned) play("stinger"); })`,
+    );
+  });
+});
+
+describe("stamp your certificate (note 0011, PR 2)", () => {
+  const item = CATALOG[0];
+
+  it("gives a paid thank-you page a place for the stamp, with the certificate number", () => {
+    expect(thanksPage({ kind: "paid", item }).value).toContain(
+      `<div class="certificate-moment" data-certificate="${item.exhibit}"></div>`,
+    );
+  });
+
+  it("has no stamp when the item is unknown, or the payment isn't done", () => {
+    expect(thanksPage({ kind: "paid", item: undefined }).value).not.toContain("data-certificate");
+    expect(thanksPage({ kind: "processing", item }).value).not.toContain("data-certificate");
+    expect(thanksPage({ kind: "incomplete", item }).value).not.toContain("data-certificate");
+  });
+
+  it("slams, plays the fanfare and says the stamp in words, announced", () => {
+    expect(SOUND_JS).toContain('button("Stamp your certificate")');
+    expect(SOUND_JS).toContain('play("slam")');
+    expect(SOUND_JS).toContain('play("fanfare")');
+    expect(SOUND_JS).toContain(
+      '"Stamped: Bureau Certificate No. " + number + ". Authenticity: Allegedly."',
+    );
+    expect(SOUND_JS).toContain('said.setAttribute("role", "status")');
   });
 });

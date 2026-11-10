@@ -357,6 +357,19 @@ test("the plain group gets no sound script and no toggle", async ({ page }) => {
   expect(await page.evaluate(() => "BureauSound" in window)).toBe(false);
 });
 
+test("tuning in to the Broadcast says so and lights the host's lines", async ({ page }) => {
+  await page.goto("/broadcast?fx=on");
+  const tune = page.getByRole("button", { name: "Tune in" });
+  await expect(tune).toHaveAttribute("aria-pressed", "false");
+  await tune.click();
+  await expect(page.getByRole("button", { name: "Tuned in" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator(".patter p.speaking")).toHaveCount(1, { timeout: 5_000 });
+  await expectNoAxeViolations(page);
+});
+
 test("a link with a sound still gets there", async ({ page }) => {
   await page.goto("/items/alien-paperclip?fx=on");
   await page.getByRole("link", { name: "Acquire this exhibit" }).click();

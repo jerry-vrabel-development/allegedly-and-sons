@@ -645,6 +645,12 @@ export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
             email your receipt. Your exhibit will be packed with its Bureau Certificate and shipped
             to the address you gave at checkout.
           </p>
+          ${
+            // The sound module (note 0011) adds "Stamp your certificate" here for the fx group.
+            item === undefined
+              ? html``
+              : html`<div class="certificate-moment" data-certificate="${item.exhibit}"></div>`
+          }
           ${back}
         </div>`,
       });
