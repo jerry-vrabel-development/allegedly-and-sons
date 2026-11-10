@@ -1,6 +1,6 @@
 # 0010 — The exhibit pipeline: adding products, wings and prices
 
-- **Status:** Decided; PR 1 (groundwork and the Off-World wing) building
+- **Status:** Decided; built: all five wings, twenty exhibits (17 acquisition pending)
 - **Date:** 2026-11-10
 - **Author:** Jerry Vrabel
 
