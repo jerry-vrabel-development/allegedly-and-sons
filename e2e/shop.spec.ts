@@ -69,22 +69,21 @@ for (const { name, path } of PAGES) {
 test("every image loads", async ({ page }) => {
   for (const { path } of PAGES) {
     await page.goto(path);
-    const broken = await page.$$eval("img", (images) =>
-      images
-        .filter((img) => !img.complete || img.naturalWidth === 0)
-        .map((img) => img.getAttribute("src")),
-    );
-    // Lazy images below the fold may not have loaded yet; scroll them in first.
-    if (broken.length > 0) {
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-      await page.waitForLoadState("networkidle");
+    // Bring each image into view in turn: lazy images only load near the
+    // viewport, and WebKit skips ones a single jump to the bottom passes over.
+    const images = page.locator("img");
+    for (let i = 0; i < (await images.count()); i += 1) {
+      const image = images.nth(i);
+      await image.scrollIntoViewIfNeeded();
+      await expect
+        .poll(
+          () => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0),
+          {
+            message: `${path}: ${String(await image.getAttribute("src"))}`,
+          },
+        )
+        .toBe(true);
     }
-    const stillBroken = await page.$$eval("img", (images) =>
-      images.filter((img) => img.naturalWidth === 0).map((img) => img.getAttribute("src")),
-    );
-    expect(stillBroken, path).toEqual([]);
   }
 });
 
