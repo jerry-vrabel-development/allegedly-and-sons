@@ -190,9 +190,10 @@ describe("item page", () => {
       expect(page).toContain(`Exhibit ${item.exhibit}`);
       expect(page).toContain(`Bureau Certificate No. ${item.exhibit}`);
       expect(page).toContain("Authenticity:</strong> Allegedly.");
-      expect(page).toContain(item.hook);
-      expect(page).toContain(item.estimatedValue);
-      expect(page).toContain(`alt="${item.artAlt}"`);
+      // Lore is escaped on the page (an apostrophe becomes &#39;), so compare escaped text.
+      expect(page).toContain(escapeHtml(item.hook));
+      expect(page).toContain(escapeHtml(item.estimatedValue));
+      expect(page).toContain(`alt="${escapeHtml(item.artAlt)}"`);
       expect(page).toContain(`src="/assets/art/${item.slug}.svg"`);
       expect(page).toContain(`<link rel="canonical" href="${ORIGIN}/items/${item.slug}" />`);
       expect(page).toContain(
@@ -201,7 +202,9 @@ describe("item page", () => {
       expect(page).toContain(item.story.author.title);
       expect(count(page, /<p>/g)).toBeGreaterThanOrEqual(item.story.paragraphs.length);
       for (const spec of item.specs)
-        expect(page).toContain(`<dt>${spec.label}</dt> <dd>${spec.value}</dd>`);
+        expect(page).toContain(
+          `<dt>${escapeHtml(spec.label)}</dt> <dd>${escapeHtml(spec.value)}</dd>`,
+        );
     });
   }
 

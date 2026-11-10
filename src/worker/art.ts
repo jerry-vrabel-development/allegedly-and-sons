@@ -256,6 +256,93 @@ const SPARE_CHANGE = board(
   </g>`,
 );
 
+const BOTTLE_CAP = board(
+  "AS-0011",
+  `<rect width="800" height="600" fill="#0e2a3a" fill-opacity="0.75"/>
+  <path d="M0 470 C200 440 400 470 600 450 C700 440 760 450 800 445 V600 H0 Z" fill="#c9b48a" fill-opacity="0.35"/>
+  <g fill="#3d5266">
+    <rect x="80" y="230" width="44" height="230"/><rect x="66" y="215" width="72" height="20"/>
+    <rect x="170" y="290" width="44" height="170" transform="rotate(8 192 460)"/>
+    <rect x="620" y="250" width="44" height="210"/><rect x="606" y="235" width="72" height="20"/>
+    <path d="M560 460 L700 460 L690 440 L570 440 Z"/>
+  </g>
+  <g fill="none" stroke="#9fd3e8" stroke-opacity="0.6" stroke-width="3">
+    <circle cx="400" cy="250" r="9"/><circle cx="410" cy="200" r="7"/><circle cx="398" cy="155" r="6"/>
+    <circle cx="406" cy="115" r="5"/><circle cx="401" cy="80" r="4"/>
+  </g>
+  <g transform="translate(400 380)">
+    <ellipse cx="0" cy="48" rx="120" ry="18" fill="#0a1a24" fill-opacity="0.6"/>
+    <path d="${Array.from({ length: 21 }, (_, i) => {
+      const a = (i / 21) * Math.PI * 2;
+      const r = i % 2 === 0 ? 110 : 96;
+      return `${i === 0 ? "M" : "L"}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r * 0.42).toFixed(1)}`;
+    }).join(" ")} Z" fill="#b8bec8"/>
+    <ellipse cx="0" cy="-6" rx="84" ry="34" fill="#d9dee6"/>
+    <ellipse cx="0" cy="-6" rx="84" ry="34" fill="none" stroke="#9aa1ad" stroke-width="3"/>
+    <path d="M-50 -20 C-20 -36 30 -34 50 -20" fill="none" stroke="#ffffff" stroke-width="5" stroke-opacity="0.7" stroke-linecap="round"/>
+  </g>`,
+);
+
+const COASTER = board(
+  "AS-0012",
+  `<g transform="translate(400 300)">
+    <circle r="190" fill="#7a5a3a" fill-opacity="0.35"/>
+    <circle r="170" fill="#c9a26b"/>
+    <circle r="170" fill="none" stroke="#a9824f" stroke-width="6"/>
+    <g fill="#a9824f">
+      <circle cx="-90" cy="-60" r="3"/><circle cx="60" cy="90" r="3"/><circle cx="110" cy="-40" r="2.5"/>
+      <circle cx="-40" cy="120" r="2.5"/><circle cx="20" cy="-130" r="3"/>
+    </g>
+    <g stroke="#4a3220" stroke-width="4" stroke-linecap="round" fill="none" transform="translate(30 4) scale(1.3)">
+      <path d="M-110 -70 h14 m10 0 v-14 m12 14 h14 m10 -14 l10 14 m12 0 h14 m10 0 v-14 m12 14 h14 m10 -14 l10 14 m12 0 h14"/>
+      <path d="M-120 -10 c6 -14 14 -14 18 0 m14 0 c6 -14 14 -14 18 0 m14 0 v-14 m14 14 c6 -14 14 -14 18 0 m14 0 v-14 m14 14 c6 -14 14 -14 18 0 m14 0 v-14"/>
+      <path d="M-110 50 l8 -12 l8 12 m14 -12 v12 m14 -12 l8 12 l8 -12 m14 12 h14 m10 -12 l8 12 l8 -12 m14 0 v12 m14 -12 l8 12"/>
+    </g>
+    <path d="M-150 -40 H150 M-160 30 H160" stroke="#a9824f" stroke-width="3"/>
+    <circle cx="40" cy="20" r="120" fill="none" stroke="#6b4a2a" stroke-width="8" stroke-opacity="0.35"/>
+  </g>`,
+);
+
+const PHARAOH_KEY = board(
+  "AS-0013",
+  `<path d="M0 420 C200 400 400 430 600 410 C700 400 760 410 800 405 V600 H0 Z" fill="#c9a26b"/>
+  <path d="M520 410 L620 250 L720 410 Z" fill="#a9824f"/>
+  <path d="M620 250 L720 410 L660 410 Z" fill="#8a6a3f"/>
+  <path d="M150 120 A40 40 0 1 0 200 170 A32 32 0 1 1 150 120 Z" fill="#f4ead2"/>
+  <g transform="translate(330 420) rotate(-18)">
+    <ellipse cx="0" cy="30" rx="170" ry="14" fill="#7a5a3a" fill-opacity="0.5"/>
+    <circle cx="-110" cy="0" r="52" fill="none" stroke="#b58a3c" stroke-width="18"/>
+    <circle cx="-110" cy="0" r="18" fill="#b58a3c"/>
+    <rect x="-62" y="-10" width="210" height="20" rx="6" fill="#b58a3c"/>
+    <rect x="100" y="10" width="16" height="34" fill="#b58a3c"/>
+    <rect x="128" y="10" width="16" height="24" fill="#b58a3c"/>
+    <path d="M-60 -6 H140" stroke="#e6c27a" stroke-width="4" stroke-linecap="round"/>
+  </g>`,
+);
+
+const DODO_FEATHER = board(
+  "AS-0014",
+  `<g transform="translate(400 320) rotate(-6)">
+    <rect x="-210" y="-120" width="420" height="250" rx="4" fill="#f4ead2"/>
+    <path d="M-210 -120 L0 20 L210 -120" fill="none" stroke="#d9cfbf" stroke-width="4"/>
+    <g stroke="#9a8f80" stroke-width="3" stroke-linecap="round">
+      <path d="M-160 60 H40"/><path d="M-160 85 H90"/><path d="M-160 110 H-20"/>
+    </g>
+    <circle cx="140" cy="70" r="34" fill="#7a1f1f"/>
+    <circle cx="140" cy="70" r="24" fill="none" stroke="#5a1414" stroke-width="3"/>
+    <path d="M128 70 h24 M140 58 v24" stroke="#5a1414" stroke-width="3"/>
+  </g>
+  <g transform="translate(330 300) rotate(-35)">
+    <path d="M0 140 L0 -170" stroke="#5c5248" stroke-width="5" stroke-linecap="round"/>
+    <path d="M0 110 C-60 60 -70 -80 0 -170 C60 -90 55 50 0 110 Z" fill="#8b8178"/>
+    <path d="M0 110 C-30 40 -36 -80 0 -170" fill="none" stroke="#a89e94" stroke-width="3"/>
+    <g stroke="#6f665d" stroke-width="2" fill="none">
+      <path d="M0 60 L-40 30"/><path d="M0 10 L-46 -20"/><path d="M0 -40 L-40 -75"/><path d="M0 -90 L-26 -125"/>
+      <path d="M0 40 L36 10"/><path d="M0 -10 L40 -45"/><path d="M0 -60 L32 -95"/>
+    </g>
+  </g>`,
+);
+
 /** SVG artwork by item slug. Every catalog item has one (a test checks). */
 export const ART: Readonly<Record<string, string>> = {
   "alien-paperclip": PAPERCLIP,
@@ -268,6 +355,10 @@ export const ART: Readonly<Record<string, string>> = {
   "loch-ness-bath-duck": DUCK,
   "mothmans-night-light": NIGHT_LIGHT,
   "tooth-fairys-spare-change": SPARE_CHANGE,
+  "atlantean-bottle-cap": BOTTLE_CAP,
+  "rosetta-coaster": COASTER,
+  "pharaohs-spare-key": PHARAOH_KEY,
+  "last-dodos-feather": DODO_FEATHER,
 };
 
 export function artPath(slug: string): string {
