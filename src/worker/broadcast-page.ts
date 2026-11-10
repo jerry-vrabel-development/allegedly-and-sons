@@ -89,7 +89,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
             }
           </p>
           <p class="acquire">
-            <a class="button" href="${checkoutPath(item)}" rel="nofollow"
+            <a class="button" href="${checkoutPath(item)}" rel="nofollow" data-sound="kachunk"
               >Acquire it for ${price}</a
             >
           </p>

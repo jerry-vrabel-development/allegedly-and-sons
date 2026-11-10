@@ -3,6 +3,7 @@ import {
   CHECKOUT_CSP,
   SECURITY_HEADERS,
   ITEM_CSP,
+  SHOP_CSP,
   STRICT_CSP,
   securityHeadersFor,
   withSecurityHeaders,
@@ -162,21 +163,33 @@ describe("securityHeadersFor", () => {
     expect(securityHeadersFor("/items/xenoclip", 404)["Content-Security-Policy"]).toBe(STRICT_CSP);
   });
 
-  it("keeps the strict policy on every other path", () => {
+  it("lets every other shop page run only our own scripts (note 0011), with no connections", () => {
     for (const path of [
       "/",
       "/items/alien-paperclip/extra",
       "/items/",
       "/disclaimer",
       "/thanks",
+      "/dossier",
       "/checkout",
       "/checkout/",
       "/checkout/alien-paperclip/extra",
       "/checkout/Alien-Paperclip",
       "/checkoutx/alien-paperclip",
-      "/assets/site.css",
     ]) {
+      expect(securityHeadersFor(path, 200)["Content-Security-Policy"], path).toBe(SHOP_CSP);
+    }
+    expect(SHOP_CSP).toMatch(/script-src 'self'(;|$)/);
+    expect(SHOP_CSP).not.toContain("connect-src");
+    expect(SHOP_CSP).not.toMatch(/unsafe-/);
+  });
+
+  it("keeps the strict policy for assets, the private ledger, the health check and errors", () => {
+    for (const path of ["/assets/site.css", "/assets/sound.js", "/bureau/ledger", "/healthz", ""]) {
       expect(securityHeadersFor(path, 200)["Content-Security-Policy"], path).toBe(STRICT_CSP);
+    }
+    for (const status of [301, 404, 500]) {
+      expect(securityHeadersFor("/", status)["Content-Security-Policy"]).toBe(STRICT_CSP);
     }
   });
 

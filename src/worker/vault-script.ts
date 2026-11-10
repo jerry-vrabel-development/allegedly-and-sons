@@ -14,15 +14,13 @@
  * Honest spins: the reel cycles every card evenly and stops on the draw. It
  * never slows near a rarer card to fake a near-miss (note 0003).
  *
- * Sounds are synthesized with Web Audio (no files, nothing to license), all
- * under 3 seconds, started from the click, with a remembered mute toggle.
- * Reduced motion skips the spin and the flash; sound still plays unless muted.
+ * Sounds come from the shop-wide sound module (note 0011, /assets/sound.js),
+ * which the Worker adds for the same "fx" group and which owns the toggle.
+ * Without it the reel runs silently. Reduced motion skips the spin and the
+ * flash; sound still plays unless muted.
  */
 
 import { VAULT_PULL_PATH } from "./vault-page";
-
-/** The browser-local key for the mute setting. Nothing else is stored. */
-export const MUTE_KEY = "bureau-vault-muted";
 
 /** How long the reel spins (ms) before it lands, when motion is allowed. */
 export const REEL_MS = 2400;
@@ -37,79 +35,12 @@ export const VAULT_JS = `"use strict";
   try { names = JSON.parse(vault.getAttribute("data-reel")); } catch (e) { return; }
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // --- Sound -------------------------------------------------------------
-  var muted = false;
-  try { muted = window.localStorage.getItem(${JSON.stringify(MUTE_KEY)}) === "1"; } catch (e) {}
-  var audio = null;
-  function ctx() {
-    if (muted) return null;
-    if (!audio) {
-      var Ctor = window.AudioContext || window.webkitAudioContext;
-      if (!Ctor) return null;
-      audio = new Ctor();
-    }
-    if (audio.state === "suspended") audio.resume();
-    return audio;
-  }
-  function tone(freq, start, length, type, volume) {
-    var a = ctx(); if (!a) return;
-    var t = a.currentTime + start;
-    var osc = a.createOscillator();
-    var gain = a.createGain();
-    osc.type = type || "sine";
-    osc.frequency.setValueAtTime(freq, t);
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(volume || 0.2, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
-    osc.connect(gain); gain.connect(a.destination);
-    osc.start(t); osc.stop(t + length + 0.02);
-  }
-  function noise(start, length, volume) {
-    var a = ctx(); if (!a) return;
-    var frames = Math.floor(a.sampleRate * length);
-    var buffer = a.createBuffer(1, frames, a.sampleRate);
-    var data = buffer.getChannelData(0);
-    for (var i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
-    var src = a.createBufferSource();
-    var gain = a.createGain();
-    gain.gain.value = volume;
-    src.buffer = buffer; src.connect(gain); gain.connect(a.destination);
-    src.start(a.currentTime + start);
-  }
-  var sounds = {
-    clunk: function () { noise(0, 0.12, 0.5); tone(90, 0, 0.25, "sine", 0.6); tone(60, 0.08, 0.3, "sine", 0.4); },
-    tick: function () { tone(1400, 0, 0.03, "square", 0.05); },
-    Common: function () { tone(523, 0, 0.18, "triangle", 0.25); tone(659, 0.12, 0.3, "triangle", 0.25); },
-    Uncommon: function () {
-      [523, 659, 784].forEach(function (f, i) { tone(f, i * 0.1, 0.35, "triangle", 0.25); });
-      tone(1568, 0.3, 0.5, "sine", 0.08);
-    },
-    sparkle: function () { [2637, 3136, 3520].forEach(function (f, i) { tone(f, i * 0.06, 0.18, "sine", 0.06); }); },
-    milestone: function () {
-      [392, 523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.09, 0.4, "square", 0.07); });
-      [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.5, 1.2, "triangle", 0.12); });
-    },
-    Rare: function () {
-      [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.5, "sawtooth", 0.12); });
-      [1047, 1319, 1568].forEach(function (f) { tone(f, 0.45, 1.4, "triangle", 0.15); });
-      [2093, 2637, 3136, 2637].forEach(function (f, i) { tone(f, 0.5 + i * 0.12, 0.25, "sine", 0.05); });
-    }
-  };
-
-  var toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.className = "sound-toggle";
-  function label() {
-    toggle.textContent = muted ? "Sound: off" : "Sound: on";
-    toggle.setAttribute("aria-pressed", muted ? "false" : "true");
-  }
-  label();
-  toggle.addEventListener("click", function () {
-    muted = !muted;
-    try { window.localStorage.setItem(${JSON.stringify(MUTE_KEY)}, muted ? "1" : "0"); } catch (e) {}
-    label();
+  // --- Sound: the shop-wide module (note 0011), when it's on the page ------
+  function play(name) { if (window.BureauSound) window.BureauSound.play(name); }
+  var sounds = {};
+  ["clunk", "tick", "Common", "Uncommon", "Rare", "sparkle", "milestone"].forEach(function (name) {
+    sounds[name] = function () { play(name); };
   });
-  form.parentNode.insertBefore(toggle, form.nextSibling);
 
   // --- The reel dialog -----------------------------------------------------
   function el(tag, className, text) {

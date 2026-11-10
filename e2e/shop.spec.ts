@@ -262,7 +262,11 @@ test("finishing a case file earns its card in your dossier", async ({ page, brow
       { timeout: 15_000 },
     )
     .toBe(true);
-  await page.getByRole("link", { name: "Your Dossier" }).click();
+  // The page says so in words (note 0011), with a link to the dossier.
+  await expect(page.getByRole("status").filter({ hasText: "Case closed." })).toContainText(
+    "Card AS-0002 is in your dossier.",
+  );
+  await page.getByRole("link", { name: "Your Dossier" }).first().click();
   await expect(page.getByText("Card AS-0002 · Collected")).toBeVisible();
   await expect(page.getByText(/Agent No\. \d{4}/)).toBeVisible();
 });
@@ -331,17 +335,32 @@ test("with reduced motion the reel skips the spin and the flash", async ({ page,
   ).toBe("none");
 });
 
-test("the sound toggle says its state in words and is remembered", async ({ page }) => {
-  await page.goto("/vault?fx=on");
-  const toggle = page.getByRole("button", { name: "Sound: on" });
+test("the sound toggle is in the header, says its state in words and is remembered", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const toggle = page.getByRole("banner").getByRole("button", { name: "Sound: on" });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await toggle.click();
   await expect(page.getByRole("button", { name: "Sound: off" })).toHaveAttribute(
     "aria-pressed",
     "false",
   );
-  await page.reload();
+  // One setting for the whole shop: the Vault remembers it too.
+  await page.goto("/vault?fx=on");
   await expect(page.getByRole("button", { name: "Sound: off" })).toBeVisible();
+});
+
+test("the plain group gets no sound script and no toggle", async ({ page }) => {
+  await page.goto("/?fx=off");
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toHaveCount(0);
+  expect(await page.evaluate(() => "BureauSound" in window)).toBe(false);
+});
+
+test("a link with a sound still gets there", async ({ page }) => {
+  await page.goto("/items/alien-paperclip?fx=on");
+  await page.getByRole("link", { name: "Acquire this exhibit" }).click();
+  await expect(page).toHaveURL(/\/checkout\/alien-paperclip$/);
 });
 
 test("the plain group gets the plain lever", async ({ page }) => {
