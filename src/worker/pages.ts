@@ -21,7 +21,7 @@ interface PageOptions {
    * shared links (?r=...) all count as the same page.
    */
   readonly canonical?: string;
-  /** External scripts, loaded with `defer` in this order. Only the checkout page has any. */
+  /** Scripts for this page, loaded with `defer` in this order (see scripts.ts for ours). */
   readonly scripts?: readonly string[];
 }
 
@@ -340,7 +340,7 @@ export const MAX_SHIP_DAYS = 30;
  * When the terms last changed (YYYY-MM-DD). Orders are governed by the terms
  * posted when they were placed, so bump this with every change to the terms.
  */
-export const TERMS_LAST_AMENDED = "2026-11-09";
+export const TERMS_LAST_AMENDED = "2026-11-10";
 
 /** A clause of The Fine Print: black-market flavor, then what it actually means. */
 export interface Term {
@@ -499,16 +499,18 @@ export const METHODS_TERMS: readonly Term[] = [
   {
     heading: "What Runs in Your Browser",
     flavor:
-      "The Bureau's agents work quietly: one watches the reading room, one minds the checkout desk, and nobody else gets in.",
-    plainly: html`Four kinds of page run a script, and only our own or Stripe’s. Item pages run a
-      small one of ours that notes when you open a case file and whether you read it to the end. The
-      Vault runs one of ours that animates the lever and plays its sounds; if you turn the sound
-      off, your browser remembers that, and nothing about it is sent to us. Half of visitors get
-      that animated lever and half get a plain one, so we can tell whether it helps; which half
+      "The Bureau's agents work quietly: one watches the reading room, one winds the clocks, one minds the checkout desk, and for half of you a fourth works the sound effects. Nobody else gets in.",
+    plainly: html`Only our own scripts and Stripe’s ever run. Item pages run a small one of ours
+      that notes when you open a case file and whether you read it to the end. The Vault and the
+      Back-Room Broadcast run one that counts down their clocks. Half of visitors also get the shop
+      with sound and motion, and half get it plain, so we can tell whether it helps; which half
       you're in comes from the first cookie's random number, and nothing more is recorded for it.
-      The Vault and the Back-Room Broadcast run one that counts down their clocks. The checkout page
-      runs Stripe’s, which shows the payment form, and a small one of ours that loads it. Stripe may
-      collect information about your device to help prevent fraud; see
+      For the sound-and-motion half, every shop page except checkout runs a sound script of ours: it
+      plays a sound when you press certain buttons and links or open a case file, and adds a Sound
+      button to the top of the page. If you turn the sound off, your browser remembers that, and
+      nothing about it is sent to us. For that half the Vault also runs one that animates the lever.
+      The checkout page runs Stripe’s, which shows the payment form, and a small one of ours that
+      loads it. Stripe may collect information about your device to help prevent fraud; see
       <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Card details go straight to
       Stripe and never touch our servers.`,
   },

@@ -19,6 +19,8 @@ built on serious engineering underneath.
 Live at **[allegedlyandsons.com](https://allegedlyandsons.com)**, taking payments
 in **Stripe's sandbox** (test cards only; no real money moves yet).
 
+**The shop**
+
 - The collection, illustrated item pages, share links and The Fine Print.
   Exhibits are grouped into wings of four; new ones arrive as **acquisition
   pending** (case file and card live, nothing to buy) until the object is in
@@ -28,27 +30,50 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
 - **Orders recorded by verified Stripe webhooks** in D1, idempotently.
 - A return page that asks Stripe whether a session was really paid before
   saying so.
+- **The Back-Room Broadcast** ([0009](docs/design/0009-back-room-broadcast.md)):
+  one exhibit is always "on air" at a special price, in rolling three-hour
+  segments and a nightly Midnight Auction on Chicago's clock. The price is
+  locked when checkout starts, and each order records the segment that sold it.
 
-Not built yet: a private order list for fulfillment. Analytics
-([0001](docs/design/0001-analytics.md)) is in progress: item views and
-checkout starts are recorded in D1 with a first-party visitor id, country,
-referrer host and campaign, and each order carries the visitor id, so a sale
-can be traced back to the visits before it. Shares go through the shop's own
-`/share` route, so each one is tied to the visits (and sales) it brings back,
-and a small first-party script records whether visitors open each item's case
-file and read it to the end. The private ledger at `/bureau/ledger` shows it
-all, with honest intervals, behind Cloudflare Access (which the Worker verifies
-too).
+**Agents, the Vault and streaks** ([0003](docs/design/0003-gamification.md))
 
-Every visitor can become a Bureau agent: `/dossier` shows their badges, exhibit
-cards and rank, awarded by the Worker from what they actually do (read a case
-file to the end, share, bring someone in, acquire). At `/vault`, each agent
-gets one free pull of the vault lever a day (plus a bonus pull for each of four
-commendations, never for buying) and draws a vault card at posted odds. The
-Worker enforces the limits and does the drawing. Agents can register an email
-with the Bureau Dispatch (double opt-in) to keep their file and open it on
-any device; see [0007](docs/design/0007-dispatch.md). See
-[0003](docs/design/0003-gamification.md) for the full gamification roadmap.
+- Every visitor can become a Bureau agent: `/dossier` shows their badges,
+  exhibit cards and rank, awarded by the Worker from what they actually do
+  (read a case file to the end, share, bring someone in, acquire).
+- At `/vault`, each agent gets one free pull of the vault lever a day, plus one
+  bonus pull for each of eight commendations (never for buying), and draws a
+  vault card at posted odds. The Worker enforces the limits and does the
+  drawing.
+- Pulling on consecutive days builds a duty streak, with freezes and milestone
+  badges. A streak that just died can be bought back for $2.99 ("Grease the
+  Clerk"), recorded by the same verified webhook.
+- **The Bureau Dispatch** ([0007](docs/design/0007-dispatch.md)): agents can
+  register an email (double opt-in) to keep their file and open it on any
+  device. It is built and tested, but closed on the live site until the
+  postal address every email must carry is set.
+
+**Sound and motion** ([0008](docs/design/0008-sound-and-motion.md),
+[0011](docs/design/0011-sound-scheme.md))
+
+- Synthesized sound across the shop and an animated reel on the Vault lever,
+  all first-party, with a Sound on/off button and reduced motion respected.
+- It runs as an experiment: half of visitors get sound and motion and half get
+  the plain shop, split by visitor id, with a stopping rule written down in
+  advance. The test is still running; there is no result yet.
+
+**Analytics** ([0001](docs/design/0001-analytics.md))
+
+- Item views, case-file reads, shares, visits from shares and checkout starts
+  are recorded in D1 with a first-party visitor id, country, referrer host and
+  campaign. Each order carries the visitor id, so a sale can be traced back to
+  the visits before it.
+- The private ledger at `/bureau/ledger` shows it all, with 95% intervals and
+  a minimum sample before anything is ranked, behind Cloudflare Access (which
+  the Worker verifies too).
+
+**Not built yet:** a private order list for fulfillment, orders paid by
+delayed payment methods (only `checkout.session.completed` is handled), and
+refund tracking.
 
 ## How a purchase works
 
@@ -73,35 +98,50 @@ are the same.
 
 ## Security and privacy
 
-- **Two kinds of page run script, nothing third-party.** Item pages allow only
-  our own story script (`script-src 'self'`, reporting reads to our own
-  `/events`); the checkout page allows our own script and Stripe's documented
-  sources. Every other page sends a strict Content Security Policy with no
-  `script-src` at all. Tests check all three.
+- **Only our own scripts and Stripe's run.** Every script is served from the
+  shop's own origin, never inline, and is listed in one table
+  (`src/worker/scripts.ts`). Successful shop pages allow `script-src 'self'`;
+  item pages, the Vault and the Broadcast may also talk to our own origin; the
+  checkout page alone allows Stripe's documented sources. Errors, redirects,
+  assets and the private ledger keep a strict Content Security Policy with no
+  `script-src` at all. Tests check each policy.
 - **No third-party trackers.** Analytics are first-party, recorded by the Worker
-  in D1, after the response is sent. One first-party cookie (`__Host-vid`, a
-  random id: `Secure`, `HttpOnly`, `SameSite=Lax`) recognizes returning
-  visitors; it's only ever set on private HTML pages, never on cacheable files.
-  Every HTML page sends `Cache-Control: no-transform`, so nothing can be
-  injected in transit. The Fine Print says all of this in plain words.
+  in D1, after the response is sent. Two first-party cookies: `__Host-vid` (a
+  random id, kept a year from the latest visit) recognizes returning visitors,
+  and `__Host-landing` (gone when the browser closes) remembers which site or
+  campaign brought the visit. Both are `Secure`, `HttpOnly` and
+  `SameSite=Lax`, and are only ever set on private HTML pages, never on
+  cacheable files. Every HTML page sends `Cache-Control: no-transform`, so
+  nothing can be injected in transit.
+- **The Fine Print says what runs and what's kept, in plain words,** and a test
+  fails if a script is served that it doesn't name.
 - **No raw IPs or user agents stored.** Analytics keep the item, the time, the
   country, the referring host and the campaign; tests check nothing else leaks.
-- **No personal data stored.** Orders hold Stripe ids, the item, the amount and
-  timestamps. Names, emails and addresses stay with Stripe, and logs carry event
-  types, ids and short reasons, never payloads.
+- **One piece of personal data is stored: a Dispatch email address,** and only
+  after the agent confirms it from a link. It is never logged and never joins
+  the analytics. One-time link tokens are stored only as hashes. Orders hold
+  Stripe ids, the item, the amount and timestamps; names, emails and shipping
+  addresses for orders stay with Stripe, and logs carry event types, ids and
+  short reasons, never payloads.
 - **Secrets stay secret:** Stripe keys and the webhook signing secret are
   Worker secrets, never in the repo. The publishable key is public by design.
 
 ## Testing
 
-`npm run check` runs formatting, type-aware linting, strict types and 255
-Vitest tests inside the Workers runtime against the real D1 schema, with 100%
-coverage (CI floors: 95% lines, 90% branches). Property-based tests (fast-check)
-cover the signature check, order parsing and HTML escaping.
+`npm run check` runs formatting, type-aware linting, strict types and more than
+900 Vitest tests inside the Workers runtime against the real D1 schema, with
+100% coverage of the Worker and core TypeScript (CI floors: 95% lines, 90%
+branches). Property-based tests (fast-check) cover the signature check, order
+parsing and HTML escaping.
 
-`npm run test:e2e` runs 45 Playwright tests on desktop Chrome, Android and
-iPhone (WebKit), with axe WCAG 2.2 AA checks in light and dark mode. The checkout
-tests stub Stripe.js, so they need no keys.
+That coverage figure does not include the browser scripts. They are plain
+JavaScript kept as strings in `src/worker/*-script.ts`, so the type checker and
+linter don't see inside them; Worker tests check their text and the browser
+tests exercise them.
+
+`npm run test:e2e` runs 91 Playwright tests on each of desktop Chrome, Android
+and iPhone (WebKit), with axe WCAG 2.2 AA checks in light and dark mode. The
+checkout tests stub Stripe.js, so they need no keys.
 
 The checkout and webhook code was also checked by breaking it on purpose and
 confirming a test fails, and end to end against Stripe's sandbox before release.
@@ -168,7 +208,8 @@ Before your first `npm run test:e2e`, install the browsers once:
 
 - Cloudflare Workers, strict TypeScript, no runtime dependencies (plain `fetch`
   and Web Crypto instead of the Stripe SDK)
-- D1 for orders, processed Stripe events and analytics events
+- D1 for orders, processed Stripe events, analytics events, agents' dossiers,
+  vault pulls and Dispatch registrations
 - Stripe Checkout, embedded, with purchases recorded by verified webhooks
 - Vitest in the Workers runtime, Playwright with axe, GitHub Actions CI
 
@@ -176,14 +217,14 @@ Before your first `npm run test:e2e`, install the browsers once:
 
 - [0001 — Analytics for the shop](docs/design/0001-analytics.md)
 - [0002 — Writers' partnership for item lore](docs/design/0002-writers.md)
-- [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md)
+- [0003 — Gamification, collectibles and the lore rule](docs/design/0003-gamification.md) (dossier, Vault and streaks built)
 - [0004 — Recording orders with Stripe webhooks](docs/design/0004-orders-and-webhooks.md) (built)
 - [0005 — Hosted or embedded checkout](docs/design/0005-checkout-ui.md) (built)
-- [0007 — The Bureau Dispatch](docs/design/0007-dispatch.md)
+- [0007 — The Bureau Dispatch](docs/design/0007-dispatch.md) (registration and recovery built)
 - [0008 — Sound and motion](docs/design/0008-sound-and-motion.md) (built)
-- [0009 — The Back-Room Broadcast](docs/design/0009-back-room-broadcast.md)
+- [0009 — The Back-Room Broadcast](docs/design/0009-back-room-broadcast.md) (built)
 - [0010 — The exhibit pipeline: adding products, wings and prices](docs/design/0010-exhibit-pipeline.md) (built)
-- [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md)
+- [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md) (built; the test is running)
 
 ## Branch flow
 

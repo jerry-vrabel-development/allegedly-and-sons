@@ -91,7 +91,7 @@ function serialize(directives: Directives): string {
  */
 const VAULT_DIRECTIVES: Directives = ITEM_DIRECTIVES;
 
-/** The policy every page gets unless it's the embedded checkout page. */
+/** The strict policy, with no script-src: errors, redirects, assets and private pages. */
 export const STRICT_CSP = serialize(STRICT_DIRECTIVES);
 
 /** The policy for the embedded checkout page only. */
