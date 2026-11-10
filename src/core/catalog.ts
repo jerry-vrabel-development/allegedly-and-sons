@@ -302,6 +302,138 @@ export const CATALOG: readonly [Item, ...Item[]] = [
       "Exact change, folks. Wrong century. Perfect gift.",
     ],
   },
+  {
+    slug: "bigfoots-lost-comb",
+    status: "pending",
+    wing: "cryptid",
+    name: "Bigfoot's Lost Comb",
+    exhibit: "AS-0007",
+    tagline: "He was never blurry. He was just mid-brush.",
+    hook: "Every blurry photo of Bigfoot was taken while he was grooming. This is why.",
+    estimatedValue: "Forty acres of very well-kept fur",
+    artAlt:
+      "Illustration of a large brown comb lying beside a giant footprint pressed into dark forest soil.",
+    priceCents: 12_900,
+    specs: [
+      { label: "Material", value: "Plastic comb (expected)" },
+      { label: "Length", value: "About 13 cm (expected)" },
+      { label: "Teeth", value: "All present. Several have seen things." },
+    ],
+    story: {
+      headline: "The Grooming Hypothesis",
+      paragraphs: [
+        "For decades, experts asked why every photo of Bigfoot is blurry. The Bureau has the answer: he is always combing. A creature with that much hair never stops. The blur is motion. The motion is vanity.",
+        "This comb was dropped at a campsite in the deep woods during a hurried retreat from a family of four and their very loud cooler. Its teeth still hold seven distinct shades of brown and one strand that is, inexplicably, silver.",
+        "Since losing it, Bigfoot has not been photographed at all. The Bureau believes he is embarrassed and will not be seen in public until it is returned. We are not returning it.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "Folks, every blurry Bigfoot photo. Every one. He was brushing. That's the blur.",
+      "He dropped this at a campsite running from a cooler. A cooler. Have some sympathy.",
+      "He hasn't been seen since. He won't go out without it. You can see why.",
+      "Seven shades of brown, one mystery silver. Comb your own legend tonight.",
+    ],
+  },
+  {
+    slug: "loch-ness-bath-duck",
+    status: "pending",
+    wing: "cryptid",
+    name: "The Loch Ness Bath Duck",
+    exhibit: "AS-0008",
+    tagline: "The only creature she's ever let get close.",
+    hook: "Nobody has a clear photo of her. This duck has a clear photo of nobody else.",
+    estimatedValue: "One loch, slightly used, with monster",
+    artAlt:
+      "Illustration of a yellow rubber duck floating on a dark loch, with a long-necked silhouette rising from the water behind it.",
+    priceCents: 3_400,
+    specs: [
+      { label: "Material", value: "Rubber duck (expected)" },
+      { label: "Height", value: "About 9 cm (expected)" },
+      { label: "Squeak", value: "Yes. It knows what it did." },
+    ],
+    story: {
+      headline: "Bath Time in the Deep",
+      paragraphs: [
+        "She is a thousand feet long by some accounts and shy by all of them. What the accounts leave out is that she takes a bath every Thursday, in the loch, which is already a bath, and she likes company.",
+        "For two hundred years her only companion was this rubber duck. It has floated beside her through storms, tour boats and a very tense afternoon with a submarine. It has seen her face clearly more times than anyone alive and has never once told.",
+        "The duck washed up on a pebble beach in a bottle with a note reading “Please look after him. He is a good listener.” The Bureau has honored this request to the letter by putting him up for sale.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "This duck has seen her face. Up close. On a Thursday. And it has never talked.",
+      "Two hundred years of bath time with the most famous shy creature in the world.",
+      "Squeeze it. Go on. That squeak has echoed off a monster.",
+      "She asked us to look after him. We're asking you to look after him. It's basically the same.",
+    ],
+  },
+  {
+    slug: "mothmans-night-light",
+    status: "pending",
+    wing: "cryptid",
+    name: "The Mothman's Night-Light",
+    exhibit: "AS-0009",
+    tagline: "Drawn to the light. Also afraid of the dark.",
+    hook: "Seven feet tall, red eyes, huge wings. Sleeps with this on.",
+    estimatedValue: "One full night of uninterrupted sleep",
+    artAlt:
+      "Illustration of a small glowing candle-style light, with the dark silhouette of a winged figure with red eyes looming behind it.",
+    priceCents: 17_900,
+    specs: [
+      { label: "Material", value: "Battery-powered LED tea light (expected)" },
+      { label: "Height", value: "About 4 cm (expected)" },
+      { label: "Battery", value: "Included (expected). Moth not included." },
+    ],
+    story: {
+      headline: "A Light for the Dark Ones",
+      paragraphs: [
+        "The Mothman is seven feet tall, has wings like a barn door and eyes like brake lights. He is also, the Bureau can now confirm, extremely afraid of the dark.",
+        "Being a moth, he cannot sleep near any light without circling it until dawn. So he had this one made: a light just small enough to comfort him and just dim enough not to keep him up. It took four hundred prototypes and one very patient lamp shop.",
+        "He traded it to a Bureau agent for a lamp with a brighter bulb, which he has been circling, happily and without rest, ever since. He seemed fine with the deal. He seemed very fine.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "Seven feet tall. Glowing red eyes. Wings like a barn door. Scared of the dark, folks.",
+      "Four hundred prototypes to get this glow just right for a giant moth to sleep by.",
+      "He traded it for a brighter bulb and he hasn't stopped circling since. Happy man. Moth.",
+      "Put it by your bed. If something enormous taps the window, that's just a review.",
+    ],
+  },
+  {
+    slug: "tooth-fairys-spare-change",
+    status: "pending",
+    wing: "cryptid",
+    name: "The Tooth Fairy's Spare Change",
+    exhibit: "AS-0010",
+    tagline: "Her float for the night shift. Short one molar.",
+    hook: "She dropped it under the wrong pillow and never came back for it.",
+    estimatedValue: "Three wisdom teeth at the overnight rate",
+    artAlt:
+      "Illustration of three small coins and a tiny white tooth scattered on a pillow, sprinkled with sparkles.",
+    priceCents: 1_900,
+    specs: [
+      { label: "Contents", value: "Three assorted small coins (expected)" },
+      { label: "Material", value: "Metal coins in a small cloth pouch (expected)" },
+      { label: "Legal tender", value: "Somewhere, probably. Not for teeth." },
+    ],
+    story: {
+      headline: "The Night Shift Float",
+      paragraphs: [
+        "The Tooth Fairy works one long night that lasts all year. She carries a float of spare change so she can pay for any tooth on the spot, at rates set by an exchange nobody has ever seen.",
+        "One night, somewhere around the four-millionth pillow, she slipped this pouch under the wrong one: an adult's, belonging to a man who had lost no teeth and was very confused in the morning. She never came back for it. Bureau accountants say she wrote it off.",
+        "The pouch is still exactly one molar short of balancing. The Bureau has made no attempt to fix this and asks that you don't either.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "The Tooth Fairy's own float, folks. Spare change for the night shift.",
+      "She slipped it under a grown man's pillow by mistake. He's still thinking about it.",
+      "One molar short of balancing. Her accountants wrote it off. We wrote it up.",
+      "The smallest price in the shop for the most magical pocket change you'll ever hold.",
+    ],
+  },
 ];
 
 /** Matches /items/<slug> and captures the slug. */

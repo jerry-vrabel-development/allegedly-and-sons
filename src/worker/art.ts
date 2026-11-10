@@ -160,6 +160,102 @@ const BUS_TOKEN = board(
   </g>`,
 );
 
+const COMB = board(
+  "AS-0007",
+  `<path d="M0 430 C180 410 360 440 520 420 C640 405 720 420 800 410 V600 H0 Z" fill="#2a2018"/>
+  <g transform="translate(560 300) rotate(12)" fill="#1b140e">
+    <ellipse cx="0" cy="40" rx="60" ry="110"/>
+    <ellipse cx="-42" cy="-90" rx="16" ry="20"/><ellipse cx="-12" cy="-104" rx="15" ry="19"/>
+    <ellipse cx="20" cy="-102" rx="14" ry="18"/><ellipse cx="46" cy="-88" rx="13" ry="16"/>
+    <ellipse cx="62" cy="-66" rx="11" ry="13"/>
+  </g>
+  <g transform="translate(330 330) rotate(-14)">
+    <rect x="-150" y="-36" width="300" height="44" rx="10" fill="#8a5a2b"/>
+    <rect x="-150" y="-36" width="300" height="12" rx="6" fill="#a97842"/>
+    <g fill="#8a5a2b">
+      ${Array.from({ length: 24 }, (_, i) => `<rect x="${String(-142 + i * 12)}" y="6" width="7" height="${String(i < 12 ? 64 : 48)}" rx="3"/>`).join("")}
+    </g>
+    <path d="M-60 10 C-40 60 -20 30 0 70" fill="none" stroke="#c9c9d1" stroke-width="2.5"/>
+  </g>
+  <g fill="#3d5a35">
+    <path d="M60 430 L100 300 L140 430 Z"/><path d="M700 420 L735 320 L770 420 Z"/>
+  </g>`,
+);
+
+const DUCK = board(
+  "AS-0008",
+  `<path d="M0 260 C120 230 220 250 300 240 C420 225 560 255 800 235 V260 H0 Z" fill="#1d2633"/>
+  <rect y="260" width="800" height="340" fill="#16222e"/>
+  <g fill="#0b1118">
+    <path d="M560 360 C560 250 600 170 640 150 C670 140 690 160 680 180 C660 175 640 190 630 230 C620 280 625 330 640 360 Z"/>
+    <path d="M660 365 C670 330 700 320 720 345 C730 355 735 362 740 365 Z"/>
+  </g>
+  <circle cx="662" cy="168" r="3" fill="#9fe8c6"/>
+  <g stroke="#2c3d50" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M150 390 C200 380 250 400 300 390"/><path d="M480 420 C520 410 560 430 600 420"/>
+    <path d="M520 370 C560 362 600 372 640 366"/>
+  </g>
+  <g transform="translate(300 380)">
+    <ellipse cx="0" cy="20" rx="120" ry="18" fill="#0d1520" fill-opacity="0.7"/>
+    <path d="M-110 0 C-110 -60 -40 -70 30 -55 C70 -50 100 -40 110 -10 C100 20 60 30 0 30 C-60 30 -110 25 -110 0 Z" fill="#f2c230"/>
+    <circle cx="50" cy="-110" r="56" fill="#f2c230"/>
+    <path d="M95 -110 L150 -100 L95 -88 Z" fill="#e8762a"/>
+    <circle cx="65" cy="-125" r="8" fill="#151a23"/>
+    <circle cx="68" cy="-128" r="2.5" fill="#ffffff"/>
+    <path d="M-70 -30 C-40 -55 0 -50 20 -30" fill="none" stroke="#d9a51c" stroke-width="8" stroke-linecap="round"/>
+    <path d="M20 -150 C35 -165 60 -160 70 -150" fill="none" stroke="#ffe27a" stroke-width="6" stroke-linecap="round"/>
+  </g>`,
+);
+
+const NIGHT_LIGHT = board(
+  "AS-0009",
+  `<g fill="#0b0f16">
+    <path d="M400 110 C330 120 200 140 90 250 C170 240 240 250 300 290 C320 230 360 200 400 200 C440 200 480 230 500 290 C560 250 630 240 710 250 C600 140 470 120 400 110 Z"/>
+    <ellipse cx="400" cy="230" rx="60" ry="110"/>
+    <circle cx="400" cy="150" r="42"/>
+  </g>
+  <circle cx="384" cy="150" r="9" fill="#e0302a"/>
+  <circle cx="416" cy="150" r="9" fill="#e0302a"/>
+  <circle cx="384" cy="150" r="18" fill="#e0302a" fill-opacity="0.2"/>
+  <circle cx="416" cy="150" r="18" fill="#e0302a" fill-opacity="0.2"/>
+  <ellipse cx="400" cy="410" rx="170" ry="120" fill="#ffcf6b" fill-opacity="0.18"/>
+  <ellipse cx="400" cy="410" rx="90" ry="65" fill="#ffcf6b" fill-opacity="0.2"/>
+  <g transform="translate(400 430)">
+    <path d="M-70 0 H70 V50 C70 62 60 70 48 70 H-48 C-60 70 -70 62 -70 50 Z" fill="#e9e2cf"/>
+    <ellipse cx="0" cy="0" rx="70" ry="14" fill="#f5efe0"/>
+    <path d="M0 -60 C18 -35 18 -15 0 -5 C-18 -15 -18 -35 0 -60 Z" fill="#ffcf6b"/>
+    <path d="M0 -42 C8 -28 8 -17 0 -11 C-8 -17 -8 -28 0 -42 Z" fill="#fff4d0"/>
+  </g>`,
+);
+
+const SPARE_CHANGE = board(
+  "AS-0010",
+  `<g transform="translate(400 330)">
+    <path d="M-260 -20 C-250 -120 250 -130 260 -20 C270 90 -270 100 -260 -20 Z" fill="#e8e2f0"/>
+    <path d="M-200 -60 C-100 -90 100 -95 200 -60" fill="none" stroke="#cfc7dd" stroke-width="6" stroke-linecap="round"/>
+    <g transform="translate(-90 0)">
+      <circle r="50" fill="#b07a35"/><circle r="40" fill="#d49a4a"/>
+      <circle r="40" fill="none" stroke="#9b6a2a" stroke-width="3" stroke-dasharray="4 5"/>
+    </g>
+    <g transform="translate(20 -30)">
+      <circle r="42" fill="#8f939b"/><circle r="33" fill="#c3c8d1"/>
+      <path d="M-16 -8 H16 M-12 4 H12" stroke="#8f939b" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(110 20)">
+      <circle r="36" fill="#9a6b3a"/><circle r="28" fill="#c08a52"/>
+    </g>
+    <g transform="translate(-10 50)">
+      <path d="M-22 -20 C-22 -34 22 -34 22 -20 C22 -4 16 10 12 24 C10 30 4 30 2 22 L0 12 L-2 22 C-4 30 -10 30 -12 24 C-16 10 -22 -4 -22 -20 Z" fill="#ffffff" stroke="#cfc7dd" stroke-width="2"/>
+    </g>
+  </g>
+  <g fill="#f4ead2">
+    <path d="M150 140 l6 16 l16 6 l-16 6 l-6 16 l-6 -16 l-16 -6 l16 -6 Z"/>
+    <path d="M640 120 l5 12 l12 5 l-12 5 l-5 12 l-5 -12 l-12 -5 l12 -5 Z"/>
+    <path d="M680 420 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 Z"/>
+    <circle cx="220" cy="470" r="3"/><circle cx="560" cy="180" r="2.5"/>
+  </g>`,
+);
+
 /** SVG artwork by item slug. Every catalog item has one (a test checks). */
 export const ART: Readonly<Record<string, string>> = {
   "alien-paperclip": PAPERCLIP,
@@ -168,6 +264,10 @@ export const ART: Readonly<Record<string, string>> = {
   "martian-rubber-band": RUBBER_BAND,
   "moonwalkers-spare-button": BUTTON,
   "time-travelers-bus-token": BUS_TOKEN,
+  "bigfoots-lost-comb": COMB,
+  "loch-ness-bath-duck": DUCK,
+  "mothmans-night-light": NIGHT_LIGHT,
+  "tooth-fairys-spare-change": SPARE_CHANGE,
 };
 
 export function artPath(slug: string): string {
