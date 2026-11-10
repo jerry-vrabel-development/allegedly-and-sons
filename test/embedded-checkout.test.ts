@@ -18,6 +18,7 @@ import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
 const ITEM = CATALOG[0];
+const PENDING = CATALOG.find((item) => item.status === "pending") ?? ITEM;
 const SECRET = "cs_test_a1B2_secret_c3D4";
 
 afterEach(() => {
@@ -174,6 +175,11 @@ describe("GET /checkout/<item>", () => {
     const { deps: d } = deps();
     expect((await route(new Request(`${BASE}/checkout/xenoclip`), d)).status).toBe(404);
   });
+
+  it("is 404 for an acquisition-pending exhibit (note 0010)", async () => {
+    const { deps: d } = deps();
+    expect((await route(new Request(`${BASE}/checkout/${PENDING.slug}`), d)).status).toBe(404);
+  });
 });
 
 describe("POST /checkout/<item>/session", () => {
@@ -203,6 +209,13 @@ describe("POST /checkout/<item>/session", () => {
     const response = await route(postSession("xenoclip"), d);
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "not found" });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("is 404 for an acquisition-pending exhibit, without calling Stripe", async () => {
+    const { deps: d, sent } = deps();
+    const response = await route(postSession(PENDING.slug), d);
+    expect(response.status).toBe(404);
     expect(sent).toHaveLength(0);
   });
 

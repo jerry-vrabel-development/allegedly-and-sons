@@ -1,5 +1,8 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CATALOG } from "../src/core/catalog";
+import { BADGES, cardId, TOTAL_AWARDS } from "../src/core/dossier";
+import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 import { recordEvent } from "../src/worker/analytics";
 import { grantAwards, readDossier } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
@@ -150,7 +153,9 @@ describe("GET /dossier", () => {
     const html = await page(A);
     expect(html).toMatch(/Agent No\. 000\d/);
     expect(html).toMatch(/Codename: [A-Z][a-z]+ [A-Z][a-z]+/);
-    expect(html).toContain("<strong>Rank: Junior Field Agent.</strong> 2 of 16 commendations.");
+    expect(html).toContain(
+      `<strong>Rank: Junior Field Agent.</strong> 2 of ${String(TOTAL_AWARDS)} commendations.`,
+    );
     expect(html).toContain("1 more for Field Agent.");
     expect(html).toContain("Card AS-0001 · Collected");
     expect(html).toContain("Card AS-0002 · Sealed");
@@ -158,32 +163,29 @@ describe("GET /dossier", () => {
   });
 
   it("salutes an agent who has everything", async () => {
+    // Every stored award; the wing commendations follow from the cards.
     await grantAwards(
       env.DB,
       A,
       [
-        "first-contact",
-        "case-closed",
-        "town-crier",
-        "recruiter",
-        "acquirer",
-        "card:alien-paperclip",
-        "card:second-best-quill",
-        "card:viking-participation-trophy",
-        "vault:left-sock-of-atlantis",
-        "vault:yetis-library-card",
-        "vault:jar-of-pre-owned-thunder",
-        "vault:the-moons-receipt",
-        "streak-regular",
-        "streak-made",
-        "streak-fixer",
-        "streak-kingpin",
+        ...BADGES.map((badge) => badge.id),
+        ...CATALOG.map((item) => cardId(item.slug)),
+        ...VAULT_CARDS.map((card) => vaultAwardId(card.id)),
       ],
       NOW,
     );
     const html = await page(A);
     expect(html).toContain("Rank: Director of Improbable Acquisitions.");
+    expect(html).toContain(`${String(TOTAL_AWARDS)} of ${String(TOTAL_AWARDS)} commendations.`);
     expect(html).toContain("There is no higher rank.");
+    expect(html).toContain("<strong>Keeper of Off-World</strong> (earned)");
+  });
+
+  it("groups exhibit cards by wing, pending exhibits included", async () => {
+    const html = await page(A);
+    expect(html).toContain("<h3>Off-World</h3>");
+    expect(html).toContain("Card AS-0004 · Sealed");
+    expect(html).toContain("<strong>Keeper of Off-World</strong> (locked): Collect all four");
   });
 
   it("shows nobody's file without a visitor id", async () => {

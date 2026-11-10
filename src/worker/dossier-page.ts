@@ -4,8 +4,16 @@
  * file it is), never indexed, no script.
  */
 
-import { CATALOG } from "../core/catalog";
-import { BADGES, cardId, rankFor, TOTAL_AWARDS } from "../core/dossier";
+import { WINGS, wingItems, type Item } from "../core/catalog";
+import {
+  BADGES,
+  cardId,
+  rankFor,
+  TOTAL_AWARDS,
+  wingAwardId,
+  wingCommendations,
+  withWingAwards,
+} from "../core/dossier";
 import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
 import { dispatchSection, type DispatchView } from "./dispatch-pages";
@@ -20,6 +28,33 @@ function agentNumber(n: number): string {
   return String(n).padStart(4, "0");
 }
 
+/** One exhibit card: collected, or sealed with how to break the seal. */
+function exhibitCard(item: Item, collected: boolean): SafeHtml {
+  return collected
+    ? html`<li class="card">
+        <img
+          src="/assets/art/${item.slug}.svg"
+          alt="${item.artAlt}"
+          width="800"
+          height="600"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="card-body">
+          <p class="kicker">Card ${item.exhibit} · Collected</p>
+          <h4>${item.name}</h4>
+          <p>${item.tagline}</p>
+        </div>
+      </li>`
+    : html`<li class="card sealed">
+        <div class="card-body">
+          <p class="kicker">Card ${item.exhibit} · Sealed</p>
+          <h4><a href="${itemPath(item)}">${item.name}</a></h4>
+          <p>Sealed. Finish this exhibit's case file, or acquire it, to break the seal.</p>
+        </div>
+      </li>`;
+}
+
 export function dossierPage(
   agent: Agent | undefined,
   dispatch: DispatchView,
@@ -27,7 +62,8 @@ export function dossierPage(
   nowSeconds: number,
   repairOpen: boolean,
 ): SafeHtml {
-  const earned = new Set(agent?.awards.map((award) => award.id) ?? []);
+  // Wing commendations are worked out from the cards held (note 0010).
+  const earned = withWingAwards(agent?.awards.map((award) => award.id) ?? []);
   const count = earned.size;
   const { rank, next } = rankFor(count);
 
@@ -64,35 +100,13 @@ export function dossierPage(
       <section aria-labelledby="cards-heading">
         <h2 id="cards-heading">Exhibit cards</h2>
         <p>One for each exhibit. Read its case file to the end, or acquire it.</p>
-        <ul class="items">
-          ${CATALOG.map((item) =>
-            earned.has(cardId(item.slug))
-              ? html`<li class="card">
-                  <img
-                    src="/assets/art/${item.slug}.svg"
-                    alt="${item.artAlt}"
-                    width="800"
-                    height="600"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div class="card-body">
-                    <p class="kicker">Card ${item.exhibit} · Collected</p>
-                    <h3>${item.name}</h3>
-                    <p>${item.tagline}</p>
-                  </div>
-                </li>`
-              : html`<li class="card sealed">
-                  <div class="card-body">
-                    <p class="kicker">Card ${item.exhibit} · Sealed</p>
-                    <h3><a href="${itemPath(item)}">${item.name}</a></h3>
-                    <p>
-                      Sealed. Finish this exhibit's case file, or acquire it, to break the seal.
-                    </p>
-                  </div>
-                </li>`,
-          )}
-        </ul>
+        ${WINGS.filter((wing) => wingItems(wing.id).length > 0).map(
+          (wing) =>
+            html`<h3>${wing.name}</h3>
+              <ul class="items">
+                ${wingItems(wing.id).map((item) => exhibitCard(item, earned.has(cardId(item.slug))))}
+              </ul>`,
+        )}
       </section>
 
       <section class="prose" aria-labelledby="vault-heading">
@@ -114,6 +128,17 @@ export function dossierPage(
             earned.has(badge.id)
               ? html`<li><strong>${badge.name}</strong> (earned): ${badge.earned}</li>`
               : html`<li><strong>${badge.name}</strong> (locked): ${badge.hint}</li>`,
+          )}
+          ${wingCommendations().map((wing) =>
+            earned.has(wingAwardId(wing.id))
+              ? html`<li>
+                  <strong>Keeper of ${wing.name}</strong> (earned): Every card in the wing. The
+                  curators have been told.
+                </li>`
+              : html`<li>
+                  <strong>Keeper of ${wing.name}</strong> (locked): Collect all four ${wing.name}
+                  cards.
+                </li>`,
           )}
         </ul>
       </section>`,

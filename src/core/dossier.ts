@@ -7,7 +7,7 @@
  */
 
 import type { AnalyticsEvent } from "./analytics";
-import { CATALOG, findItem } from "./catalog";
+import { CATALOG, findItem, fullWings, wingItems, type Wing, type WingId } from "./catalog";
 import { findVaultCard, VAULT_CARDS } from "./vault";
 
 export interface Badge {
@@ -91,8 +91,37 @@ export function isAward(id: string): boolean {
   return id.startsWith("card:") && findItem(id.slice("card:".length)) !== undefined;
 }
 
-/** How many awards (badges, exhibit cards and vault cards) there are to earn in all. */
-export const TOTAL_AWARDS = BADGES.length + CATALOG.length + VAULT_CARDS.length;
+/** A wing commendation's award id. */
+export function wingAwardId(wing: WingId): string {
+  return `wing:${wing}`;
+}
+
+/**
+ * The full wings' commendations (note 0010): one for holding every exhibit
+ * card in a wing. Worked out from the cards, never stored or granted, so it
+ * can't drift; a wing without all its exhibits has none yet.
+ */
+export function wingCommendations(): readonly Wing[] {
+  return fullWings();
+}
+
+/** Everything an agent holds: their stored awards plus the wings those cards complete. */
+export function withWingAwards(stored: Iterable<string>): ReadonlySet<string> {
+  const held = new Set(stored);
+  for (const wing of wingCommendations()) {
+    if (wingItems(wing.id).every((item) => held.has(cardId(item.slug)))) {
+      held.add(wingAwardId(wing.id));
+    }
+  }
+  return held;
+}
+
+/**
+ * How many awards there are to earn in all: badges, wing commendations,
+ * exhibit cards and vault cards.
+ */
+export const TOTAL_AWARDS =
+  BADGES.length + wingCommendations().length + CATALOG.length + VAULT_CARDS.length;
 
 export interface Rank {
   readonly title: string;
@@ -102,13 +131,26 @@ export interface Rank {
 
 const FIRST_RANK: Rank = { title: "Civilian Informant", at: 0 };
 
-/** Ranks by awards earned, lowest first. */
-export const RANKS: readonly Rank[] = [
+/**
+ * The ladder below the top. Thresholds never move down or get reused, so no
+ * agent ever loses a rank (note 0010); a rank only appears once there are
+ * more awards than it needs.
+ */
+const LADDER: readonly Rank[] = [
   FIRST_RANK,
   { title: "Junior Field Agent", at: 1 },
   { title: "Field Agent", at: 3 },
   { title: "Senior Field Agent", at: 5 },
   { title: "Senior Treasure Hunter", at: 6 },
+  { title: "Case Officer", at: 10 },
+  { title: "Station Chief", at: 15 },
+  { title: "Keeper of the Back Room", at: 22 },
+  { title: "Deputy Director", at: 30 },
+];
+
+/** Ranks by awards earned, lowest first. The top rank is the full set. */
+export const RANKS: readonly Rank[] = [
+  ...LADDER.filter((rank) => rank.at < TOTAL_AWARDS),
   { title: "Director of Improbable Acquisitions", at: TOTAL_AWARDS },
 ];
 

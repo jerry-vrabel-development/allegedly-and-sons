@@ -1,9 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { CATALOG, findItem, formatPrice } from "../src/core/catalog";
+import {
+  AVAILABLE_ITEMS,
+  CATALOG,
+  findAvailableItem,
+  findItem,
+  formatPrice,
+  fullWings,
+  isAvailable,
+  WING_SIZE,
+  WINGS,
+  wingItems,
+} from "../src/core/catalog";
+import { ART } from "../src/worker/art";
 
 describe("catalog", () => {
-  it("launches with three items", () => {
-    expect(CATALOG).toHaveLength(3);
+  it("has the three launch exhibits for sale, and always something for sale", () => {
+    expect(AVAILABLE_ITEMS.map((item) => item.slug)).toEqual(
+      expect.arrayContaining([
+        "alien-paperclip",
+        "second-best-quill",
+        "viking-participation-trophy",
+      ]),
+    );
+    expect(AVAILABLE_ITEMS.length).toBeGreaterThan(0);
+    expect(AVAILABLE_ITEMS.every(isAvailable)).toBe(true);
+  });
+
+  it("numbers exhibits in order with no gaps, so the next number is obvious", () => {
+    CATALOG.forEach((item, index) => {
+      expect(item.exhibit).toBe(`AS-${String(index + 1).padStart(4, "0")}`);
+    });
+  });
+
+  it("has original art for every exhibit, pending ones included", () => {
+    for (const item of CATALOG) expect(ART[item.slug]).toMatch(/^<svg /);
+    expect(Object.keys(ART).sort()).toEqual(CATALOG.map((item) => item.slug).sort());
+  });
+
+  it("gives every exhibit four pitch beats, none naming a price", () => {
+    for (const item of CATALOG) {
+      expect(item.pitch).toHaveLength(4);
+      for (const beat of item.pitch) expect(beat).not.toMatch(/\$|\d+ ?(dollars|bucks|cents)/i);
+    }
+  });
+
+  it("keeps every estimated value an obvious joke, never a dollar figure", () => {
+    for (const item of CATALOG) expect(item.estimatedValue).not.toMatch(/\$|USD|dollars?/i);
+  });
+
+  it("prices every exhibit within one of the three tiers (note 0010)", () => {
+    const tiers = [
+      [1_900, 4_900],
+      [7_900, 19_900],
+      [27_500, 49_900],
+    ] as const;
+    for (const item of CATALOG) {
+      expect(
+        tiers.some(([low, high]) => item.priceCents >= low && item.priceCents <= high),
+        item.slug,
+      ).toBe(true);
+    }
+  });
+
+  it("marks a pending exhibit's specs as expected until it's sourced", () => {
+    for (const item of CATALOG.filter((candidate) => !isAvailable(candidate))) {
+      expect(item.specs.some((spec) => spec.value.includes("(expected)"))).toBe(true);
+    }
   });
 
   it("has unique, URL-safe slugs", () => {
@@ -32,6 +94,31 @@ describe("catalog", () => {
       expect(item.story.author.title).not.toBe("");
       expect(item.specs.some((spec) => spec.label === "Material")).toBe(true);
     }
+  });
+});
+
+describe("wings", () => {
+  it("puts every exhibit in a known wing, at most four to a wing", () => {
+    const ids = new Set(WINGS.map((wing) => wing.id));
+    for (const item of CATALOG) expect(ids.has(item.wing)).toBe(true);
+    for (const wing of WINGS) expect(wingItems(wing.id).length).toBeLessThanOrEqual(WING_SIZE);
+  });
+
+  it("counts only wings with all four exhibits as full", () => {
+    for (const wing of fullWings()) expect(wingItems(wing.id)).toHaveLength(WING_SIZE);
+    expect(fullWings().map((wing) => wing.id)).toContain("off-world");
+  });
+});
+
+describe("findAvailableItem", () => {
+  it("finds an exhibit that's for sale", () => {
+    expect(findAvailableItem("alien-paperclip")?.slug).toBe("alien-paperclip");
+  });
+
+  it("refuses unknown and acquisition-pending exhibits", () => {
+    expect(findAvailableItem("the-other-three-xenoclips")).toBeUndefined();
+    expect(findItem("martian-rubber-band")?.status).toBe("pending");
+    expect(findAvailableItem("martian-rubber-band")).toBeUndefined();
   });
 });
 

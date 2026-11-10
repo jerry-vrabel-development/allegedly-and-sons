@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { TOTAL_AWARDS } from "../src/core/dossier";
 import { grantAwards } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
@@ -318,7 +319,7 @@ describe("GET /vault", () => {
     expect(html).toContain(
       "<strong>The Left Sock of Atlantis</strong> (still in the vault): Common.",
     );
-    expect(html).toContain("1 of 16 commendations.");
+    expect(html).toContain(`1 of ${String(TOTAL_AWARDS)} commendations.`);
   });
 });
 
