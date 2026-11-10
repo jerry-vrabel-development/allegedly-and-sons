@@ -12,11 +12,17 @@
  *   click (a link waits LINK_DELAY_MS so it's heard; a modified click never
  *   waits), a case file creaks open, and the story script's "bureau:card"
  *   event stamps.
+ * - The Broadcast's "Tune in" (PR 2): radio static and the station stinger,
+ *   the host's lines lit one at a time, and a stinger when the segment ends.
+ * - "Stamp your certificate" on /thanks (PR 2): the vault door slams, a
+ *   fanfare plays, and the certificate is stamped, in words.
  * - Exposes window.BureauSound.play(name) for the Vault's reel.
  *
  * Without the script, or without Web Audio, everything works the same in
  * silence.
  */
+
+import { SEGMENT_END_EVENT } from "./broadcast-script";
 
 export const SOUND_SCRIPT_PATH = "/assets/sound.js";
 
@@ -45,7 +51,14 @@ export const SOUND_NAMES = [
   "Rare",
   "sparkle",
   "milestone",
+  "static",
+  "stinger",
+  "slam",
+  "fanfare",
 ] as const;
+
+/** How long each host line stays lit once tuned in (ms). */
+export const HOST_LINE_MS = 4000;
 
 export type SoundName = (typeof SOUND_NAMES)[number];
 
@@ -133,6 +146,18 @@ export const SOUND_JS = `"use strict";
       [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.5, "sawtooth", 0.12); });
       [1047, 1319, 1568].forEach(function (f) { tone(f, 0.45, 1.4, "triangle", 0.15); });
       [2093, 2637, 3136, 2637].forEach(function (f, i) { tone(f, 0.5 + i * 0.12, 0.25, "sine", 0.05); });
+    },
+    // The Broadcast: a dial finding the station, then the station's brass sting.
+    static: function () { noise(0, 0.7, 0.12, 1800, 900); tone(440, 0.1, 0.5, "sine", 0.03, 880); },
+    stinger: function () {
+      [196, 247, 294].forEach(function (f, i) { tone(f, i * 0.12, 0.3, "sawtooth", 0.09); });
+      [392, 494, 587].forEach(function (f) { tone(f, 0.4, 0.9, "sawtooth", 0.07); });
+    },
+    // /thanks: the vault door, then the fanfare.
+    slam: function () { noise(0, 0.25, 0.7, 500, 80); tone(55, 0, 0.6, "sine", 0.8); tone(110, 0.02, 0.3, "square", 0.08); },
+    fanfare: function () {
+      [523, 659, 784].forEach(function (f, i) { tone(f, 0.4 + i * 0.12, 0.3, "square", 0.08); });
+      [523, 659, 784, 1047].forEach(function (f) { tone(f, 0.8, 1.6, "triangle", 0.12); });
     }
   };
   function play(name) {
@@ -183,6 +208,66 @@ export const SOUND_JS = `"use strict";
     story.addEventListener("toggle", function () { if (story.open) play("creak"); });
   }
   document.addEventListener(${JSON.stringify(CARD_EVENT)}, function () { play("stamp"); });
+
+  function button(text) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "button";
+    b.textContent = text;
+    return b;
+  }
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // --- The Broadcast: "Tune in" ----------------------------------------------
+  var show = document.querySelector("[data-broadcast]");
+  var heading = show ? show.querySelector("h1") : null;
+  if (show && heading) {
+    var tuned = false;
+    var tune = button("Tune in");
+    tune.classList.add("tune-in");
+    tune.setAttribute("aria-pressed", "false");
+    var lines = show.querySelectorAll(".patter p");
+    var lit = -1;
+    function nextLine() {
+      if (lines.length === 0) return;
+      if (lit >= 0) lines[lit].classList.remove("speaking");
+      lit = (lit + 1) % lines.length;
+      lines[lit].classList.add("speaking");
+      play("tick");
+      setTimeout(nextLine, ${String(HOST_LINE_MS)});
+    }
+    tune.addEventListener("click", function () {
+      if (tuned) return;
+      tuned = true;
+      tune.textContent = "Tuned in";
+      tune.setAttribute("aria-pressed", "true");
+      play("static");
+      setTimeout(function () { play("stinger"); }, 650);
+      if (!reduced) setTimeout(nextLine, 1500);
+    });
+    heading.parentNode.insertBefore(tune, heading.nextSibling);
+    document.addEventListener(${JSON.stringify(SEGMENT_END_EVENT)}, function () { if (tuned) play("stinger"); });
+  }
+
+  // --- /thanks: "Stamp your certificate" --------------------------------------
+  var moment = document.querySelector("[data-certificate]");
+  if (moment) {
+    // A non-breaking hyphen keeps "AS-0001" on one line.
+    var number = String(moment.getAttribute("data-certificate")).replace("-", "\u2011");
+    var stamp = button("Stamp your certificate");
+    var said = document.createElement("p");
+    said.className = "stamp-mark";
+    said.setAttribute("role", "status");
+    stamp.addEventListener("click", function () {
+      play("slam");
+      play("fanfare");
+      stamp.hidden = true;
+      said.textContent = "Stamped: Bureau Certificate No. " + number + ". Authenticity: Allegedly.";
+      if (!reduced) said.classList.add("stamping");
+    });
+    moment.appendChild(stamp);
+    moment.appendChild(said);
+  }
 })();
 `;
 
