@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { AnalyticsEvent } from "../src/core/analytics";
-import { CATALOG, wingItems } from "../src/core/catalog";
+import { CATALOG, wingItems, type WingId } from "../src/core/catalog";
 import {
   awardsForEvent,
   awardsForOrder,
@@ -94,11 +94,24 @@ describe("wing commendations (note 0010)", () => {
     expect(withWingAwards(offWorld.slice(1)).has(wingAwardId("off-world"))).toBe(false);
   });
 
-  it("isn't offered for a wing that isn't full yet", () => {
-    const royal = wingItems("royal-legendary");
-    expect(royal.length).toBeLessThan(4);
-    const held = withWingAwards(royal.map((item) => cardId(item.slug)));
-    expect(held.has(wingAwardId("royal-legendary"))).toBe(false);
+  it("is offered for every wing once all twenty exhibits are in", () => {
+    expect(wingCommendations()).toHaveLength(5);
+  });
+
+  it("needs the cards of that wing, not just any four", () => {
+    const others: readonly WingId[] = [
+      "cryptid",
+      "unexplained",
+      "royal-legendary",
+      "lost-civilizations",
+    ];
+    const fromOtherWings = others.flatMap((wing) =>
+      wingItems(wing)
+        .slice(0, 1)
+        .map((item) => cardId(item.slug)),
+    );
+    expect(fromOtherWings).toHaveLength(4);
+    expect(withWingAwards(fromOtherWings).has(wingAwardId("off-world"))).toBe(false);
   });
 
   it("keeps everything else the agent holds", () => {
