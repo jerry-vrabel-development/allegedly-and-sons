@@ -1,6 +1,6 @@
 # 0011 — Sound for the whole shop
 
-- **Status:** Decided; PR 1 (the shared module, toggle and shop sounds) and PR 2 (Tune in, the certificate stamp) built
+- **Status:** Decided; built: PR 1 (the shared module, toggle and shop sounds), PR 2 (Tune in, the certificate stamp) and PR 3 (the Ledger and the stopping rule)
 - **Date:** 2026-11-10
 - **Author:** Jerry Vrabel
 
@@ -68,9 +68,14 @@ neither. `?fx=on` and `?fx=off` still override one view.
 **Stopping rule** (it had none before): the test runs until each group has
 about **200 agents who pulled**, or for **30 days** after this ships,
 whichever comes first. A clear winner ships to everyone. If 30 days pass
-without a clear answer, everyone gets the effects. PR 3 has the Ledger compare
-the groups on finished case files, shares and buyers, and show the test's day
-and group sizes.
+without a clear answer, everyone gets the effects.
+
+The Ledger's "effects test" section (PR 3) shows it: the day (of 30, counted
+from 2026-11-10, when shop-wide sound joined; it ends 2026-12-10), agents who
+pulled per group since the test began counting with the Vault on 2026-11-09,
+and the groups side by side on opening, finishing, sharing, buying and coming
+back. A difference is only called when both groups have at least 100 trials
+and their 95% intervals don't overlap; otherwise it says "none yet".
 
 ## Plan
 
