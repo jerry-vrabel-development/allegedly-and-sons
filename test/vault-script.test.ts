@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import worker, { route, type Deps } from "../src/worker/index";
 import { grantAwards } from "../src/worker/dossier";
 import { STRICT_CSP, VAULT_CSP } from "../src/worker/security-headers";
-import { MUTE_KEY, VAULT_JS } from "../src/worker/vault-script";
+import { VAULT_JS } from "../src/worker/vault-script";
 import { VAULT_SCRIPT_PATH } from "../src/worker/vault-page";
 import { testEnv } from "./test-env";
 
@@ -79,15 +79,15 @@ describe("the Vault script", () => {
     expect(VAULT_CSP).not.toContain("unsafe");
   });
 
-  it("does nothing risky: no eval, no innerHTML, no other hosts, one stored setting", () => {
+  it("does nothing risky: no eval, no innerHTML, no other hosts, nothing stored", () => {
     expect(VAULT_JS).not.toMatch(
-      /eval\(|new Function|innerHTML|outerHTML|document\.write|sessionStorage|https?:\/\//,
+      /eval\(|new Function|innerHTML|outerHTML|document\.write|sessionStorage|localStorage|https?:\/\//,
     );
-    expect(VAULT_JS.match(/localStorage\.\w+\(/g)).toEqual([
-      "localStorage.getItem(",
-      "localStorage.setItem(",
-    ]);
-    expect(VAULT_JS).toContain(JSON.stringify(MUTE_KEY));
+  });
+
+  it("plays its sounds through the shop-wide module, and runs silently without it", () => {
+    expect(VAULT_JS).toContain("if (window.BureauSound) window.BureauSound.play(name);");
+    expect(VAULT_JS).not.toMatch(/AudioContext|createOscillator|sound-toggle/);
   });
 
   it("falls back to the plain form when it can't run, and never posts a pull twice", () => {

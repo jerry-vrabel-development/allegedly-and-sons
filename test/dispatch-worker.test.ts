@@ -5,6 +5,9 @@ import { grantAwards } from "../src/worker/dossier";
 import { readRegistration, sha256Hex, unsubscribe } from "../src/worker/dispatch";
 import { emailSender, postalAddressFrom, route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
+import { SOUND_SCRIPT_PATH } from "../src/worker/sound-script";
+
+const SOUND_TAG = `<script src="${SOUND_SCRIPT_PATH}" defer></script>`;
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);
@@ -412,7 +415,8 @@ describe("the dossier's Dispatch section", () => {
     expect(html).toContain('<label for="dispatch-email">Your email</label>');
     expect(html).toContain('autocomplete="email"');
     expect(html).toContain("Register with the Bureau</button>");
-    expect(html).not.toContain("<script");
+    // Only the shop-wide sound script (note 0011; A is in the "fx" group).
+    expect(html.replace(SOUND_TAG, "")).not.toContain("<script");
   });
 
   it("shows a registered agent their masked address and the notice once", async () => {

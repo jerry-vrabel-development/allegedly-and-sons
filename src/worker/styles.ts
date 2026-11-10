@@ -177,6 +177,20 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 @keyframes lever-pull { 40% { transform: translateY(6px) scale(0.97); } 100% { transform: none; } }
 .sound-toggle { font: inherit; font-size: 0.95rem; background: transparent; color: var(--text); border: 2px solid var(--muted); border-radius: 6px; padding: 0.35rem 0.75rem; min-height: 44px; margin: 0.5rem 0 0; cursor: pointer; }
 .sound-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+header.site .sound-toggle { margin: 0; min-height: 44px; }
+/* Tune in and the certificate stamp (note 0011, PR 2): state in words, motion optional */
+button.button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
+button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.tune-in { margin: 0 0 1rem; }
+.tune-in[aria-pressed="true"] { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
+.patter p.speaking { border-left: 4px solid var(--accent); padding-left: 0.75rem; font-weight: bold; }
+.certificate-moment { margin: 1.5rem 0; }
+.stamp-mark:not(:empty) { display: inline-block; border: 4px double var(--accent); color: var(--accent); padding: 0.5rem 1rem; font-weight: bold; letter-spacing: 0.05em; transform: rotate(-3deg); }
+.stamp-mark.stamping { animation: stamp-in 380ms cubic-bezier(.2,1.6,.4,1); }
+@keyframes stamp-in { from { transform: rotate(-12deg) scale(2.2); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .stamp-mark.stamping { animation: none; } }
+/* "Case closed" (note 0011): said in words, with a rule as a second cue */
+.case-closed:not(:empty) { border-left: 4px solid var(--accent); padding-left: 0.75rem; font-weight: bold; }
 .reel-dialog { max-width: min(30rem, calc(100vw - 2rem)); width: 100%; border: 3px double var(--rule); border-radius: 12px; background: var(--surface); color: var(--text); padding: 1.25rem 1.5rem 1.5rem; text-align: center; }
 .reel-dialog::backdrop { background: rgb(0 0 0 / 0.7); }
 .reel-dialog h2 { margin: 0 0 1rem; font-size: 1.4rem; font-style: italic; }

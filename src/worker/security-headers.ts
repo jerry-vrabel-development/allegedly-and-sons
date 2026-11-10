@@ -6,12 +6,14 @@
  * form-action allows our own checkout form and the redirect it gets to
  * Stripe-hosted Checkout (browsers check redirects after a form post too).
  *
- * Three kinds of page get a looser policy. The Vault (note 0008) runs our own
- * reel script, like item pages. And two more: The embedded checkout page (design
- * note 0005, Option B): only there may Stripe.js load, frame Stripe's Checkout
- * and talk to Stripe's API. And item pages (note 0001, C4): our own story
- * script may run and report reads to our own origin, nothing else. Every other
- * page keeps the strict policy with no script-src.
+ * Successful shop pages may run our own scripts (note 0011: the shop-wide
+ * sound script), and nothing else: 'self' only, never inline. Some get a bit
+ * more. The Vault (note 0008) and the Broadcast run scripts that talk to our
+ * own origin, like item pages (note 0001, C4), which report reads. The
+ * embedded checkout page (design note 0005, Option B) is the only place
+ * Stripe.js may load, frame Stripe's Checkout and talk to Stripe's API.
+ * Errors, redirects, assets and private pages keep the strict policy with no
+ * script-src.
  */
 
 import { ITEM_PATH } from "../core/catalog";
@@ -58,6 +60,12 @@ const CHECKOUT_DIRECTIVES: Directives = {
   ],
   "connect-src": ["'self'", "https://api.stripe.com", "https://checkout.stripe.com"],
   "img-src": ["'self'", "https://*.stripe.com"],
+};
+
+/** Shop pages: the strict policy plus our own scripts, and no connections. */
+const SHOP_DIRECTIVES: Directives = {
+  ...STRICT_DIRECTIVES,
+  "script-src": ["'self'"],
 };
 
 /**
@@ -118,6 +126,17 @@ const ITEM_HEADERS: Readonly<Record<string, string>> = {
   "Content-Security-Policy": ITEM_CSP,
 };
 
+/** The policy for every other successful shop page. */
+export const SHOP_CSP = serialize(SHOP_DIRECTIVES);
+
+const SHOP_HEADERS: Readonly<Record<string, string>> = {
+  ...SECURITY_HEADERS,
+  "Content-Security-Policy": SHOP_CSP,
+};
+
+/** Responses that never run script: assets, the private ledger, the health check. */
+const NO_SCRIPT = /^\/(?:assets\/|bureau|healthz)/;
+
 /** The policy for the Vault page only. */
 export const VAULT_CSP = serialize(VAULT_DIRECTIVES);
 
@@ -140,7 +159,8 @@ export function securityHeadersFor(
   if (CHECKOUT_PATH.test(pathname)) return CHECKOUT_HEADERS;
   if (ITEM_PATH.test(pathname)) return ITEM_HEADERS;
   if (OWN_SCRIPT_PAGES.has(pathname)) return VAULT_HEADERS;
-  return SECURITY_HEADERS;
+  if (pathname === "" || NO_SCRIPT.test(pathname)) return SECURITY_HEADERS;
+  return SHOP_HEADERS;
 }
 
 /**

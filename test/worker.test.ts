@@ -9,7 +9,7 @@ import worker, {
   stripeKeyFrom,
   webhookSecretFrom,
 } from "../src/worker/index";
-import { ITEM_CSP, STRICT_CSP } from "../src/worker/security-headers";
+import { ITEM_CSP, SHOP_CSP, STRICT_CSP } from "../src/worker/security-headers";
 import { testEnv } from "./test-env";
 
 const BASE = "https://allegedly.example";
@@ -116,9 +116,11 @@ describe("Worker", () => {
       expect(csp).toContain("default-src 'none'");
       expect(csp).toContain("style-src 'self'");
       expect(csp).toContain("img-src 'self'");
-      expect(csp).not.toContain("script-src");
       expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     }
+    // Errors run no script at all; shop pages run only our own (note 0011).
+    expect((await get("/nope")).headers.get("Content-Security-Policy")).not.toContain("script-src");
+    expect((await get("/")).headers.get("Content-Security-Policy")).toBe(SHOP_CSP);
   });
 
   it("marks every HTML page no-transform, so nothing (like an analytics beacon) is injected", async () => {
@@ -156,13 +158,19 @@ describe("Worker", () => {
     }
   });
 
-  it("sends the strict policy (no script-src) on every other page", async () => {
+  it("gives other shop pages the shop policy: only our own scripts (note 0011)", async () => {
+    for (const path of ["/", "/disclaimer", "/thanks", "/dossier"]) {
+      expect((await get(path)).headers.get("Content-Security-Policy"), path).toBe(SHOP_CSP);
+    }
+  });
+
+  it("sends the strict policy (no script-src) on errors, assets and closed checkout", async () => {
     // Without a Stripe key the checkout page is closed (503), so nothing gets the Stripe policy.
     // NO_STRIPE_ENV keeps the checkout POST away from a real Stripe key.
     const responses = [
       ...(await Promise.all(
-        ["/", "/disclaimer", "/thanks", "/nope", "/assets/site.css", "/items/xenoclip"].map(
-          (path) => get(path),
+        ["/nope", "/assets/site.css", "/assets/sound.js", "/items/xenoclip"].map((path) =>
+          get(path),
         ),
       )),
       await worker.fetch(

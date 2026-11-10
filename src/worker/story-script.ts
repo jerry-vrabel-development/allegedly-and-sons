@@ -9,9 +9,14 @@
  * Each is sent at most once per page view, with navigator.sendBeacon (it
  * survives the reader leaving the page). Without JavaScript, sendBeacon or
  * IntersectionObserver, the page works the same and reads just aren't counted.
+ *
+ * Finishing earns the exhibit's card (note 0003), so once "finished" is on
+ * its way the page says so in words and fires CARD_EVENT, which the sound
+ * module (note 0011) answers with a stamp.
  */
 
 import { STORY_DWELL_MS } from "../core/analytics";
+import { CARD_EVENT } from "./sound-script";
 
 export const STORY_SCRIPT_PATH = "/assets/story.js";
 
@@ -20,6 +25,9 @@ export const EVENTS_PATH = "/events";
 
 /** The id of a story's last paragraph, watched for "finished". */
 export const STORY_END_ID = "story-end";
+
+/** The id of the status line that says a case file earned its card. */
+export const CASE_CLOSED_ID = "case-closed";
 
 export const STORY_JS = `"use strict";
 (function () {
@@ -36,6 +44,22 @@ export const STORY_JS = `"use strict";
     navigator.sendBeacon(${JSON.stringify(EVENTS_PATH)}, JSON.stringify({ item: item, depth: depth }));
   }
 
+  // Say the card was earned, in words, and let the sound module stamp it.
+  function closed() {
+    var line = document.getElementById(${JSON.stringify(CASE_CLOSED_ID)});
+    var card = box.getAttribute("data-card");
+    if (line && card) {
+      line.textContent = "Case closed. Card " + card + " is in your dossier.";
+      var link = document.createElement("a");
+      link.href = "/dossier";
+      link.textContent = "See your dossier";
+      line.appendChild(document.createTextNode(" "));
+      line.appendChild(link);
+      line.appendChild(document.createTextNode("."));
+    }
+    document.dispatchEvent(new Event(${JSON.stringify(CARD_EVENT)}));
+  }
+
   var timer = null;
   var watcher = null;
   if (typeof IntersectionObserver === "function") {
@@ -45,6 +69,7 @@ export const STORY_JS = `"use strict";
         timer = setTimeout(function () {
           send("finished");
           watcher.disconnect();
+          closed();
         }, ${String(STORY_DWELL_MS)});
       } else if (!visible && timer !== null) {
         clearTimeout(timer);

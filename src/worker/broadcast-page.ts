@@ -60,7 +60,8 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
     title: "The Back-Room Broadcast",
     description: `On air now: ${item.name}, ${discount(segment)}.`,
     scripts: [COUNTDOWN_SCRIPT_PATH],
-    body: html`<div class="broadcast">
+    // data-broadcast lets the sound module (note 0011) add "Tune in" for the fx group.
+    body: html`<div class="broadcast" data-broadcast>
       <p class="on-air-tag"><strong>On air</strong> · ${segmentName(segment)}</p>
       <h1>The Back-Room Broadcast</h1>
       <div class="exhibit">
@@ -89,7 +90,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
             }
           </p>
           <p class="acquire">
-            <a class="button" href="${checkoutPath(item)}" rel="nofollow"
+            <a class="button" href="${checkoutPath(item)}" rel="nofollow" data-sound="kachunk"
               >Acquire it for ${price}</a
             >
           </p>

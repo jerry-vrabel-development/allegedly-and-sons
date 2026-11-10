@@ -29,3 +29,46 @@ export function effectsOn(visitorId: string | null, fxParam: string | null): boo
   if (fxParam === "off") return false;
   return visitorId !== null && effectsVariant(visitorId) === "fx";
 }
+
+/**
+ * The effects test's stopping rule (design note 0011): it runs until each
+ * group has about TARGET_PULLERS agents who pulled, or for TEST_DAYS days
+ * after shop-wide sound joined, whichever comes first. Then a clear winner
+ * ships to everyone, and if there's none, everyone gets the effects.
+ */
+
+/** When the test began counting: the Vault's split (note 0008, PR 3). */
+export const TEST_STARTED = Date.UTC(2026, 10, 9) / 1000;
+
+/** When shop-wide sound joined (note 0011); the days run from here. */
+export const TEST_WIDENED = Date.UTC(2026, 10, 10) / 1000;
+
+export const TEST_DAYS = 30;
+
+/** Agents who pulled, per group, that end the test early. */
+export const TARGET_PULLERS = 200;
+
+export interface TestStatus {
+  /** Which day of the test it is, 1 to TEST_DAYS. */
+  readonly day: number;
+  readonly fxPullers: number;
+  readonly plainPullers: number;
+  /** Why the test is over, or undefined while it runs. */
+  readonly ended: "target" | "time" | undefined;
+}
+
+export function testStatus(
+  nowSeconds: number,
+  fxPullers: number,
+  plainPullers: number,
+): TestStatus {
+  const elapsed = Math.floor((nowSeconds - TEST_WIDENED) / 86_400) + 1;
+  const day = Math.min(Math.max(elapsed, 1), TEST_DAYS);
+  const ended =
+    fxPullers >= TARGET_PULLERS && plainPullers >= TARGET_PULLERS
+      ? "target"
+      : nowSeconds >= TEST_WIDENED + TEST_DAYS * 86_400
+        ? "time"
+        : undefined;
+  return { day, fxPullers, plainPullers, ended };
+}

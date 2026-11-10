@@ -9,8 +9,12 @@
  * server's words ("1 hour 22 minutes left") stay as they are.
  *
  * The clock text isn't announced every second (no live region); the words
- * around it say what it is.
+ * around it say what it is. At zero it fires SEGMENT_END_EVENT first, so the
+ * sound module can play the stinger.
  */
+
+/** Fired when a clock reaches zero, just before the page reloads. */
+export const SEGMENT_END_EVENT = "bureau:segment-end";
 
 export const COUNTDOWN_SCRIPT_PATH = "/assets/countdown.js";
 
@@ -30,7 +34,12 @@ export const COUNTDOWN_JS = `"use strict";
       var h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
       clocks[i].textContent = h + ":" + pad(m) + ":" + pad(s);
     }
-    if (expired) { setTimeout(function () { window.location.reload(); }, 1500); return; }
+    if (expired) {
+      // The sound module (note 0011) plays the segment stinger for listeners who tuned in.
+      document.dispatchEvent(new Event(${JSON.stringify(SEGMENT_END_EVENT)}));
+      setTimeout(function () { window.location.reload(); }, 1500);
+      return;
+    }
     setTimeout(tick, 1000);
   }
   tick();

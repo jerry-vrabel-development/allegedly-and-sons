@@ -74,6 +74,7 @@ import {
   vaultPage,
 } from "./vault-page";
 import { VAULT_JS } from "./vault-script";
+import { SOUND_JS, SOUND_SCRIPT_PATH, wantsSound, withSound } from "./sound-script";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
 import {
@@ -541,15 +542,21 @@ async function unsubscribePost(request: Request, deps: Deps): Promise<Response> 
  */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   const response = await routeRequest(request, deps);
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
+  const { pathname } = url;
   if (
     response.status !== 200 ||
-    !String(response.headers.get("Content-Type")).startsWith("text/html") ||
-    !wantsBanner(pathname)
+    !String(response.headers.get("Content-Type")).startsWith("text/html")
   ) {
     return response;
   }
-  const page = withBanner(await response.text(), onAirBanner(deps.nowSeconds()));
+  const banner = wantsBanner(pathname);
+  // Sound for the "fx" group only (note 0011), by the same rule as the Vault's reel.
+  const sound = wantsSound(pathname) && effectsOn(deps.visitorId, url.searchParams.get("fx"));
+  if (!banner && !sound) return response;
+  let page = await response.text();
+  if (banner) page = withBanner(page, onAirBanner(deps.nowSeconds()));
+  if (sound) page = withSound(page, STYLESHEET_PATH);
   return new Response(page, response);
 }
 
@@ -656,6 +663,13 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
       });
     case VAULT_SCRIPT_PATH:
       return new Response(VAULT_JS, {
+        headers: {
+          "Content-Type": "text/javascript; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      });
+    case SOUND_SCRIPT_PATH:
+      return new Response(SOUND_JS, {
         headers: {
           "Content-Type": "text/javascript; charset=utf-8",
           "Cache-Control": "public, max-age=300",
