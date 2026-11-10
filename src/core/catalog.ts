@@ -434,6 +434,138 @@ export const CATALOG: readonly [Item, ...Item[]] = [
       "The smallest price in the shop for the most magical pocket change you'll ever hold.",
     ],
   },
+  {
+    slug: "atlantean-bottle-cap",
+    status: "pending",
+    wing: "lost-civilizations",
+    name: "The Atlantean Bottle Cap",
+    exhibit: "AS-0011",
+    tagline: "The city sank. The soda stayed fizzy.",
+    hook: "Atlantis went down in a day. Its last soda was never opened. Until now.",
+    estimatedValue: "One sunken city's entire recycling deposit",
+    artAlt:
+      "Illustration of a crimped metal bottle cap resting on the sea floor among bubbles, with sunken columns behind it.",
+    priceCents: 2_200,
+    specs: [
+      { label: "Material", value: "Metal crown cap (expected)" },
+      { label: "Diameter", value: "About 2.6 cm (expected)" },
+      { label: "Fizz", value: "Departed. Under investigation." },
+    ],
+    story: {
+      headline: "The Last Soda of Atlantis",
+      paragraphs: [
+        "Atlantis had marble temples, crystal towers and, according to Bureau divers, an excellent soda fountain. On the day the city sank, one bottle was sitting on the counter, still sealed.",
+        "It sank with everything else and stayed fizzy for nine thousand years. The divers who found it report that the bubbles were still rising, very slowly, in a single orderly line, as if waiting for someone to say it was all right to leave.",
+        "The Bureau opened it. The fizz left. Nobody knows where it went, and the Bureau's best theory is that it simply went home. This cap is what remains.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "Nine thousand years under the sea and that soda was still fizzy, folks. Still fizzy.",
+      "We opened it. The bubbles left in an orderly line. Atlantis had manners.",
+      "This cap held in a lost civilization's last refreshment. What does your cap hold in?",
+      "A little piece of Atlantis for less than a sandwich. A small sandwich.",
+    ],
+  },
+  {
+    slug: "rosetta-coaster",
+    status: "pending",
+    wing: "lost-civilizations",
+    name: "The Rosetta Coaster",
+    exhibit: "AS-0012",
+    tagline: "The same bar order, in three dead languages.",
+    hook: "Scholars spent centuries on the famous stone. This was the one under the drinks.",
+    estimatedValue: "A round for the entire ancient world",
+    artAlt:
+      "Illustration of a round cork coaster covered in three bands of ancient-looking writing, with a ring stain from a cup.",
+    priceCents: 4_500,
+    specs: [
+      { label: "Material", value: "Cork coaster (expected)" },
+      { label: "Diameter", value: "About 10 cm (expected)" },
+      { label: "Translation", value: "“Two beers and whatever he's having.”" },
+    ],
+    story: {
+      headline: "Under the Drinks",
+      paragraphs: [
+        "Everyone knows about the great carved stone that unlocked a dead language. Nobody asks where the scribes went after work. The Bureau asked. They went to a tavern, and they brought their habits with them.",
+        "This coaster carries the same message three times, in three ancient scripts, so that any bartender of any empire could read it. Bureau linguists spent eleven years on the translation. It reads: “Two beers and whatever he's having.”",
+        "Who “he” was remains the great unsolved question of the ancient world. The ring stain has been dated to a Thursday.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "Three dead languages, folks. One message. And the message is a bar order.",
+      "Eleven years of translation. “Two beers and whatever he's having.” Worth it.",
+      "Who was he? What was he having? History won't say. This coaster knows.",
+      "Put your drink on a piece of ancient scholarship. The scholars would have wanted that.",
+    ],
+  },
+  {
+    slug: "pharaohs-spare-key",
+    status: "pending",
+    wing: "lost-civilizations",
+    name: "The Pharaoh's Spare Key",
+    exhibit: "AS-0013",
+    tagline: "For the tomb. In case he locked himself in.",
+    hook: "He planned his afterlife for forty years. He still hid a key under the mat.",
+    estimatedValue: "One pyramid, gently haunted",
+    artAlt:
+      "Illustration of an old-fashioned metal key lying on sand, with a small pyramid and a crescent moon in the background.",
+    priceCents: 18_900,
+    specs: [
+      { label: "Material", value: "Old-style metal key (expected)" },
+      { label: "Length", value: "About 6 cm (expected)" },
+      { label: "Opens", value: "Nothing currently above ground." },
+    ],
+    story: {
+      headline: "Under the Mat",
+      paragraphs: [
+        "A pharaoh spends his whole life preparing for the next one: the tomb, the treasures, the boats, the snacks. This one also worried, privately, about being locked out of it.",
+        "So he had a spare key made and hid it where every homeowner in history has hidden one: under the mat, outside the front door of his pyramid. The mat has not survived. The key has.",
+        "It was found by a Bureau agent who tripped over it while looking for a better parking spot. It has never been tried in the lock. The Bureau would rather not know what answers the door.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "Forty years planning the afterlife, folks, and he still hid a spare under the mat.",
+      "Every one of us has done it. A pharaoh did it first. That's royalty.",
+      "It's never been tried in the lock. We'd rather not know who answers.",
+      "Hang it by your door. Explain it to no one.",
+    ],
+  },
+  {
+    slug: "last-dodos-feather",
+    status: "pending",
+    wing: "lost-civilizations",
+    name: "The Last Dodo's Feather",
+    exhibit: "AS-0014",
+    tagline: "She saw it coming. She left a note.",
+    hook: "The very last dodo knew exactly what was happening. This was her goodbye.",
+    estimatedValue: "An entire island's worth of regret",
+    artAlt:
+      "Illustration of a single grey-brown feather tucked into a folded note sealed with wax, on a dark evidence board.",
+    priceCents: 29_900,
+    specs: [
+      { label: "Material", value: "Craft feather (expected)" },
+      { label: "Length", value: "About 15 cm (expected)" },
+      { label: "Note", value: "Not included. The Bureau is keeping the note." },
+    ],
+    story: {
+      headline: "A Note from the Last of Them",
+      paragraphs: [
+        "History calls the dodo slow and trusting. The Bureau's files say otherwise. The last dodo was, by every account, the smartest bird on the island, and she was the first to notice that she was the last.",
+        "She spent her final afternoon writing a short note in careful pencil, folded it, tucked this feather inside, and left it on a rock where she was sure someone would find it. It took the Bureau three hundred years. The rock was very patient.",
+        "The note itself stays in the Bureau's archive, sealed. All the Bureau will say is that it ends, “Look after the others.” We are trying.",
+      ],
+      author: THE_BUREAU,
+    },
+    pitch: [
+      "She was the last one, folks, and she was the first to know it. Smartest bird on the island.",
+      "Her final afternoon, she wrote a note. Folded it. Tucked this feather inside.",
+      "The note stays in the archive. It ends, “Look after the others.” Heavy stuff for a bird.",
+      "Our most serious exhibit. Treat it gently. We do.",
+    ],
+  },
 ];
 
 /** Matches /items/<slug> and captures the slug. */
