@@ -434,7 +434,7 @@ describe("acquisition pending (note 0010)", () => {
       expect(page).toContain("<dt>Expected price</dt>");
       expect(page).toContain(formatPrice(item.priceCents));
       expect(page).toContain("<strong>Acquisition pending.</strong>");
-      expect(page).toContain(item.story.headline);
+      expect(page).toContain(escapeHtml(item.story.headline));
       expect(page).not.toContain("Acquire this exhibit");
       expect(page).not.toContain(`/checkout/${item.slug}`);
       expect(page).not.toContain("Secure checkout by Stripe");

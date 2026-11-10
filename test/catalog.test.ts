@@ -14,6 +14,11 @@ import {
 import { ART } from "../src/worker/art";
 
 describe("catalog", () => {
+  it("has twenty exhibits, four to each of the five wings", () => {
+    expect(CATALOG).toHaveLength(20);
+    for (const wing of WINGS) expect(wingItems(wing.id)).toHaveLength(WING_SIZE);
+  });
+
   it("has the three launch exhibits for sale, and always something for sale", () => {
     expect(AVAILABLE_ITEMS.map((item) => item.slug)).toEqual(
       expect.arrayContaining([
@@ -106,7 +111,7 @@ describe("wings", () => {
 
   it("counts only wings with all four exhibits as full", () => {
     for (const wing of fullWings()) expect(wingItems(wing.id)).toHaveLength(WING_SIZE);
-    expect(fullWings().map((wing) => wing.id)).toContain("off-world");
+    expect(fullWings().map((wing) => wing.id)).toEqual(WINGS.map((wing) => wing.id));
   });
 });
 

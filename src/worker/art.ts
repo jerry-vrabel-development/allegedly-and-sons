@@ -343,6 +343,134 @@ const DODO_FEATHER = board(
   </g>`,
 );
 
+const THIMBLE = board(
+  "AS-0015",
+  `<g transform="translate(400 380)">
+    <ellipse cx="0" cy="40" rx="230" ry="60" fill="#5a1a2a"/>
+    <ellipse cx="0" cy="24" rx="230" ry="60" fill="#7a2338"/>
+    <path d="M-200 10 C-120 -20 120 -20 200 10" fill="none" stroke="#9a3a50" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="-210" cy="40" r="12" fill="#d4a94a"/><circle cx="210" cy="40" r="12" fill="#d4a94a"/>
+  </g>
+  <g transform="translate(400 300)">
+    <path d="M-56 70 L-46 -40 C-44 -84 44 -84 46 -40 L56 70 Z" fill="#c3c8d1"/>
+    <ellipse cx="0" cy="70" rx="56" ry="14" fill="#a3a9b4"/>
+    <g fill="#8f939b">
+      ${Array.from({ length: 5 }, (_, row) =>
+        Array.from(
+          { length: 6 },
+          (_, col) =>
+            `<circle cx="${String(-30 + col * 12)}" cy="${String(-40 + row * 18)}" r="3"/>`,
+        ).join(""),
+      ).join("")}
+    </g>
+    <path d="M-38 -30 C-40 10 -40 40 -42 60" fill="none" stroke="#ffffff" stroke-width="5" stroke-opacity="0.6" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(560 210)">
+    <path d="M-50 30 L-60 -20 L-25 5 L0 -35 L25 5 L60 -20 L50 30 Z" fill="#d4a94a"/>
+    <rect x="-50" y="30" width="100" height="16" fill="#b58a3c"/>
+    <circle cx="0" cy="-35" r="7" fill="#e0302a"/><circle cx="-60" cy="-20" r="5" fill="#9fe8c6"/><circle cx="60" cy="-20" r="5" fill="#9fe8c6"/>
+  </g>
+  <g transform="translate(230 250) rotate(-30)">
+    <path d="M0 -90 V80" stroke="#c3c8d1" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-78" rx="3" ry="8" fill="#151a23"/>
+    <path d="M0 -78 C40 -60 -30 -20 30 20 C70 50 10 80 40 110" fill="none" stroke="#e0302a" stroke-width="3"/>
+  </g>`,
+);
+
+const PEBBLE = board(
+  "AS-0016",
+  `<path d="M0 420 C200 400 400 430 600 410 C700 400 760 410 800 405 V600 H0 Z" fill="#3f5a35"/>
+  <g fill="#4f6d43">
+    <path d="M60 430 l6 -24 l6 24 Z"/><path d="M120 440 l5 -20 l5 20 Z"/><path d="M700 425 l6 -22 l6 22 Z"/>
+  </g>
+  <path d="M430 420 C420 300 460 200 560 190 C680 180 740 280 730 420 Z" fill="#7d7f86"/>
+  <path d="M460 400 C455 300 490 230 560 222" fill="none" stroke="#9a9ca3" stroke-width="10" stroke-linecap="round"/>
+  <rect x="566" y="180" width="18" height="40" rx="3" fill="#1b1f27"/>
+  <g transform="translate(300 410)">
+    <ellipse cx="0" cy="20" rx="80" ry="12" fill="#26361f"/>
+    <ellipse cx="0" cy="0" rx="74" ry="44" fill="#9a9ca3"/>
+    <ellipse cx="-14" cy="-12" rx="40" ry="18" fill="#b5b7bd"/>
+    <rect x="-3" y="-30" width="6" height="12" rx="1" fill="#1b1f27"/>
+  </g>
+  <path d="M340 340 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4 l10 -4 Z" fill="#f4ead2"/>`,
+);
+
+const STAMP = board(
+  "AS-0017",
+  `<g transform="translate(400 440) rotate(-4)">
+    <rect x="-210" y="-60" width="420" height="140" rx="3" fill="#f4ead2"/>
+    <g transform="rotate(-6)">
+      <rect x="-150" y="-30" width="300" height="70" rx="6" fill="none" stroke="#7a1f1f" stroke-width="7"/>
+      <text x="0" y="18" text-anchor="middle" font-family="Georgia, serif" font-size="36" font-weight="bold" fill="#7a1f1f" letter-spacing="3">APPROVED</text>
+    </g>
+  </g>
+  <ellipse cx="400" cy="230" rx="170" ry="150" fill="#9fe8c6" fill-opacity="0.12"/>
+  <g transform="translate(400 210)">
+    <ellipse cx="0" cy="-110" rx="44" ry="40" fill="#8a5a2b"/>
+    <rect x="-18" y="-80" width="36" height="80" fill="#8a5a2b"/>
+    <rect x="-80" y="0" width="160" height="34" rx="4" fill="#6b4421"/>
+    <rect x="-84" y="34" width="168" height="18" rx="2" fill="#2a2a2e"/>
+    <path d="M-30 -130 C-20 -142 0 -146 14 -140" fill="none" stroke="#b07a45" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <g fill="none" stroke="#9fe8c6" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round">
+    <path d="M280 150 C260 180 270 220 250 250"/><path d="M520 150 C540 180 530 220 550 250"/>
+  </g>`,
+);
+
+const PICK = board(
+  "AS-0018",
+  `<rect width="800" height="600" fill="#0e2a3a" fill-opacity="0.7"/>
+  <g fill="none" stroke="#2f6fa8" stroke-opacity="0.5" stroke-width="4">
+    <path d="M400 330 m-60 0 a60 30 0 1 0 120 0 a60 30 0 1 0 -120 0"/>
+    <path d="M400 330 m-130 0 a130 65 0 1 0 260 0 a130 65 0 1 0 -260 0"/>
+    <path d="M400 330 m-210 0 a210 105 0 1 0 420 0 a210 105 0 1 0 -420 0"/>
+  </g>
+  <g fill="#5a7b94" fill-opacity="0.7">
+    <path d="M180 300 l20 -6 l-8 22 Z"/><path d="M600 380 l18 4 l-14 16 Z"/>
+    <path d="M520 250 l14 -4 l-6 16 Z"/><path d="M260 410 l16 2 l-10 14 Z"/>
+  </g>
+  <g transform="translate(400 250) rotate(-12)">
+    <path d="M0 110 C-30 70 -86 -10 -76 -60 C-66 -100 66 -100 76 -60 C86 -10 30 70 0 110 Z" fill="#e0503a"/>
+    <path d="M0 110 C-30 70 -86 -10 -76 -60 C-66 -100 66 -100 76 -60 C86 -10 30 70 0 110 Z" fill="none" stroke="#b5392a" stroke-width="5"/>
+    <path d="M-52 -64 C-30 -80 20 -80 40 -70" fill="none" stroke="#ffb3a3" stroke-width="6" stroke-linecap="round"/>
+  </g>`,
+);
+
+const MARBLE = board(
+  "AS-0019",
+  `<path d="M0 400 H800 V600 H0 Z" fill="#4a4a50"/>
+  <ellipse cx="400" cy="470" rx="300" ry="80" fill="none" stroke="#e8e6e0" stroke-width="5" stroke-dasharray="14 10"/>
+  <circle cx="610" cy="460" r="22" fill="#2f6fa8"/>
+  <circle cx="604" cy="454" r="6" fill="#ffffff" fill-opacity="0.6"/>
+  <g transform="translate(400 300)">
+    <ellipse cx="0" cy="150" rx="90" ry="16" fill="#26262a" fill-opacity="0.7"/>
+    <circle r="130" fill="#9fe8c6" fill-opacity="0.35"/>
+    <circle r="130" fill="none" stroke="#9fe8c6" stroke-opacity="0.8" stroke-width="4"/>
+    <path d="M-90 20 C-60 -80 60 -80 70 0 C80 70 -20 90 -40 30 C-55 -10 10 -30 20 10" fill="none" stroke="#e0503a" stroke-width="16" stroke-linecap="round"/>
+    <path d="M-90 20 C-60 -80 60 -80 70 0" fill="none" stroke="#f2c230" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="-50" cy="-70" rx="34" ry="18" fill="#ffffff" fill-opacity="0.55" transform="rotate(-30 -50 -70)"/>
+  </g>`,
+);
+
+const FORTUNE = board(
+  "AS-0020",
+  `<g transform="translate(300 330)">
+    <path d="M-120 40 C-130 -40 -60 -90 0 -60 C10 -20 -10 30 -40 60 C-70 80 -110 70 -120 40 Z" fill="#d9a65a"/>
+    <path d="M-110 30 C-110 -30 -60 -70 -10 -50" fill="none" stroke="#f0c98a" stroke-width="8" stroke-linecap="round"/>
+    <path d="M10 -40 C70 -60 120 -20 110 40 C80 60 40 50 20 20 Z" fill="#c9954a"/>
+  </g>
+  <g transform="translate(470 300) rotate(-8)">
+    <rect x="-40" y="-26" width="300" height="70" rx="2" fill="#f7f3ea"/>
+    <g stroke="#3d3a36" stroke-width="2" stroke-linecap="round">
+      ${Array.from({ length: 6 }, (_, row) => `<path d="M-28 ${String(-16 + row * 11)} H${String(210 - (row % 3) * 18)}" stroke-dasharray="${String(3 + (row % 2))} 2"/>`).join("")}
+    </g>
+  </g>
+  <g fill="#f4ead2">
+    <path d="M610 160 l5 12 l12 5 l-12 5 l-5 12 l-5 -12 l-12 -5 l12 -5 Z"/>
+    <circle cx="160" cy="160" r="2.5"/><circle cx="680" cy="470" r="2"/>
+  </g>`,
+);
+
 /** SVG artwork by item slug. Every catalog item has one (a test checks). */
 export const ART: Readonly<Record<string, string>> = {
   "alien-paperclip": PAPERCLIP,
@@ -359,6 +487,12 @@ export const ART: Readonly<Record<string, string>> = {
   "rosetta-coaster": COASTER,
   "pharaohs-spare-key": PHARAOH_KEY,
   "last-dodos-feather": DODO_FEATHER,
+  "emperors-lost-thimble": THIMBLE,
+  "king-arthurs-lesser-pebble": PEBBLE,
+  "haunted-rubber-stamp": STAMP,
+  "bermuda-triangle-guitar-pick": PICK,
+  "marble-of-infinite-regret": MARBLE,
+  "prototype-fortune-cookie-fortune": FORTUNE,
 };
 
 export function artPath(slug: string): string {
