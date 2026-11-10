@@ -197,7 +197,7 @@ describe("item page", () => {
       expect(page).toContain(`src="/assets/art/${item.slug}.svg"`);
       expect(page).toContain(`<link rel="canonical" href="${ORIGIN}/items/${item.slug}" />`);
       expect(page).toContain(
-        `<a href="/share/${item.slug}/bluesky" rel="nofollow">Share on Bluesky</a>`,
+        `<a href="/share/${item.slug}/bluesky" rel="nofollow" data-sound="whoosh">Share on Bluesky</a>`,
       );
       expect(page).toContain(item.story.author.title);
       expect(count(page, /<p>/g)).toBeGreaterThanOrEqual(item.story.paragraphs.length);
@@ -226,7 +226,8 @@ describe("item page details", () => {
   it('hides all but the first paragraph behind "keep reading"', () => {
     const page = squish(itemPage(firstItem(), ORIGIN));
     const [first, second] = firstItem().story.paragraphs;
-    const details = page.indexOf(`<details data-story="${firstItem().slug}">`);
+    const item = firstItem();
+    const details = page.indexOf(`<details data-story="${item.slug}" data-card="${item.exhibit}">`);
     expect(details).toBeGreaterThan(0);
     expect(page.indexOf(first)).toBeLessThan(details);
     expect(page.indexOf(second ?? "")).toBeGreaterThan(details);
@@ -449,7 +450,7 @@ describe("buying", () => {
       // until the buyer is there, so a crawler following it is harmless (nofollow anyway).
       const page = squish(itemPage(item, ORIGIN));
       expect(page).toContain(
-        `<p class="acquire"> <a class="button" href="/checkout/${item.slug}" rel="nofollow">Acquire this exhibit</a> </p>`,
+        `<p class="acquire"> <a class="button" href="/checkout/${item.slug}" rel="nofollow" data-sound="kachunk" >Acquire this exhibit</a > </p>`,
       );
       expect(page).not.toContain("Acquisitions open soon");
     });

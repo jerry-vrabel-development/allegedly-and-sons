@@ -182,7 +182,8 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0007 — The Bureau Dispatch](docs/design/0007-dispatch.md)
 - [0008 — Sound and motion](docs/design/0008-sound-and-motion.md) (built)
 - [0009 — The Back-Room Broadcast](docs/design/0009-back-room-broadcast.md)
-- [0010 — The exhibit pipeline: adding products, wings and prices](docs/design/0010-exhibit-pipeline.md)
+- [0010 — The exhibit pipeline: adding products, wings and prices](docs/design/0010-exhibit-pipeline.md) (built)
+- [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md)
 
 ## Branch flow
 

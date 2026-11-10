@@ -6,6 +6,9 @@ import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 import { recordEvent } from "../src/worker/analytics";
 import { grantAwards, readDossier } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
+import { SOUND_SCRIPT_PATH } from "../src/worker/sound-script";
+
+const SOUND_TAG = `<script src="${SOUND_SCRIPT_PATH}" defer></script>`;
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);
@@ -145,7 +148,8 @@ describe("GET /dossier", () => {
     expect(html).toContain("<strong>Recruiter</strong> (locked): Bring someone in.");
     expect(html).toContain("Card AS-0001 · Sealed");
     expect(html).toContain('<meta name="robots" content="noindex" />');
-    expect(html).not.toContain("<script");
+    // Only the shop-wide sound script (note 0011; A is in the "fx" group).
+    expect(html.replace(SOUND_TAG, "")).not.toContain("<script");
   });
 
   it("shows an agent their number, codename, rank, cards and badges", async () => {

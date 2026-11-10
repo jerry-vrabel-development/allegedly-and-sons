@@ -4,7 +4,7 @@ import { BROADCAST_PATH, chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
 import { artPath } from "./art";
 import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
-import { STORY_END_ID, STORY_SCRIPT_PATH } from "./story-script";
+import { CASE_CLOSED_ID, STORY_END_ID, STORY_SCRIPT_PATH } from "./story-script";
 import { html, type SafeHtml } from "./html";
 
 export const SITE_NAME = "Allegedly & Sons";
@@ -127,7 +127,9 @@ function acquireBlock(item: Item, offer: Offer): SafeHtml {
     </p>`;
   }
   return html`<p class="acquire">
-      <a class="button" href="${checkoutPath(item)}" rel="nofollow">Acquire this exhibit</a>
+      <a class="button" href="${checkoutPath(item)}" rel="nofollow" data-sound="kachunk"
+        >Acquire this exhibit</a
+      >
     </p>
     ${onAirNote(offer)}
     <p class="secure-note">
@@ -265,7 +267,7 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
             ${
               rest.length === 0
                 ? html``
-                : html`<details data-story="${item.slug}">
+                : html`<details data-story="${item.slug}" data-card="${item.exhibit}">
                     <summary>Keep reading the case file</summary>
                     ${rest.map((paragraph, index) =>
                       index === rest.length - 1
@@ -273,6 +275,11 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
                         : html`<p>${paragraph}</p>`,
                     )}
                   </details>`
+            }
+            ${
+              rest.length === 0
+                ? html``
+                : html`<p class="case-closed" id="${CASE_CLOSED_ID}" role="status"></p>`
             }
             <p class="byline">Recorded by ${story.author.name}, ${story.author.title}</p>
           </section>
@@ -283,7 +290,7 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
               ${links.map(
                 (link) =>
                   html`<li>
-                    <a href="${link.href}" rel="nofollow">${link.label}</a>
+                    <a href="${link.href}" rel="nofollow" data-sound="whoosh">${link.label}</a>
                   </li>`,
               )}
             </ul>
