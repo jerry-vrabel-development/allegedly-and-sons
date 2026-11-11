@@ -7,9 +7,23 @@
 
 import { VISITOR_ID } from "./analytics";
 import { isSegmentId } from "./broadcast";
+import { isRecord, SLUG } from "./guards";
 
-/** The event types the webhook acts on. Others are acknowledged and ignored. */
+/** Checkout finished. Paid on the spot for cards; still unpaid for delayed methods. */
 export const CHECKOUT_COMPLETED = "checkout.session.completed";
+
+/** A delayed payment (a bank debit, say) cleared, some time after checkout finished. */
+export const CHECKOUT_ASYNC_PAYMENT_SUCCEEDED = "checkout.session.async_payment_succeeded";
+
+/**
+ * The event types that can carry a paid Checkout Session, so the webhook
+ * records an order from them. Others are acknowledged and ignored.
+ */
+const ORDER_EVENT_TYPES: readonly string[] = [CHECKOUT_COMPLETED, CHECKOUT_ASYNC_PAYMENT_SUCCEEDED];
+
+export function isOrderEvent(type: string): boolean {
+  return ORDER_EVENT_TYPES.includes(type);
+}
 
 export interface StripeEvent {
   /** e.g. "evt_1Q..." */
@@ -43,12 +57,6 @@ export type SessionOutcome =
 /** Stands in for a missing or odd item slug, so a paid order is never dropped. */
 export const UNKNOWN_ITEM = "unknown";
 
-const SLUG = /^[a-z0-9-]{1,64}$/;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 }
@@ -67,9 +75,10 @@ export function parseStripeEvent(body: unknown): StripeEvent | undefined {
 }
 
 /**
- * Builds the order for a `checkout.session.completed` event. `paidAt` is the
- * event's `created` time. Sessions that aren't paid yet (delayed payment
- * methods) are skipped; `async_payment_succeeded` will handle them later.
+ * Builds the order for a Checkout Session from an order event (isOrderEvent).
+ * `paidAt` is the event's `created` time. A session that completed but isn't
+ * paid yet (delayed payment methods) is skipped; the same session arrives
+ * again, paid, in `async_payment_succeeded` once the payment clears.
  */
 export function orderFromCompletedSession(session: unknown, paidAt: number): SessionOutcome {
   if (!isRecord(session)) return { kind: "invalid", reason: "session is not an object" };

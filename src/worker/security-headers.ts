@@ -13,17 +13,10 @@
  * embedded checkout page (design note 0005, Option B) is the only place
  * Stripe.js may load, frame Stripe's Checkout and talk to Stripe's API.
  * Errors, redirects, assets and private pages keep the strict policy with no
- * script-src.
+ * script-src. Which page gets which policy is decided in page-rules.ts.
  */
 
-import { ITEM_PATH } from "../core/catalog";
-
-/**
- * Pages that run our own scripts and talk only to our own origin: the Vault
- * (note 0008: the reel) and the Back-Room Broadcast (note 0009: the clock).
- */
-const OWN_SCRIPT_PAGES = new Set(["/vault", "/broadcast"]);
-import { CHECKOUT_PATH } from "../core/checkout";
+import { pageRule, type Policy } from "./page-rules";
 
 type Directives = Readonly<Record<string, readonly string[]>>;
 
@@ -69,10 +62,12 @@ const SHOP_DIRECTIVES: Directives = {
 };
 
 /**
- * Item pages: the strict policy plus our own story script ('self', served
- * from /assets/story.js, never inline) and beacons to our own /events.
+ * Pages whose own scripts talk to our own origin: the strict policy plus
+ * 'self' for scripts (never inline) and for connections. Item pages send
+ * beacons to /events, the Vault posts the pull, the Broadcast reloads its
+ * clock. First-party only: no other host may load or receive anything.
  */
-const ITEM_DIRECTIVES: Directives = {
+const OWN_ORIGIN_DIRECTIVES: Directives = {
   ...STRICT_DIRECTIVES,
   "script-src": ["'self'"],
   "connect-src": ["'self'"],
@@ -84,21 +79,20 @@ function serialize(directives: Directives): string {
     .join("; ");
 }
 
-/**
- * The Vault: the strict policy plus our own reel script ('self', from
- * /assets/vault.js, never inline) and its pull request to our own origin.
- * First-party only: no other host may load or receive anything.
- */
-const VAULT_DIRECTIVES: Directives = ITEM_DIRECTIVES;
-
-/** The policy every page gets unless it's the embedded checkout page. */
+/** The strict policy, with no script-src: errors, redirects, assets and private pages. */
 export const STRICT_CSP = serialize(STRICT_DIRECTIVES);
 
 /** The policy for the embedded checkout page only. */
 export const CHECKOUT_CSP = serialize(CHECKOUT_DIRECTIVES);
 
-/** The policy for item pages only. */
-export const ITEM_CSP = serialize(ITEM_DIRECTIVES);
+/** The policy for item pages, the Vault and the Broadcast. */
+export const ITEM_CSP = serialize(OWN_ORIGIN_DIRECTIVES);
+
+/** The Vault's policy: the same as an item page's. */
+export const VAULT_CSP = ITEM_CSP;
+
+/** The policy for every other successful shop page. */
+export const SHOP_CSP = serialize(SHOP_DIRECTIVES);
 
 /** Headers that are the same on every response. */
 const COMMON_HEADERS: Readonly<Record<string, string>> = {
@@ -110,57 +104,31 @@ const COMMON_HEADERS: Readonly<Record<string, string>> = {
   "Cross-Origin-Resource-Policy": "same-origin",
 };
 
+function headersWith(csp: string): Readonly<Record<string, string>> {
+  return { "Content-Security-Policy": csp, ...COMMON_HEADERS };
+}
+
 /** The default (strict) set of security headers. */
-export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
-  "Content-Security-Policy": STRICT_CSP,
-  ...COMMON_HEADERS,
-};
+export const SECURITY_HEADERS = headersWith(STRICT_CSP);
 
-const CHECKOUT_HEADERS: Readonly<Record<string, string>> = {
-  ...SECURITY_HEADERS,
-  "Content-Security-Policy": CHECKOUT_CSP,
-};
-
-const ITEM_HEADERS: Readonly<Record<string, string>> = {
-  ...SECURITY_HEADERS,
-  "Content-Security-Policy": ITEM_CSP,
-};
-
-/** The policy for every other successful shop page. */
-export const SHOP_CSP = serialize(SHOP_DIRECTIVES);
-
-const SHOP_HEADERS: Readonly<Record<string, string>> = {
-  ...SECURITY_HEADERS,
-  "Content-Security-Policy": SHOP_CSP,
-};
-
-/** Responses that never run script: assets, the private ledger, the health check. */
-const NO_SCRIPT = /^\/(?:assets\/|bureau|healthz)/;
-
-/** The policy for the Vault page only. */
-export const VAULT_CSP = serialize(VAULT_DIRECTIVES);
-
-const VAULT_HEADERS: Readonly<Record<string, string>> = {
-  ...SECURITY_HEADERS,
-  "Content-Security-Policy": VAULT_CSP,
+/** The full header set for each policy in page-rules.ts. */
+const HEADERS: Readonly<Record<Policy, Readonly<Record<string, string>>>> = {
+  strict: SECURITY_HEADERS,
+  shop: headersWith(SHOP_CSP),
+  ownOrigin: headersWith(ITEM_CSP),
+  checkout: headersWith(CHECKOUT_CSP),
 };
 
 /**
- * The security headers for one response. Only a successful (200) response on
- * /checkout/<item> gets the checkout policy, and only a successful item page
- * the item policy; errors, redirects and not-found pages run no script, so
- * they stay strict.
+ * The security headers for one response. Only a successful (200) response
+ * gets its page's policy (page-rules.ts); errors, redirects and not-found
+ * pages run no script, so they stay strict.
  */
 export function securityHeadersFor(
   pathname: string,
   status: number,
 ): Readonly<Record<string, string>> {
-  if (status !== 200) return SECURITY_HEADERS;
-  if (CHECKOUT_PATH.test(pathname)) return CHECKOUT_HEADERS;
-  if (ITEM_PATH.test(pathname)) return ITEM_HEADERS;
-  if (OWN_SCRIPT_PAGES.has(pathname)) return VAULT_HEADERS;
-  if (pathname === "" || NO_SCRIPT.test(pathname)) return SECURITY_HEADERS;
-  return SHOP_HEADERS;
+  return status === 200 ? HEADERS[pageRule(pathname).policy] : SECURITY_HEADERS;
 }
 
 /**

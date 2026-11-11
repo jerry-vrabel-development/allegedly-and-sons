@@ -8,23 +8,25 @@ import {
   CROSS_SELL_COUNT,
   crossSells,
   homePage,
-  MAX_SHIP_DAYS,
-  MERCHANDISE_TERMS,
-  ORDER_CONTACT_EMAIL,
-  METHODS_TERMS,
-  REFUND_WINDOW_HOURS,
-  saleTerms,
-  TERMS_LAST_AMENDED,
   itemPage,
   itemPath,
   layout,
   notFoundPage,
   SITE_NAME,
-  TERMS_PATH,
   thanksPage,
 } from "../src/worker/pages";
+import {
+  MAX_SHIP_DAYS,
+  MERCHANDISE_TERMS,
+  METHODS_TERMS,
+  ORDER_CONTACT_EMAIL,
+  REFUND_WINDOW_HOURS,
+  saleTerms,
+  TERMS_LAST_AMENDED,
+} from "../src/worker/terms";
 import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
-import { STORY_END_ID, STORY_SCRIPT_PATH } from "../src/worker/story-script";
+import { STORY_END_ID } from "../src/core/story";
+import { STORY_SCRIPT_PATH, TERMS_PATH } from "../src/core/paths";
 
 /** Collapses whitespace, since Prettier is free to reflow the HTML templates. */
 function squish(page: SafeHtml): string {
@@ -317,7 +319,7 @@ describe("disclaimer page", () => {
     expect(TERMS_LAST_AMENDED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // Prettier may wrap the tags, so allow whitespace before each ">".
     expect(pages.disclaimer).toMatch(
-      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 9, 2026</time\\s*>`),
+      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 10, 2026</time\\s*>`),
     );
     expect(pages.disclaimer).toContain(
       "Your order is governed by the terms posted when you placed it.",
@@ -375,15 +377,27 @@ describe("terms of sale", () => {
 });
 
 describe("the Bureau's methods", () => {
-  it("says plainly what runs in the browser: item pages, the Vault and checkout, only Stripe and us", () => {
+  it("says plainly what runs in the browser, for everyone and for the sound-and-motion half", () => {
     expect(pages.disclaimer).toContain("What Runs in Your Browser");
-    expect(pages.disclaimer).toContain(
-      "Four kinds of page run a script, and only our own or Stripe’s.",
-    );
-    expect(pages.disclaimer).toContain("The Vault runs one of ours that animates the lever");
+    expect(pages.disclaimer).toContain("Only our own scripts and Stripe’s ever run.");
     expect(pages.disclaimer).toContain(
       "notes when you open a case file and whether you read it to the end",
     );
+    expect(pages.disclaimer).toContain(
+      "The Vault and the Back-Room Broadcast run one that counts down their clocks.",
+    );
+    // Shop-wide sound (note 0011) and the reel (note 0008) are for half of visitors.
+    expect(pages.disclaimer).toContain(
+      "Half of visitors also get the shop with sound and motion, and half get it plain",
+    );
+    expect(pages.disclaimer).toContain(
+      "every shop page except checkout runs a sound script of ours",
+    );
+    expect(pages.disclaimer).toContain(
+      "your browser remembers that, and nothing about it is sent to us",
+    );
+    expect(pages.disclaimer).toContain("the Vault also runs one that animates the lever");
+    expect(pages.disclaimer).not.toContain("Four kinds of page run a script");
     expect(pages.disclaimer).not.toContain("Only the checkout page runs any script");
     expect(pages.disclaimer).toContain("Stripe may collect information about your device");
     expect(pages.disclaimer).toContain('href="https://stripe.com/privacy"');

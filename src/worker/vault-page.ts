@@ -1,7 +1,9 @@
 /**
- * The Vault page, /vault (design note 0003, G2). No script: the lever is a
- * plain form that posts to /vault/pull and comes back here. Odds are posted
- * on the page. Results say exactly what was drawn: no near misses, no teasing
+ * The Vault page, /vault (design note 0003, G2). The lever is a plain form
+ * that posts to /vault/pull and comes back here, so it works without script.
+ * A countdown script ticks the clocks, and for the effects group the Vault's
+ * own script plays the reel in place (note 0008). Odds are posted on the
+ * page. Results say exactly what was drawn: no near misses, no teasing
  * what you almost got. The opening animation is CSS only, and reduced motion
  * turns it off; the words "The vault creaks open" carry it either way.
  */
@@ -16,20 +18,16 @@ import {
   type VaultCard,
 } from "../core/vault";
 import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+import { layout, type Page } from "./pages";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
-import { COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
-
-export const VAULT_PATH = "/vault";
-export const VAULT_PULL_PATH = "/vault/pull";
-
-/** The Vault's own script (vault-script.ts): the lever plays in place. */
-export const VAULT_SCRIPT_PATH = "/assets/vault.js";
-
-/** Where a pull sends the agent back to: the result, with the door opening. */
-export const VAULT_OPENED_LOCATION = `${VAULT_PATH}?opened=1#latest-pull`;
+import {
+  COUNTDOWN_SCRIPT_PATH,
+  DOSSIER_PATH,
+  VAULT_PULL_PATH,
+  VAULT_SCRIPT_PATH,
+} from "../core/paths";
 
 const BONUS_IDS: readonly string[] = BONUS_BADGES;
 const BONUS_NAMES = BADGES.filter((badge) => BONUS_IDS.includes(badge.id))
@@ -106,7 +104,7 @@ export function vaultPage(
   opened: boolean,
   repairOpen: boolean,
   effects: boolean,
-): SafeHtml {
+): Page {
   return layout({
     title: "The Vault",
     description: "One free pull a day. Vault cards are never for sale.",
@@ -184,7 +182,10 @@ export function vaultPage(
           ${String(state.bonusEarned)} of ${String(BONUS_BADGES.length)}.
           <strong>Nothing you buy earns a pull or changes the odds.</strong>
         </p>
-        <p>Your vault cards also count toward your rank in <a href="/dossier">your dossier</a>.</p>
+        <p>
+          Your vault cards also count toward your rank in
+          <a href="${DOSSIER_PATH}">your dossier</a>.
+        </p>
       </section>`,
   });
 }

@@ -3,24 +3,15 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
-import { COUNTDOWN_JS, SEGMENT_END_EVENT } from "../src/worker/broadcast-script";
-import { itemPage, STYLESHEET_PATH, thanksPage } from "../src/worker/pages";
+import { CARD_EVENT, SEGMENT_END_EVENT } from "../src/core/dom-events";
+import { COUNTDOWN_JS, SOUND_JS, STORY_JS } from "../src/worker/client-scripts.generated";
+import { itemPage, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
-import {
-  CARD_EVENT,
-  HOST_LINE_MS,
-  LEGACY_MUTE_KEY,
-  LINK_DELAY_MS,
-  SOUND_JS,
-  SOUND_MUTE_KEY,
-  SOUND_NAMES,
-  SOUND_SCRIPT_PATH,
-  wantsSound,
-  withSound,
-} from "../src/worker/sound-script";
-import { CASE_CLOSED_ID, STORY_JS } from "../src/worker/story-script";
-import { VAULT_SCRIPT_PATH } from "../src/worker/vault-page";
+import { LEGACY_MUTE_KEY, SOUND_MUTE_KEY } from "../src/client/sound-rules";
+import { SOUND_NAMES } from "../src/client/sounds";
+import { CASE_CLOSED_ID } from "../src/core/story";
 import { testEnv } from "./test-env";
+import { SOUND_SCRIPT_PATH, VAULT_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 /** Ends in "a": the "fx" group. */
@@ -62,62 +53,32 @@ describe("the sound script", () => {
     expect(await response.text()).toBe(SOUND_JS);
   });
 
+  // The rules and the recipes are unit tested (sounds.test.ts) and the toggle,
+  // links and "Tune in" are watched in real browsers (e2e); these check the
+  // bundle itself.
   it("does nothing risky: no eval, no innerHTML, no other hosts, one stored setting", () => {
     expect(SOUND_JS).not.toMatch(
       /eval\(|new Function|innerHTML|outerHTML|document\.write|sessionStorage|https?:\/\//,
     );
-    expect(SOUND_JS.match(/localStorage\.\w+\(/g)).toEqual([
-      "localStorage.getItem(",
-      "localStorage.getItem(",
-      "localStorage.setItem(",
-    ]);
-    expect(SOUND_JS).toContain(`setItem(${JSON.stringify(SOUND_MUTE_KEY)}`);
-    // The Vault's old setting is only ever read, so nobody's choice is lost.
-    expect(SOUND_JS).toContain(`getItem(${JSON.stringify(LEGACY_MUTE_KEY)})`);
+    expect(SOUND_JS).not.toMatch(/^\s*(import|export)\s/m);
+    // Storage is reached for in one place, and only these two keys are named.
+    expect(SOUND_JS.match(/localStorage/g)).toHaveLength(1);
+    expect(SOUND_JS.match(/"bureau-[a-z-]+"/g)?.sort()).toEqual(
+      [JSON.stringify(SOUND_MUTE_KEY), JSON.stringify(LEGACY_MUTE_KEY)].sort(),
+    );
+    expect(SOUND_JS.match(/\.setItem\(/g)).toHaveLength(1);
   });
 
-  it("knows every sound by name, and plays nothing it doesn't know", () => {
-    for (const name of SOUND_NAMES) expect(SOUND_JS).toMatch(new RegExp(`\\b${name}: function`));
-    expect(SOUND_JS).toContain("hasOwnProperty.call(sounds, name)");
+  it("carries the sounds and nothing else: no catalog, nothing it doesn't use", () => {
+    expect(SOUND_JS.length).toBeLessThan(13_000);
+    for (const name of SOUND_NAMES) expect(SOUND_JS).toMatch(new RegExp(`\\b${name}: `));
+    for (const item of CATALOG) expect(SOUND_JS).not.toContain(item.slug);
   });
 
-  it("says the toggle's state in words and with aria-pressed", () => {
-    expect(SOUND_JS).toContain('"Sound: off" : "Sound: on"');
-    expect(SOUND_JS).toContain('setAttribute("aria-pressed"');
-  });
-
-  it("delays a link only briefly, and never a new-tab or modified click", () => {
-    expect(LINK_DELAY_MS).toBeLessThanOrEqual(250);
-    expect(SOUND_JS).toContain("event.metaKey || event.ctrlKey || event.shiftKey || event.altKey");
-    expect(SOUND_JS).toContain('!target.hasAttribute("target")');
-    expect(SOUND_JS).toContain("!muted");
-  });
-
-  it("creaks when a case file opens and stamps when one is finished", () => {
-    expect(SOUND_JS).toContain('if (story.open) play("creak")');
-    expect(SOUND_JS).toContain(`addEventListener(${JSON.stringify(CARD_EVENT)}`);
-  });
-});
-
-describe("withSound and wantsSound", () => {
-  it("adds the script right after the stylesheet, so it runs before page scripts", () => {
-    const page = `<head><link rel="stylesheet" href="${STYLESHEET_PATH}" /><script src="/x.js" defer></script></head>`;
-    const added = withSound(page, STYLESHEET_PATH);
-    expect(added.indexOf(TAG)).toBeGreaterThan(added.indexOf(STYLESHEET_PATH));
-    expect(added.indexOf(TAG)).toBeLessThan(added.indexOf("/x.js"));
-  });
-
-  it("leaves a page without our stylesheet unchanged", () => {
-    expect(withSound("<p>hi</p>", STYLESHEET_PATH)).toBe("<p>hi</p>");
-  });
-
-  it("skips checkout, private pages, posts and the health check", () => {
-    for (const path of ["/checkout/alien-paperclip", "/bureau/ledger", "/vault/pull", "/healthz"]) {
-      expect(wantsSound(path), path).toBe(false);
-    }
-    for (const path of ["/", "/items/alien-paperclip", "/vault", "/broadcast", "/thanks"]) {
-      expect(wantsSound(path), path).toBe(true);
-    }
+  it("offers the Vault's reel a way to play, and listens for the other scripts", () => {
+    expect(SOUND_JS).toContain("window.BureauSound = {");
+    expect(SOUND_JS).toContain("addEventListener(CARD_EVENT");
+    expect(SOUND_JS).toContain("addEventListener(SEGMENT_END_EVENT");
   });
 });
 
@@ -160,8 +121,9 @@ describe("case closed (note 0011)", () => {
   });
 
   it("says the card was earned in words, safely, and fires the card event", () => {
-    expect(STORY_JS).toContain('"Case closed. Card " + card + " is in your dossier."');
-    expect(STORY_JS).toContain(`new Event(${JSON.stringify(CARD_EVENT)})`);
+    expect(STORY_JS).toContain("`Case closed. Card ${card} is in your dossier.`");
+    expect(STORY_JS).toContain(`CARD_EVENT = ${JSON.stringify(CARD_EVENT)}`);
+    expect(STORY_JS).toContain("new Event(CARD_EVENT)");
     expect(STORY_JS).not.toMatch(/innerHTML|outerHTML/);
   });
 });
@@ -171,27 +133,13 @@ describe("tune in to the Broadcast (note 0011, PR 2)", () => {
     expect(await html("/broadcast", FX)).toContain('class="broadcast" data-broadcast');
   });
 
-  it("says its state in words and with aria-pressed, and plays static then the stinger", () => {
-    expect(SOUND_JS).toContain('button("Tune in")');
-    expect(SOUND_JS).toContain('tune.textContent = "Tuned in"');
-    expect(SOUND_JS).toContain('tune.setAttribute("aria-pressed", "true")');
-    expect(SOUND_JS).toContain('play("static")');
-    expect(SOUND_JS).toContain('play("stinger")');
-  });
-
-  it("lights the host's lines one at a time, but not under reduced motion", () => {
-    expect(HOST_LINE_MS).toBeGreaterThanOrEqual(3000);
-    expect(SOUND_JS).toContain('classList.add("speaking")');
-    expect(SOUND_JS).toContain("if (!reduced) setTimeout(nextLine");
-  });
-
   it("plays the stinger when the segment ends, only for listeners who tuned in", () => {
-    expect(COUNTDOWN_JS).toContain(`new Event(${JSON.stringify(SEGMENT_END_EVENT)})`);
+    // The bundle carries the event's name and sends it.
+    expect(COUNTDOWN_JS).toContain(`SEGMENT_END_EVENT = ${JSON.stringify(SEGMENT_END_EVENT)}`);
+    expect(COUNTDOWN_JS).toContain("new Event(SEGMENT_END_EVENT)");
     // The event fires before the reload, so the stinger has time to start.
     expect(COUNTDOWN_JS.indexOf("dispatchEvent")).toBeLessThan(COUNTDOWN_JS.indexOf("reload()"));
-    expect(SOUND_JS).toContain(
-      `addEventListener(${JSON.stringify(SEGMENT_END_EVENT)}, function () { if (tuned) play("stinger"); })`,
-    );
+    expect(SOUND_JS).toContain('if (tuned) play("stinger")');
   });
 });
 
@@ -208,15 +156,5 @@ describe("stamp your certificate (note 0011, PR 2)", () => {
     expect(thanksPage({ kind: "paid", item: undefined }).value).not.toContain("data-certificate");
     expect(thanksPage({ kind: "processing", item }).value).not.toContain("data-certificate");
     expect(thanksPage({ kind: "incomplete", item }).value).not.toContain("data-certificate");
-  });
-
-  it("slams, plays the fanfare and says the stamp in words, announced", () => {
-    expect(SOUND_JS).toContain('button("Stamp your certificate")');
-    expect(SOUND_JS).toContain('play("slam")');
-    expect(SOUND_JS).toContain('play("fanfare")');
-    expect(SOUND_JS).toContain(
-      '"Stamped: Bureau Certificate No. " + number + ". Authenticity: Allegedly."',
-    );
-    expect(SOUND_JS).toContain('said.setAttribute("role", "status")');
   });
 });

@@ -4,16 +4,19 @@
  * button acts, since mail scanners open links by themselves.
  */
 
+import { maskEmail } from "../core/dispatch";
+import type { Registration } from "./dispatch";
+import { html, type SafeHtml } from "./html";
+import { layout, type Page } from "./pages";
 import {
   DISPATCH_CONFIRM_PATH,
   DISPATCH_PATH,
   DISPATCH_RECOVER_PATH,
   DISPATCH_UNSUBSCRIBE_PATH,
-  maskEmail,
-} from "../core/dispatch";
-import type { Registration } from "./dispatch";
-import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+  DOSSIER_DISPATCH_PATH,
+  DOSSIER_PATH,
+  METHODS_PATH,
+} from "../core/paths";
 
 /** What the dossier says about the Dispatch for this visitor. */
 export interface DispatchView {
@@ -89,7 +92,7 @@ export function dispatchSection(view: DispatchView): SafeHtml {
       <p class="small-print">
         Already registered on another device? Enter the same address and we'll send a link to open
         your file here. Your address is used only for Bureau mail; see
-        <a href="/disclaimer#methods-heading">the fine print</a>.
+        <a href="${METHODS_PATH}">the fine print</a>.
       </p>`;
   }
 
@@ -100,7 +103,7 @@ export function dispatchSection(view: DispatchView): SafeHtml {
 }
 
 /** After the form: the same answer whatever was typed. */
-export function sentPage(): SafeHtml {
+export function sentPage(): Page {
   return layout({
     title: "Check your inbox",
     description: "A dispatch from the Bureau is on its way.",
@@ -114,7 +117,7 @@ export function sentPage(): SafeHtml {
         device.
       </p>
       <p>Nothing there after a few minutes? Check your spam folder, or try again later.</p>
-      <p><a href="/dossier">Back to your dossier</a></p>
+      <p><a href="${DOSSIER_PATH}">Back to your dossier</a></p>
     </div>`,
   });
 }
@@ -143,7 +146,7 @@ const LINK_PAGES = {
 export type LinkKind = keyof typeof LINK_PAGES;
 
 /** The page an email link opens: a button that does the thing. */
-export function linkPage(kind: LinkKind, token: string): SafeHtml {
+export function linkPage(kind: LinkKind, token: string): Page {
   const page = LINK_PAGES[kind];
   const field = kind === "unsubscribe" ? "u" : "t";
   return layout({
@@ -162,7 +165,7 @@ export function linkPage(kind: LinkKind, token: string): SafeHtml {
 }
 
 /** A link that's been used, has expired, or never existed. */
-export function linkExpiredPage(): SafeHtml {
+export function linkExpiredPage(): Page {
   return layout({
     title: "That link has expired",
     description: "Bureau links work once, for a limited time.",
@@ -171,13 +174,13 @@ export function linkExpiredPage(): SafeHtml {
       <h1>That link has expired</h1>
       <p>
         Bureau links work once, for a limited time. Enter your address again on
-        <a href="/dossier#dispatch">your dossier</a> and we'll send a fresh one.
+        <a href="${DOSSIER_DISPATCH_PATH}">your dossier</a> and we'll send a fresh one.
       </p>
     </div>`,
   });
 }
 
-export function unsubscribedPage(): SafeHtml {
+export function unsubscribedPage(): Page {
   return layout({
     title: "Unsubscribed",
     description: "No more Bureau mail.",
@@ -186,13 +189,13 @@ export function unsubscribedPage(): SafeHtml {
       <h1>Unsubscribed</h1>
       <p>
         The Bureau won't send you mail any more. Your file is still yours: you can still open it on
-        another device, and register again any time from <a href="/dossier">your dossier</a>.
+        another device, and register again any time from <a href="${DOSSIER_PATH}">your dossier</a>.
       </p>
     </div>`,
   });
 }
 
-export function dispatchClosedPage(): SafeHtml {
+export function dispatchClosedPage(): Page {
   return layout({
     title: "Registration opens soon",
     description: "The Bureau Dispatch isn't open yet.",
@@ -200,7 +203,7 @@ export function dispatchClosedPage(): SafeHtml {
     body: html`<div class="prose">
       <h1>Registration opens soon</h1>
       <p>The Bureau isn't sending mail yet. Nothing was sent or saved.</p>
-      <p><a href="/dossier">Back to your dossier</a></p>
+      <p><a href="${DOSSIER_PATH}">Back to your dossier</a></p>
     </div>`,
   });
 }

@@ -10,7 +10,6 @@
  */
 
 import {
-  BROADCAST_PATH,
   chicagoTime,
   DISCOUNT_PERCENT,
   nextAuction,
@@ -23,8 +22,14 @@ import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { describeWait } from "../core/vault";
 import { html, type SafeHtml } from "./html";
-import { itemPath, layout, TERMS_PATH } from "./pages";
-import { COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
+import { itemPath, layout, type Page } from "./pages";
+import {
+  BROADCAST_PATH,
+  COUNTDOWN_SCRIPT_PATH,
+  TERMS_PATH,
+  artPath,
+  itemPathFor,
+} from "../core/paths";
 
 function segmentName(segment: Segment): string {
   return segment.kind === "auction" ? "The Midnight Auction" : "Rolling segment";
@@ -46,7 +51,7 @@ function countdown(segment: Segment, nowSeconds: number): SafeHtml {
   </p>`;
 }
 
-export function broadcastPage(nowSeconds: number, soldThisSegment: number): SafeHtml {
+export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page {
   const segment = segmentAt(nowSeconds);
   const { item } = segment;
   const next = nextSegment(nowSeconds);
@@ -67,7 +72,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
       <div class="exhibit">
         <figure class="art">
           <img
-            src="/assets/art/${item.slug}.svg"
+            src="${artPath(item.slug)}"
             alt="${item.artAlt}"
             width="800"
             height="600"
@@ -131,9 +136,15 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
   });
 }
 
-/** The ON AIR strip at the top of other pages. */
-export function onAirBanner(nowSeconds: number): SafeHtml {
+/**
+ * The ON AIR strip at the top of other pages, or undefined on the page of
+ * the exhibit that's on air: its buy box already says so, with the price and
+ * the deadline, and on a phone the strip pushed the buy button off the first
+ * screen.
+ */
+export function onAirBanner(nowSeconds: number, pathname: string): SafeHtml | undefined {
   const segment = segmentAt(nowSeconds);
+  if (pathname === itemPathFor(segment.item.slug)) return undefined;
   // On phones the end time is dropped (the broadcast page has it) so the
   // banner stays short and the item page's buy button stays on screen.
   const price = formatPrice(specialPriceCents(segment.item, segment.kind));
@@ -143,22 +154,4 @@ export function onAirBanner(nowSeconds: number): SafeHtml {
     <strong>On air:</strong> ${segment.item.name}, ${price} (${discount(segment)})${detail}.
     <a href="${BROADCAST_PATH}">Watch the broadcast</a>
   </p>`;
-}
-
-/** Pages that never carry the banner: the broadcast itself, checkout, private and return pages. */
-const NO_BANNER =
-  /^\/(?:broadcast|checkout\/|bureau|thanks|streak\/restored|dispatch\/|vault\/pull)/;
-
-/** Whether a page gets the ON AIR banner. */
-export function wantsBanner(pathname: string): boolean {
-  return !NO_BANNER.test(pathname);
-}
-
-/**
- * Adds the banner to an HTML page, just inside <body> after the skip link.
- * Our own layout always has that marker; anything else is left unchanged.
- */
-export function withBanner(page: string, banner: SafeHtml): string {
-  const marker = '<a class="skip-link" href="#main">Skip to content</a>';
-  return page.replace(marker, `${marker}${banner.value}`);
 }

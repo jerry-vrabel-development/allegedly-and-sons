@@ -15,8 +15,6 @@
 
 import { AVAILABLE_ITEMS, type Item } from "./catalog";
 
-export const BROADCAST_PATH = "/broadcast";
-
 /** The shop's clock. Segments follow Chicago's wall clock, DST and all. */
 export const BROADCAST_TIME_ZONE = "America/Chicago";
 

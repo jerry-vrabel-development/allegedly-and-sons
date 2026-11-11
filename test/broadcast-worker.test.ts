@@ -5,11 +5,11 @@ import { segmentAt, specialPriceCents } from "../src/core/broadcast";
 import { CATALOG, formatPrice } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
-import { COUNTDOWN_JS, COUNTDOWN_SCRIPT_PATH } from "../src/worker/broadcast-script";
+import { COUNTDOWN_JS } from "../src/worker/client-scripts.generated";
 import { VAULT_CSP } from "../src/worker/security-headers";
-import { WEBHOOK_PATH } from "../src/worker/webhook";
 import { stripeSignatureHeader } from "./stripe-test-signing";
 import { testEnv } from "./test-env";
+import { COUNTDOWN_SCRIPT_PATH, WEBHOOK_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const T = (iso: string) => Date.parse(iso) / 1000;
@@ -143,6 +143,21 @@ describe("the ON AIR banner", () => {
     }
   });
 
+  it("stays off the on-air exhibit's own page, whose buy box already says it", async () => {
+    // The strip repeated the buy box there, and on a phone it pushed the buy
+    // button off the first screen.
+    const { html } = await get(`/items/${segment.item.slug}`);
+    expect(html).not.toContain('class="on-air-banner"');
+    expect(html).toContain("<strong>On air now.</strong> This price ends at 3:00 PM Chicago time.");
+    // Every other exhibit's page still carries it.
+    const other = CATALOG.find((item) => item.slug !== segment.item.slug);
+    expect((await get(`/items/${other?.slug ?? ""}`)).html).toContain('class="on-air-banner"');
+    // Sound still loads there for the sound-and-motion group: only the strip goes.
+    const withSound = await get(`/items/${segment.item.slug}?fx=on`);
+    expect(withSound.html).toContain('<script src="/assets/sound.js" defer></script>');
+    expect(withSound.html).not.toContain('class="on-air-banner"');
+  });
+
   it("stays off checkout, private, error and return pages", async () => {
     for (const path of ["/broadcast", "/checkout/alien-paperclip", "/thanks", "/nope"]) {
       expect((await get(path)).html).not.toContain('class="on-air-banner"');
@@ -249,13 +264,16 @@ describe("the Broadcast in the Ledger", () => {
 });
 
 describe("the countdown script", () => {
-  it("is served first-party, ticks from the server's count, and reloads at zero", async () => {
+  // Its arithmetic is unit tested in clock.test.ts, and a browser test watches
+  // it tick; this checks what's served and that it stays first-party.
+  it("is served first-party, as one classic script with nothing left to import", async () => {
     const response = await route(new Request(`${BASE}${COUNTDOWN_SCRIPT_PATH}`), deps());
     expect(response.headers.get("Content-Type")).toBe("text/javascript; charset=utf-8");
     expect(await response.text()).toBe(COUNTDOWN_JS);
     expect(COUNTDOWN_JS).toContain('getAttribute("data-seconds-left")');
     expect(COUNTDOWN_JS).toContain("window.location.reload()");
     expect(COUNTDOWN_JS).not.toMatch(/eval\(|innerHTML|localStorage|https?:\/\//);
+    expect(COUNTDOWN_JS).not.toMatch(/^\s*(import|export)\s/m);
   });
 });
 

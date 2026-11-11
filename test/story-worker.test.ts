@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { STORY_DWELL_MS } from "../src/core/analytics";
 import { CATALOG } from "../src/core/catalog";
 import {
   READ_DEDUPE_SECONDS,
@@ -8,7 +7,8 @@ import {
   recordStoryRead,
 } from "../src/worker/analytics";
 import { route, type Deps } from "../src/worker/index";
-import { EVENTS_PATH, STORY_JS, STORY_SCRIPT_PATH } from "../src/worker/story-script";
+import { STORY_JS } from "../src/worker/client-scripts.generated";
+import { EVENTS_PATH, STORY_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const ITEM = CATALOG[0];
@@ -164,9 +164,15 @@ describe("the story script", () => {
     expect(await response.text()).toBe(STORY_JS);
   });
 
-  it("reports only to /events, with sendBeacon, and waits the dwell time for 'finished'", () => {
-    expect(STORY_JS).toContain(`navigator.sendBeacon("/events"`);
-    expect(STORY_JS).toContain(`}, ${String(STORY_DWELL_MS)});`);
+  // What it sends and when is unit tested (story-beacon.test.ts, dwell.test.ts)
+  // and watched in a real browser; this checks the bundle stays first-party.
+  it("reports only to /events, with sendBeacon, as one classic script", () => {
+    expect(STORY_JS).toContain("navigator.sendBeacon(EVENTS_PATH,");
+    expect(STORY_JS).toContain('EVENTS_PATH = "/events"');
     expect(STORY_JS).not.toMatch(/https?:\/\/|eval\(|innerHTML|document\.cookie/);
+    expect(STORY_JS).not.toMatch(/^\s*(import|export)\s/m);
+    // Only the few values it shares with the Worker, not the catalog.
+    expect(STORY_JS).not.toContain("alien-paperclip");
+    expect(STORY_JS.length).toBeLessThan(5000);
   });
 });

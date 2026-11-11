@@ -139,6 +139,11 @@ Ledger, so we can see which hooks actually hook.
      revenue counts in the Ledger's sales. A definite
      item for a price, not a chance, so it stays legal while vault prizes
      have no money value (revisit if discount codes ever become prizes).
+     Amended 2026-11-11: pulling today no longer forfeits the offer. The
+     offer stays beside the new 1-day streak, the repair bridges the gap
+     before today's pull, and the restored streak counts today as its next
+     day. A paid buy-back that restores nothing is logged as "refund owed"
+     and the return page says so; refunds are made by hand in Stripe.
    - Later: real numbered editions ("No. 12 of 50") with true remaining
      counts; set completion rewards and set bundles at checkout.
 5. **G5 — social.** Shareable card images (Open Graph), a "recruit an agent"

@@ -15,11 +15,11 @@ import {
   repairDeadline,
   type Streak,
 } from "../core/streak";
-import { REPAIR_NAME, REPAIR_PATH, REPAIR_PRICE_CENTS } from "../core/repair";
+import { REPAIR_NAME, REPAIR_PRICE_CENTS } from "../core/repair";
 import { formatPrice } from "../core/catalog";
 import { describeWait, nextDailyAt } from "../core/vault";
-import { TERMS_PATH } from "./pages";
 import { html, type SafeHtml } from "./html";
+import { REPAIR_PATH, TERMS_PATH, VAULT_PATH } from "../core/paths";
 
 function plural(n: number, unit: string): string {
   return `${String(n)} ${unit}${n === 1 ? "" : "s"}`;
@@ -47,24 +47,35 @@ function milestoneLine(streak: Streak): SafeHtml {
   }`;
 }
 
+const DAY_SECONDS = 86_400;
+
 /**
  * "Grease the Clerk": the buy-back offer for a streak that just died, with
  * its real price and real deadline in plain words beside the button.
+ * `secondsLeft` is how long the offer has; `pulledToday` is whether today's
+ * pull is already made (it then becomes the restored streak's next day).
  */
-function repairOffer(streak: Streak, left: string): SafeHtml {
+function repairOffer(streak: Streak, secondsLeft: number, pulledToday: boolean): SafeHtml {
   const price = formatPrice(REPAIR_PRICE_CENTS);
+  // The window is two days, so on its last day the deadline is tonight.
+  const when = secondsLeft <= DAY_SECONDS ? "tonight" : "tomorrow";
   return html`<div class="repair">
     <p>
       <strong>${REPAIR_NAME}.</strong> The clerk can be persuaded to lose some paperwork. Bring your
-      ${String(streak.lost)}-day streak back for ${price}. The offer ends at midnight UTC tomorrow:
-      ${left} left.
+      ${String(streak.lost)}-day streak back for ${price}. The offer ends at midnight UTC ${when}:
+      ${describeWait(secondsLeft)} left.
     </p>
     <form class="lever" method="post" action="${REPAIR_PATH}">
       <button class="button" type="submit">Restore my streak for ${price}</button>
     </form>
     <p class="small-print">
-      One-time card payment through Stripe. It restores the days you missed; today's pull is still
-      yours to make. It's digital, so it can't be refunded once applied.
+      One-time card payment through Stripe. It restores the days you missed;
+      ${
+        pulledToday
+          ? html`today's pull then counts as the next day.`
+          : html`today's pull is still yours to make.`
+      }
+      It's digital, so it can't be refunded once applied.
       <a href="${TERMS_PATH}">Terms of sale</a>.
     </p>
   </div>`;
@@ -89,14 +100,23 @@ export function streakPanel(
   const clock = html`<span class="clock" data-seconds-left="${secondsLeft}">${wait}</span>`;
   const goPull = onVault
     ? html``
-    : html`<p><a class="button" href="/vault">Pull the lever before it's gone</a></p>`;
+    : html`<p><a class="button" href="${VAULT_PATH}">Pull the lever before it's gone</a></p>`;
 
   let body: SafeHtml;
   if (streak.status === "safe") {
     body = html`<p class="streak-count">
         <strong>Duty streak: ${plural(streak.days, "day")}.</strong> Safe until midnight UTC.
       </p>
-      ${freezes(streak)} ${milestoneLine(streak)}`;
+      ${freezes(streak)} ${milestoneLine(streak)}
+      ${
+        offer
+          ? html`<p>
+                <strong>Your ${String(streak.lost)}-day streak is still dead.</strong> Today's pull
+                started a new one.
+              </p>
+              ${repairOffer(streak, deadline - nowSeconds, true)}`
+          : html``
+      }`;
   } else if (streak.status === "due") {
     body = html`<p class="streak-count streak-due">
         <strong>Your ${String(streak.days)}-day streak dies at midnight UTC: ${clock} left.</strong>
@@ -117,7 +137,7 @@ export function streakPanel(
         <strong>Your ${String(streak.lost)}-day streak is dead.</strong> Nobody held the line.
         ${offer ? html`` : html`Start a new one today.`}
       </p>
-      ${offer ? repairOffer(streak, describeWait(deadline - nowSeconds)) : goPull}`;
+      ${offer ? repairOffer(streak, deadline - nowSeconds, false) : goPull}`;
   } else {
     body = html`<p>
         Pull the lever on consecutive days to build a duty streak. Every ${String(FREEZE_EVERY)}

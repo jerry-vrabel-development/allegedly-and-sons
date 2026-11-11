@@ -48,15 +48,19 @@ export interface Streak {
   readonly freezes: number;
   /** Freezes the current gap is using (shown as "a freeze covered yesterday"). */
   readonly covering: number;
-  /** The streak that died, if the last one broke and no new one has started. */
+  /**
+   * The streak that died, if the last one broke and no new one has started,
+   * or the new one started only with today's pull (so pulling first doesn't
+   * cost the agent the buy-back offer).
+   */
   readonly lost: number;
   /** The longest streak ever. */
   readonly longest: number;
   /** Freezes ever spent. */
   readonly freezesSpent: number;
   /**
-   * The vault day the last streak died (the first day without it), when it's
-   * dead; undefined otherwise. The buy-back offer runs from here.
+   * The vault day the last streak died (the first day without it), whenever
+   * `lost` is set; undefined otherwise. The buy-back offer runs from here.
    */
   readonly diedOn: number | undefined;
 }
@@ -115,15 +119,20 @@ export function streakFrom(
   }
 
   if (last === today) {
+    // A 1-day streak with pulls before it means today's pull restarted a dead
+    // one. Report what died, as it stood before today's pull, so it can still
+    // be bought back.
+    const before =
+      length === 1 && rest.length > 0 ? streakFrom(days.slice(0, -1), today, bridged) : NO_STREAK;
     return {
       status: "safe",
       days: length,
       freezes: held,
       covering: 0,
-      lost: 0,
+      lost: before.lost,
       longest,
       freezesSpent: spent,
-      diedOn: undefined,
+      diedOn: before.diedOn,
     };
   }
   // Days missed since the last pull, not counting today (still open).

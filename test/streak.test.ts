@@ -175,6 +175,26 @@ describe("when a streak died, and buying it back", () => {
     });
   });
 
+  it("still offers the dead streak after today's pull started a new one", () => {
+    // Missed yesterday, then pulled today: a new 1-day streak, and the old one
+    // can still be bought back, so the order of pull and payment doesn't matter.
+    const restarted = streakFrom([...run(5, T - 2), T], T);
+    expect(restarted).toMatchObject({ status: "safe", days: 1, lost: 5, diedOn: T });
+    expect(canRepair(restarted, T)).toBe(true);
+    // Only today's pull: a restart on an earlier day is a new streak for good.
+    expect(streakFrom([...run(5, T - 3), T - 1], T)).toMatchObject({
+      status: "due",
+      days: 1,
+      lost: 0,
+      diedOn: undefined,
+    });
+    // A first-ever pull, or a streak that simply carried on, lost nothing.
+    expect(streakFrom([T], T)).toMatchObject({ lost: 0, diedOn: undefined });
+    expect(streakFrom(run(5), T)).toMatchObject({ lost: 0, diedOn: undefined });
+    // Too long dead to buy back: today's pull doesn't reopen the window.
+    expect(canRepair(streakFrom([...run(5, T - 4), T], T), T)).toBe(false);
+  });
+
   it("skips bought-back days when working out when a streak died", () => {
     // Missed T-4 (bought back), T-3 and T-2: died after T-3, the first uncovered miss.
     expect(streakFrom(run(5, T - 5), T, [T - 4]).diedOn).toBe(T - 2);

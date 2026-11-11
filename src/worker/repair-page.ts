@@ -2,24 +2,56 @@
  * The page Stripe sends a buyer back to after "Grease the Clerk"
  * (/streak/restored?session_id=...). Like /thanks, it asks Stripe about the
  * session first, so opening it by hand proves nothing. The streak itself is
- * restored by the webhook, which can land a moment after this page.
+ * restored by the webhook, which can land a moment after this page, so for a
+ * paid session the page also checks our own records before saying "restored".
  */
 
 import { REPAIR_NAME } from "../core/repair";
 import type { ReturnOutcome } from "../core/checkout";
 import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+import { layout, type Page } from "./pages";
+import { ORDER_CONTACT_EMAIL } from "./terms";
+import { VAULT_PATH } from "../core/paths";
 
-export function repairReturnPage(outcome: ReturnOutcome["kind"]): SafeHtml {
-  const back = html`<p><a class="button" href="/vault">Back to the Vault</a></p>`;
-  const pages: Record<ReturnOutcome["kind"], { title: string; body: SafeHtml }> = {
-    paid: {
+/**
+ * What the return page can say. Stripe's answer, and for a paid session what
+ * our own records show: "restored" once the repair is on file, "owed" when
+ * the order is on file with no repair (paid, and nothing was restored), and
+ * "pending" while the webhook hasn't landed yet.
+ */
+export type RepairReturn = "restored" | "pending" | "owed" | Exclude<ReturnOutcome["kind"], "paid">;
+
+/** `sessionId` is the reference shown on the "owed" page; unused by the others. */
+export function repairReturnPage(outcome: RepairReturn, sessionId: string): Page {
+  const back = html`<p><a class="button" href="${VAULT_PATH}">Back to the Vault</a></p>`;
+  const email = html`<a href="mailto:${ORDER_CONTACT_EMAIL}">${ORDER_CONTACT_EMAIL}</a>`;
+  const pages: Record<RepairReturn, { title: string; body: SafeHtml }> = {
+    restored: {
       title: "The clerk has been greased",
       body: html`<p class="tagline">Paperwork lost. Your streak lives.</p>
         <p>
-          Payment confirmed, and Stripe will email your receipt. Your streak is restored, but
-          today's pull is still yours to make before midnight UTC. If the Vault doesn't show it yet,
-          give it a minute.
+          Payment confirmed, and Stripe will email your receipt. Your streak is restored. If you
+          haven't pulled today, that pull is still yours to make before midnight UTC.
+        </p>`,
+    },
+    pending: {
+      title: "The clerk has been paid",
+      body: html`<p>
+          Payment confirmed, and Stripe will email your receipt. The clerk is still losing the
+          paperwork: your streak should be back within a minute. Reload this page to check.
+        </p>
+        <p>
+          If it isn't back after a few minutes, email ${email} and we'll restore it or refund you.
+        </p>`,
+    },
+    owed: {
+      title: "Paid, but nothing was restored",
+      body: html`<p>
+          Your payment went through, but there was no dead streak left for it to restore, so you got
+          nothing for it. That's our problem, not yours: you are owed a refund.
+        </p>
+        <p>
+          Email ${email} with this reference and we'll send it back: <code>${sessionId}</code>
         </p>`,
     },
     processing: {
@@ -53,7 +85,7 @@ export function repairReturnPage(outcome: ReturnOutcome["kind"]): SafeHtml {
 }
 
 /** When checkout for a buy-back couldn't be started. */
-export function repairUnavailablePage(): SafeHtml {
+export function repairUnavailablePage(): Page {
   return layout({
     title: "The clerk is out",
     description: "Checkout couldn't be started.",
@@ -61,7 +93,7 @@ export function repairUnavailablePage(): SafeHtml {
     body: html`<div class="prose">
       <h1>The clerk is out</h1>
       <p>Checkout couldn't be started just now. Nothing was charged. Please try again shortly.</p>
-      <p><a href="/vault">Back to the Vault</a></p>
+      <p><a href="${VAULT_PATH}">Back to the Vault</a></p>
     </div>`,
   });
 }

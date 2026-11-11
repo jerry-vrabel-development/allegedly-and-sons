@@ -8,10 +8,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "npm run build:client && wrangler dev",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types src/worker-configuration.d.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p test && tsc --noEmit -p e2e",
+    "build:client": "node scripts/build-client.js",
+    "build:client:check": "node scripts/build-client.js --check",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/client && tsc --noEmit -p test && tsc --noEmit -p e2e",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -19,7 +21,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage"
+    "check": "npm run build:client:check && npm run format:check && npm run lint && npm run typecheck && npm run test:coverage"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
@@ -28,6 +30,7 @@
     "@playwright/test": "^1.65.0",
     "@types/node": "^22.20.5",
     "@vitest/coverage-istanbul": "^5.1.0",
+    "esbuild": "0.28.2",
     "eslint": "^10.14.0",
     "fast-check": "^4.10.2",
     "prettier": "^3.9.10",

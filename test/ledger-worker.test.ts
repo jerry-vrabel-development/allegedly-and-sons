@@ -2,8 +2,9 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import { route, type Deps } from "../src/worker/index";
-import { LEDGER_PATH, periodFrom, readLedger } from "../src/worker/ledger";
+import { periodFrom, readLedger } from "../src/worker/ledger";
 import { AUD, NOW, OTHER, SIGNER, TEAM, token, urlOf } from "./access-signing";
+import { LEDGER_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);
@@ -160,6 +161,46 @@ describe("readLedger", () => {
     });
   });
 
+  it("counts each visitor once in the total, however many exhibits they viewed", async () => {
+    await seed();
+    // A already viewed the trophy; now two more exhibits. Still one visitor.
+    await event({ event: "item_viewed", item_slug: "alien-paperclip", visitor_id: A });
+    await event({ event: "item_viewed", item_slug: "martian-rubber-band", visitor_id: A });
+    const ledger = await readLedger(env.DB, 30, NOW, "allegedly.example");
+    expect(ledger.items.reduce((sum, row) => sum + row.visitors, 0)).toBe(4);
+    expect(ledger.visitors).toBe(2); // A and B
+    // C's view was 40 days ago: in "all time" only.
+    expect((await readLedger(env.DB, 0, NOW, "allegedly.example")).visitors).toBe(3);
+    expect((await readLedger(env.DB, 7, NOW - 400 * DAY, "allegedly.example")).visitors).toBe(3);
+  });
+
+  it("doesn't count a streak buy-back as a purchase by source or by share", async () => {
+    await seed();
+    // A came from Reddit and never bought an exhibit; C arrives through A's
+    // share. Both only buy back a streak.
+    await event({
+      event: "shared_visit",
+      item_slug: "alien-paperclip",
+      visitor_id: C,
+      ref: "0a1b2c3d4e",
+    });
+    await order("cs_test_repair_a", "streak-repair", A);
+    await order("cs_test_repair_c", "streak-repair", C);
+    const { sources, shares, repairs } = await readLedger(env.DB, 30, NOW, "allegedly.example");
+    expect(sources).toEqual([
+      { source: "bluesky", visitors: 1, buyers: 1 },
+      { source: "old.reddit.com", visitors: 1, buyers: 0 },
+    ]);
+    expect(shares.find((row) => row.channel === "reddit")).toEqual({
+      channel: "reddit",
+      shares: 1,
+      visits: 2,
+      orders: 1,
+    });
+    // They still count as sales, in their own line.
+    expect(repairs.count).toBe(2);
+  });
+
   it("counts buyers, not orders: unattributed orders add to sales but not 'Bought'", async () => {
     const paperclip = "alien-paperclip";
     await event({ event: "item_viewed", item_slug: paperclip, visitor_id: A });
@@ -250,6 +291,10 @@ describe("GET /bureau/ledger", () => {
     const page = (await response.text()).replace(/\s+/g, " ");
     expect(page).toContain("Signed in as jerry@example.com");
     expect(page).toContain("<strong>2</strong> visitors");
+    // One visitor viewing a second exhibit doesn't add to the headline.
+    await event({ event: "item_viewed", item_slug: "alien-paperclip", visitor_id: A });
+    const again = (await (await get(LEDGER_PATH, await token())).text()).replace(/\s+/g, " ");
+    expect(again).toContain("<strong>2</strong> visitors");
     expect(page).toContain("<strong>$275.00</strong> in sales");
     expect(page).toContain("1 of 2 (too few to say)");
     expect(page).toContain('<meta name="robots" content="noindex" />');

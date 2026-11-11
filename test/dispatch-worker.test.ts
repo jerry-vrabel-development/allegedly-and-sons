@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OutgoingEmail } from "../src/core/dispatch";
 import { grantAwards } from "../src/worker/dossier";
 import { readRegistration, sha256Hex, unsubscribe } from "../src/worker/dispatch";
-import { emailSender, postalAddressFrom, route, type Deps } from "../src/worker/index";
+import { emailSender, postalAddressFrom } from "../src/worker/env";
+import { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
-import { SOUND_SCRIPT_PATH } from "../src/worker/sound-script";
+import { SOUND_SCRIPT_PATH } from "../src/core/paths";
 
 const SOUND_TAG = `<script src="${SOUND_SCRIPT_PATH}" defer></script>`;
 

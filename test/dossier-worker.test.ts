@@ -6,7 +6,7 @@ import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 import { recordEvent } from "../src/worker/analytics";
 import { grantAwards, readDossier } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
-import { SOUND_SCRIPT_PATH } from "../src/worker/sound-script";
+import { SOUND_SCRIPT_PATH } from "../src/core/paths";
 
 const SOUND_TAG = `<script src="${SOUND_SCRIPT_PATH}" defer></script>`;
 

@@ -1,6 +1,13 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { orderFromCompletedSession, parseStripeEvent, UNKNOWN_ITEM } from "../src/core/orders";
+import {
+  CHECKOUT_ASYNC_PAYMENT_SUCCEEDED,
+  CHECKOUT_COMPLETED,
+  isOrderEvent,
+  orderFromCompletedSession,
+  parseStripeEvent,
+  UNKNOWN_ITEM,
+} from "../src/core/orders";
 
 const PAID_AT = 1762531200;
 
@@ -151,5 +158,15 @@ describe("orderFromCompletedSession", () => {
         orderFromCompletedSession(value, PAID_AT);
       }),
     );
+  });
+});
+
+describe("isOrderEvent", () => {
+  it("is true only for the events that can carry a paid session", () => {
+    expect(isOrderEvent(CHECKOUT_COMPLETED)).toBe(true);
+    expect(isOrderEvent(CHECKOUT_ASYNC_PAYMENT_SUCCEEDED)).toBe(true);
+    for (const other of ["checkout.session.async_payment_failed", "charge.refunded", ""]) {
+      expect(isOrderEvent(other), other).toBe(false);
+    }
   });
 });

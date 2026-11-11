@@ -9,6 +9,8 @@
  */
 
 import { VISITOR_ID } from "./analytics";
+import { cookieValue } from "./cookies";
+import { hexFrom } from "./hex";
 
 /**
  * The `__Host-` prefix makes browsers refuse the cookie unless it's Secure,
@@ -27,15 +29,8 @@ export const VISITOR_ID_BYTES = 16;
  * malformed. A malformed id is treated as missing, so it gets replaced.
  */
 export function visitorIdFromCookie(header: string | null): string | undefined {
-  if (header === null) return undefined;
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator === -1) continue;
-    if (part.slice(0, separator).trim() !== VISITOR_COOKIE) continue;
-    const value = part.slice(separator + 1).trim();
-    return VISITOR_ID.test(value) ? value : undefined;
-  }
-  return undefined;
+  const value = cookieValue(header, VISITOR_COOKIE);
+  return value !== undefined && VISITOR_ID.test(value) ? value : undefined;
 }
 
 /** A visitor id from random bytes (from crypto.getRandomValues). Pure, so tests can pin it. */
@@ -43,7 +38,7 @@ export function visitorIdFrom(bytes: Uint8Array): string {
   if (bytes.length !== VISITOR_ID_BYTES) {
     throw new RangeError(`a visitor id needs ${String(VISITOR_ID_BYTES)} random bytes`);
   }
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return hexFrom(bytes);
 }
 
 /**
