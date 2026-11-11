@@ -33,7 +33,11 @@ machine dopamine, and animation and sound for conversion (note 0003, revised
 - **The reveal grows with rarity:** Common pops, Uncommon glints, Rare
   flashes with a fanfare. The rarity is always also in the text.
 - **Sounds are synthesized** (Web Audio oscillators and noise): lever clunk,
-  a tick per card, a stinger per rarity. No files and nothing to license.
+  a knock per card, a landing per rarity. No files and nothing to license.
+- **The spin builds** (revised 2026-11-11): about four seconds, six times
+  round, slowing down, with each knock a little higher than the last. Pace
+  and pitch depend only on how far along the spin is, never on which card is
+  showing, so the build is the same whatever is about to land.
   Jerry's own Sonic Pi sounds can replace them later (only sounds he made or
   holds a clear license for).
 - **Accessible floor:** every sound is under 3 seconds and has its text on

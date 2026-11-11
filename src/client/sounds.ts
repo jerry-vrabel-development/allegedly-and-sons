@@ -23,16 +23,16 @@ export interface Tone {
   readonly slideTo?: number;
 }
 
-/** A burst of white noise that fades out, optionally swept through a band-pass filter. */
+/** A burst of white noise that fades out, swept through a band-pass filter. */
 export interface Noise {
   readonly kind: "noise";
   readonly start: number;
   readonly length: number;
   readonly volume: number;
-  /** The filter's starting frequency (Hz). Without it the noise is unfiltered. */
-  readonly from?: number;
+  /** The filter's starting frequency (Hz). */
+  readonly from: number;
   /** Where the filter sweeps to (Hz). */
-  readonly to?: number;
+  readonly to: number;
 }
 
 export type SoundStep = Tone | Noise;
@@ -49,9 +49,8 @@ function tone(
   return slideTo === undefined ? step : { ...step, slideTo };
 }
 
-function noise(start: number, length: number, volume: number, sweep?: [number, number]): Noise {
-  const step = { kind: "noise", start, length, volume } as const;
-  return sweep === undefined ? step : { ...step, from: sweep[0], to: sweep[1] };
+function noise(start: number, length: number, volume: number, sweep: [number, number]): Noise {
+  return { kind: "noise", start, length, volume, from: sweep[0], to: sweep[1] };
 }
 
 /** Notes one after another, `gap` seconds apart, beginning at `start`. */
@@ -77,6 +76,12 @@ function chord(
   return run(frequencies, start, 0, length, wave, volume);
 }
 
+/** The low knock a card lands with, under its notes. */
+const THUNK: readonly SoundStep[] = [
+  tone(150, 0, 0.14, "sine", 0.6, 70),
+  noise(0, 0.05, 0.4, [1200, 300]),
+];
+
 export const SOUNDS = {
   // The back room: brass, stamps, drawers, vault mechanics.
   creak: [
@@ -98,23 +103,54 @@ export const SOUNDS = {
     tone(2093, 0.22, 0.4, "sine", 0.06),
     tone(2637, 0.26, 0.5, "sine", 0.05),
   ],
-  // The Vault's lever and reel.
-  clunk: [noise(0, 0.12, 0.5), tone(90, 0, 0.25, "sine", 0.6), tone(60, 0.08, 0.3, "sine", 0.4)],
+  // A small click: the sound toggle, and the Broadcast host's lines. Quiet on
+  // purpose, because the host's lines repeat.
   tick: [tone(1400, 0, 0.03, "square", 0.05)],
-  Common: [tone(523, 0, 0.18, "triangle", 0.25), tone(659, 0.12, 0.3, "triangle", 0.25)],
+  // The Vault's lever: the thud, a spring, three ratchet clicks.
+  clunk: [
+    noise(0, 0.18, 0.8, [900, 90]),
+    tone(65, 0, 0.4, "sine", 0.9),
+    tone(130, 0, 0.12, "square", 0.15),
+    tone(420, 0.05, 0.28, "sawtooth", 0.12, 140),
+    noise(0.1, 0.02, 0.35, [3000, 2000]),
+    noise(0.15, 0.02, 0.3, [3000, 2000]),
+    noise(0.2, 0.02, 0.25, [3000, 2000]),
+  ],
+  // Each card the reel passes: a click, a knock and a low tock. Short, so the
+  // fastest steps don't smear; the reel raises its pitch as it slows.
+  reel: [
+    noise(0, 0.025, 0.35, [2600, 1400]),
+    tone(1100, 0, 0.05, "square", 0.14),
+    tone(275, 0, 0.06, "sine", 0.25),
+  ],
+  // The landings grow with rarity: a bell, a climbing run, the jackpot.
+  Common: [
+    ...THUNK,
+    ...run([784, 1047], 0.02, 0.09, 0.35, "triangle", 0.3),
+    tone(1568, 0.2, 0.6, "sine", 0.14),
+    tone(2093, 0.2, 0.5, "sine", 0.07),
+  ],
   Uncommon: [
-    ...run([523, 659, 784], 0, 0.1, 0.35, "triangle", 0.25),
-    tone(1568, 0.3, 0.5, "sine", 0.08),
+    ...THUNK,
+    ...run([523, 659, 784, 1047], 0.02, 0.08, 0.3, "triangle", 0.28),
+    ...chord([1047, 1319, 1568], 0.36, 0.9, "triangle", 0.16),
+    ...run([2093, 2637, 3136], 0.42, 0.07, 0.2, "sine", 0.08),
   ],
+  // A sub thump, a fast climb, a held chord and ringing bells.
   Rare: [
-    ...run([523, 659, 784, 1047], 0, 0.11, 0.5, "sawtooth", 0.12),
-    ...chord([1047, 1319, 1568], 0.45, 1.4, "triangle", 0.15),
-    ...run([2093, 2637, 3136, 2637], 0.5, 0.12, 0.25, "sine", 0.05),
+    tone(55, 0, 0.5, "sine", 0.9),
+    noise(0, 0.3, 0.3, [300, 4000]),
+    ...run([523, 659, 784, 1047, 1319, 1568], 0, 0.07, 0.4, "sawtooth", 0.14),
+    ...chord([523, 784, 1047, 1319, 1568], 0.45, 1.9, "triangle", 0.14),
+    ...run([2093, 2637, 2093, 2637, 2093, 2637, 2093, 2637], 0.5, 0.09, 0.12, "sine", 0.09),
+    ...run([3136, 3520, 4186], 1.3, 0.08, 0.3, "sine", 0.06),
   ],
-  sparkle: run([2637, 3136, 3520], 0, 0.06, 0.18, "sine", 0.06),
+  sparkle: run([2637, 3136, 3520, 4186], 0, 0.05, 0.22, "sine", 0.09),
   milestone: [
-    ...run([392, 523, 659, 784, 1047], 0, 0.09, 0.4, "square", 0.07),
-    ...chord([523, 659, 784, 1047], 0.5, 1.2, "triangle", 0.12),
+    tone(60, 0, 0.5, "sine", 0.8),
+    ...run([392, 523, 659, 784, 1047, 1319], 0, 0.08, 0.4, "square", 0.09),
+    ...chord([523, 659, 784, 1047, 1319], 0.52, 1.6, "triangle", 0.13),
+    ...run([2093, 2637, 3136, 4186], 0.6, 0.09, 0.3, "sine", 0.07),
   ],
   // The Broadcast: a dial finding the station, then the station's brass sting.
   static: [noise(0, 0.7, 0.12, [1800, 900]), tone(440, 0.1, 0.5, "sine", 0.03, 880)],
@@ -122,15 +158,23 @@ export const SOUNDS = {
     ...run([196, 247, 294], 0, 0.12, 0.3, "sawtooth", 0.09),
     ...chord([392, 494, 587], 0.4, 0.9, "sawtooth", 0.07),
   ],
-  // /thanks: the vault door, then the fanfare.
+  // /thanks: the vault door (two hits, a long rumble, a metal ring), then the fanfare.
   slam: [
-    noise(0, 0.25, 0.7, [500, 80]),
-    tone(55, 0, 0.6, "sine", 0.8),
-    tone(110, 0.02, 0.3, "square", 0.08),
+    noise(0, 0.45, 0.9, [700, 60]),
+    tone(45, 0, 0.9, "sine", 1),
+    tone(90, 0, 0.35, "square", 0.12),
+    noise(0.14, 0.2, 0.6, [400, 70]),
+    tone(50, 0.14, 0.6, "sine", 0.8),
+    tone(220, 0.02, 0.7, "triangle", 0.06),
+    tone(277, 0.02, 0.6, "triangle", 0.05),
   ],
   fanfare: [
-    ...run([523, 659, 784], 0.4, 0.12, 0.3, "square", 0.08),
-    ...chord([523, 659, 784, 1047], 0.8, 1.6, "triangle", 0.12),
+    ...run([392, 523, 659, 784], 0.4, 0.1, 0.28, "sawtooth", 0.12),
+    ...run([784, 1047, 1319, 1568], 0.4, 0.1, 0.28, "square", 0.05),
+    ...chord([523, 659, 784, 1047, 1319], 0.85, 1.7, "sawtooth", 0.08),
+    ...chord([523, 784, 1047], 0.85, 1.7, "triangle", 0.14),
+    ...run([2093, 2637, 3136, 4186], 0.95, 0.1, 0.3, "sine", 0.07),
+    tone(65, 0.85, 0.8, "sine", 0.6),
   ],
 } as const satisfies Record<string, readonly SoundStep[]>;
 
@@ -151,8 +195,8 @@ export function soundLength(name: SoundName): number {
 
 /** What the sound script offers other scripts on the page (the Vault's reel). */
 export interface BureauSound {
-  /** Plays a sound, unless muted. */
-  play(name: SoundName): void;
+  /** Plays a sound, unless muted. `pitch` scales its frequencies (1 is as written). */
+  play(name: SoundName, pitch?: number): void;
   isMuted(): boolean;
 }
 

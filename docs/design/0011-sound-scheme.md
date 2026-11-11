@@ -86,6 +86,24 @@ and their 95% intervals don't overlap; otherwise it says "none yet".
   `/thanks`.
 - **PR 3:** the Ledger's shop-wide group comparison and the stopping rule.
 
+## Revision: bigger sound (2026-11-11)
+
+The first sounds were too quiet to carry the moment: the reel's tick was a
+30 ms blip at 5% volume, close to inaudible on a phone. Revised by ear, old
+beside new:
+
+- The lever, the three landings, the new-card sparkle, the milestone, the
+  vault door and the fanfare are louder, have more low end and ring longer.
+  Every sound is still under 3 seconds.
+- The reel has its own sound (`reel`). The quiet `tick` stays for the sound
+  toggle and the Broadcast host's lines, which repeat.
+- Everything plays through a limiter, so loud moments don't crackle.
+- The recipes are data in `src/client/sounds.ts`; retuning one is a small edit.
+
+This changes the "fx" side of the A/B test on its second day. Results from
+before the change are a sliver of the test; the Ledger's comparison is read
+as "the bigger sound" from here on.
+
 ## What would change our mind
 
 - The groups show no difference in reads, shares or buyers → keep sound,

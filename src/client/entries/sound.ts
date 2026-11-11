@@ -52,6 +52,8 @@ function start(): void {
 
   // --- Web Audio -------------------------------------------------------------
   let audio: AudioContext | undefined;
+  /** Where every sound goes: a limiter, so the loud moments don't crackle. */
+  let output: AudioNode | undefined;
   const context = (): AudioContext | undefined => {
     if (muted) return undefined;
     if (audio === undefined) {
@@ -64,32 +66,40 @@ function start(): void {
       const Ctor = names.AudioContext ?? names.webkitAudioContext;
       if (Ctor === undefined) return undefined;
       audio = new Ctor();
+      const limiter = audio.createDynamicsCompressor();
+      limiter.threshold.value = -10;
+      limiter.knee.value = 6;
+      limiter.ratio.value = 12;
+      limiter.attack.value = 0.002;
+      limiter.release.value = 0.15;
+      limiter.connect(audio.destination);
+      output = limiter;
     }
     if (audio.state === "suspended") void audio.resume();
     return audio;
   };
 
-  const playTone = (step: Tone): void => {
+  const playTone = (step: Tone, pitch: number): void => {
     const a = context();
     if (a === undefined) return;
     const t = a.currentTime + step.start;
     const osc = a.createOscillator();
     const gain = a.createGain();
     osc.type = step.wave;
-    osc.frequency.setValueAtTime(step.frequency, t);
+    osc.frequency.setValueAtTime(step.frequency * pitch, t);
     if (step.slideTo !== undefined) {
-      osc.frequency.exponentialRampToValueAtTime(step.slideTo, t + step.length);
+      osc.frequency.exponentialRampToValueAtTime(step.slideTo * pitch, t + step.length);
     }
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(step.volume, t + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + step.length);
     osc.connect(gain);
-    gain.connect(a.destination);
+    gain.connect(output ?? a.destination);
     osc.start(t);
     osc.stop(t + step.length + 0.02);
   };
 
-  const playNoise = (step: Noise): void => {
+  const playNoise = (step: Noise, pitch: number): void => {
     const a = context();
     if (a === undefined) return;
     const frames = Math.floor(a.sampleRate * step.length);
@@ -101,27 +111,23 @@ function start(): void {
     const gain = a.createGain();
     gain.gain.value = step.volume;
     source.buffer = buffer;
-    if (step.from !== undefined) {
-      const filter = a.createBiquadFilter();
-      filter.type = "bandpass";
-      const t = a.currentTime + step.start;
-      filter.frequency.setValueAtTime(step.from, t);
-      filter.frequency.exponentialRampToValueAtTime(step.to ?? step.from, t + step.length);
-      source.connect(filter);
-      filter.connect(gain);
-    } else {
-      source.connect(gain);
-    }
-    gain.connect(a.destination);
+    const filter = a.createBiquadFilter();
+    filter.type = "bandpass";
+    const t = a.currentTime + step.start;
+    filter.frequency.setValueAtTime(step.from * pitch, t);
+    filter.frequency.exponentialRampToValueAtTime(step.to * pitch, t + step.length);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(output ?? a.destination);
     source.start(a.currentTime + step.start);
   };
 
-  const play = (name: string | null): void => {
+  const play = (name: string | null, pitch = 1): void => {
     if (muted || !isSoundName(name)) return;
     try {
       for (const step of SOUNDS[name]) {
-        if (step.kind === "tone") playTone(step);
-        else playNoise(step);
+        if (step.kind === "tone") playTone(step, pitch);
+        else playNoise(step, pitch);
       }
     } catch {
       // A sound that can't play is silence, never an error on the page.

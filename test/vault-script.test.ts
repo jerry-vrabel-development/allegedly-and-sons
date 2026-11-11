@@ -99,7 +99,7 @@ describe("the Vault script", () => {
   });
 
   it("plays its sounds through the shop-wide module, and runs silently without it", () => {
-    expect(VAULT_JS).toContain("if (window.BureauSound) window.BureauSound.play(name);");
+    expect(VAULT_JS).toContain("if (window.BureauSound) window.BureauSound.play(name, pitch);");
     expect(VAULT_JS).not.toMatch(/AudioContext|createOscillator|sound-toggle/);
   });
 
