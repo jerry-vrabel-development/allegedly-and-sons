@@ -22,7 +22,7 @@ import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { describeWait } from "../core/vault";
 import { html, type SafeHtml } from "./html";
-import { itemPath, layout } from "./pages";
+import { itemPath, layout, type Page } from "./pages";
 import { BROADCAST_PATH, COUNTDOWN_SCRIPT_PATH, TERMS_PATH, artPath } from "../core/paths";
 
 function segmentName(segment: Segment): string {
@@ -45,7 +45,7 @@ function countdown(segment: Segment, nowSeconds: number): SafeHtml {
   </p>`;
 }
 
-export function broadcastPage(nowSeconds: number, soldThisSegment: number): SafeHtml {
+export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page {
   const segment = segmentAt(nowSeconds);
   const { item } = segment;
   const next = nextSegment(nowSeconds);
@@ -142,22 +142,4 @@ export function onAirBanner(nowSeconds: number): SafeHtml {
     <strong>On air:</strong> ${segment.item.name}, ${price} (${discount(segment)})${detail}.
     <a href="${BROADCAST_PATH}">Watch the broadcast</a>
   </p>`;
-}
-
-/** Pages that never carry the banner: the broadcast itself, checkout, private and return pages. */
-const NO_BANNER =
-  /^\/(?:broadcast|checkout\/|bureau|thanks|streak\/restored|dispatch\/|vault\/pull)/;
-
-/** Whether a page gets the ON AIR banner. */
-export function wantsBanner(pathname: string): boolean {
-  return !NO_BANNER.test(pathname);
-}
-
-/**
- * Adds the banner to an HTML page, just inside <body> after the skip link.
- * Our own layout always has that marker; anything else is left unchanged.
- */
-export function withBanner(page: string, banner: SafeHtml): string {
-  const marker = '<a class="skip-link" href="#main">Skip to content</a>';
-  return page.replace(marker, `${marker}${banner.value}`);
 }

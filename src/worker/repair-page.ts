@@ -9,7 +9,7 @@
 import { REPAIR_NAME } from "../core/repair";
 import type { ReturnOutcome } from "../core/checkout";
 import { html, type SafeHtml } from "./html";
-import { layout, ORDER_CONTACT_EMAIL } from "./pages";
+import { layout, ORDER_CONTACT_EMAIL, type Page } from "./pages";
 import { VAULT_PATH } from "../core/paths";
 
 /**
@@ -21,7 +21,7 @@ import { VAULT_PATH } from "../core/paths";
 export type RepairReturn = "restored" | "pending" | "owed" | Exclude<ReturnOutcome["kind"], "paid">;
 
 /** `sessionId` is the reference shown on the "owed" page; unused by the others. */
-export function repairReturnPage(outcome: RepairReturn, sessionId: string): SafeHtml {
+export function repairReturnPage(outcome: RepairReturn, sessionId: string): Page {
   const back = html`<p><a class="button" href="${VAULT_PATH}">Back to the Vault</a></p>`;
   const email = html`<a href="mailto:${ORDER_CONTACT_EMAIL}">${ORDER_CONTACT_EMAIL}</a>`;
   const pages: Record<RepairReturn, { title: string; body: SafeHtml }> = {
@@ -84,7 +84,7 @@ export function repairReturnPage(outcome: RepairReturn, sessionId: string): Safe
 }
 
 /** When checkout for a buy-back couldn't be started. */
-export function repairUnavailablePage(): SafeHtml {
+export function repairUnavailablePage(): Page {
   return layout({
     title: "The clerk is out",
     description: "Checkout couldn't be started.",

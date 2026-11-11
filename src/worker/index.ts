@@ -12,7 +12,6 @@ import { effectsOn } from "../core/effects";
 import { landingFromRequest } from "../core/landing";
 import {
   BROADCAST_PATH,
-  BUREAU_PATH,
   DISCLAIMER_PATH,
   DISPATCH_CONFIRM_PATH,
   DISPATCH_PATH,
@@ -24,7 +23,6 @@ import {
   HOME_PATH,
   REPAIR_PATH,
   REPAIR_RETURN_PATH,
-  STYLESHEET_PATH,
   THANKS_PATH,
   VAULT_PATH,
   VAULT_PULL_PATH,
@@ -34,7 +32,7 @@ import { parseSharePath } from "../core/share";
 import { accessConfigFrom } from "./access";
 import { recordItemView } from "./analytics";
 import { assetResponse } from "./assets";
-import { onAirBanner, wantsBanner, withBanner } from "./broadcast-page";
+import { onAirBanner } from "./broadcast-page";
 import { bureau } from "./bureau-routes";
 import { checkout, embeddedCheckoutPage, embeddedSession, returnPage } from "./checkout-routes";
 import type { Deps, PublicVars, Secrets } from "./deps";
@@ -49,12 +47,12 @@ import {
   stripeKeyFrom,
   webhookSecretFrom,
 } from "./env";
-import { page, TEXT } from "./http";
+import { page, PageResponse, TEXT } from "./http";
+import { isBureauPath, pageRule } from "./page-rules";
 import { disclaimerPage, homePage, itemPage, notFoundPage } from "./pages";
 import { repairCheckout, repairReturn } from "./repair-routes";
 import { withSecurityHeaders } from "./security-headers";
 import { broadcast, shareRedirect, storyRead } from "./shop-routes";
-import { wantsSound, withSound } from "./sound-script";
 import { dossierGet, vaultGet, vaultPull } from "./vault-routes";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { stripeWebhook } from "./webhook";
@@ -62,27 +60,23 @@ import { stripeWebhook } from "./webhook";
 export type { Deps, PublicVars, Secrets } from "./deps";
 
 /**
- * Routes a request, then puts the ON AIR banner (note 0009) on HTML pages
- * that carry it. Kept separate from `fetch` so it stays easy to test.
+ * Routes a request, then gives a successful page its chrome: the ON AIR
+ * banner (note 0009) and, for the "fx" group, the sound script (note 0011).
+ * Which pages get which is decided in page-rules.ts. Kept separate from
+ * `fetch` so it stays easy to test.
  */
 export async function route(request: Request, deps: Deps): Promise<Response> {
   const response = await routeRequest(request, deps);
+  if (!(response instanceof PageResponse) || response.status !== 200) return response;
   const url = new URL(request.url);
-  const { pathname } = url;
-  if (
-    response.status !== 200 ||
-    !String(response.headers.get("Content-Type")).startsWith("text/html")
-  ) {
-    return response;
-  }
-  const banner = wantsBanner(pathname);
-  // Sound for the "fx" group only (note 0011), by the same rule as the Vault's reel.
-  const sound = wantsSound(pathname) && effectsOn(deps.visitorId, url.searchParams.get("fx"));
-  if (!banner && !sound) return response;
-  let page = await response.text();
-  if (banner) page = withBanner(page, onAirBanner(deps.nowSeconds()));
-  if (sound) page = withSound(page, STYLESHEET_PATH);
-  return new Response(page, response);
+  const rule = pageRule(url.pathname);
+  // Sound by the same rule as the Vault's reel: the visitor's group, or ?fx=.
+  const sound = rule.sound && effectsOn(deps.visitorId, url.searchParams.get("fx"));
+  if (!rule.banner && !sound) return response;
+  return response.withChrome({
+    banner: rule.banner ? onAirBanner(deps.nowSeconds()) : undefined,
+    sound,
+  });
 }
 
 async function routeRequest(request: Request, deps: Deps): Promise<Response> {
@@ -142,9 +136,7 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
   const asset = assetResponse(pathname);
   if (asset !== undefined) return asset;
 
-  if (pathname === BUREAU_PATH || pathname.startsWith(`${BUREAU_PATH}/`)) {
-    return bureau(request, pathname, deps);
-  }
+  if (isBureauPath(pathname)) return bureau(request, pathname, deps);
 
   const share = parseSharePath(pathname);
   if (share !== undefined) return shareRedirect(request, share.slug, share.network, origin, deps);

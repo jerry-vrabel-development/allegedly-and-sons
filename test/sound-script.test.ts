@@ -14,12 +14,10 @@ import {
   SOUND_JS,
   SOUND_MUTE_KEY,
   SOUND_NAMES,
-  wantsSound,
-  withSound,
 } from "../src/worker/sound-script";
 import { CASE_CLOSED_ID, STORY_JS } from "../src/worker/story-script";
 import { testEnv } from "./test-env";
-import { SOUND_SCRIPT_PATH, STYLESHEET_PATH, VAULT_SCRIPT_PATH } from "../src/core/paths";
+import { SOUND_SCRIPT_PATH, VAULT_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 /** Ends in "a": the "fx" group. */
@@ -95,28 +93,6 @@ describe("the sound script", () => {
   it("creaks when a case file opens and stamps when one is finished", () => {
     expect(SOUND_JS).toContain('if (story.open) play("creak")');
     expect(SOUND_JS).toContain(`addEventListener(${JSON.stringify(CARD_EVENT)}`);
-  });
-});
-
-describe("withSound and wantsSound", () => {
-  it("adds the script right after the stylesheet, so it runs before page scripts", () => {
-    const page = `<head><link rel="stylesheet" href="${STYLESHEET_PATH}" /><script src="/x.js" defer></script></head>`;
-    const added = withSound(page, STYLESHEET_PATH);
-    expect(added.indexOf(TAG)).toBeGreaterThan(added.indexOf(STYLESHEET_PATH));
-    expect(added.indexOf(TAG)).toBeLessThan(added.indexOf("/x.js"));
-  });
-
-  it("leaves a page without our stylesheet unchanged", () => {
-    expect(withSound("<p>hi</p>", STYLESHEET_PATH)).toBe("<p>hi</p>");
-  });
-
-  it("skips checkout, private pages, posts and the health check", () => {
-    for (const path of ["/checkout/alien-paperclip", "/bureau/ledger", "/vault/pull", "/healthz"]) {
-      expect(wantsSound(path), path).toBe(false);
-    }
-    for (const path of ["/", "/items/alien-paperclip", "/vault", "/broadcast", "/thanks"]) {
-      expect(wantsSound(path), path).toBe(true);
-    }
   });
 });
 

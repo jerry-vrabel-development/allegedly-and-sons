@@ -4,13 +4,14 @@ import { chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
 import { STRIPE_JS_URL } from "./checkout-script";
 import { CASE_CLOSED_ID, STORY_END_ID } from "./story-script";
-import { html, type SafeHtml } from "./html";
+import { html, SafeHtml } from "./html";
 import {
   BROADCAST_PATH,
   CHECKOUT_SCRIPT_PATH,
   DISCLAIMER_PATH,
   DOSSIER_PATH,
   HOME_PATH,
+  SOUND_SCRIPT_PATH,
   STORY_SCRIPT_PATH,
   STYLESHEET_PATH,
   TERMS_PATH,
@@ -36,15 +37,47 @@ interface PageOptions {
   readonly scripts?: readonly string[];
 }
 
+/**
+ * What a request adds to the shared shell. Which pages get what is decided by
+ * page-rules.ts; the router fills this in for each request.
+ */
+export interface Chrome {
+  /** The ON AIR strip (note 0009), shown just inside <body>, after the skip link. */
+  readonly banner: SafeHtml | undefined;
+  /**
+   * Loads the sound script (note 0011) right after the stylesheet, so it runs
+   * before any page script that uses it (deferred scripts run in order).
+   */
+  readonly sound: boolean;
+}
+
+const NO_CHROME: Chrome = { banner: undefined, sound: false };
+
+/**
+ * A laid-out page. Its `value` is the page with no chrome, which is what
+ * every page function's caller and test sees; `withChrome` renders the same
+ * page again with a request's chrome in place.
+ */
+export class Page extends SafeHtml {
+  readonly withChrome: (chrome: Chrome) => SafeHtml;
+
+  constructor(render: (chrome: Chrome) => SafeHtml) {
+    super(render(NO_CHROME).value);
+    this.withChrome = render;
+  }
+}
+
 /** The shared page shell: landmarks, skip link, header nav and footer. */
-export function layout({
-  title,
-  description,
-  body,
-  noindex = false,
-  canonical,
-  scripts = [],
-}: PageOptions): SafeHtml {
+export function layout(options: PageOptions): Page {
+  return new Page((chrome) => shell(options, chrome));
+}
+
+function shell(
+  { title, description, body, noindex = false, canonical, scripts = [] }: PageOptions,
+  { banner, sound }: Chrome,
+): SafeHtml {
+  // prettier-ignore
+  const soundScript = sound ? html`<script src="${SOUND_SCRIPT_PATH}" defer></script>` : html``;
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
   return html`<!doctype html>
     <html lang="en">
@@ -57,10 +90,10 @@ export function layout({
         ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
         ${canonical === undefined ? html`` : html`<link rel="canonical" href="${canonical}" />`}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
-        ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
+        ${soundScript} ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
       </head>
       <body>
-        <a class="skip-link" href="#main">Skip to content</a>
+        <a class="skip-link" href="#main">Skip to content</a>${banner ?? html``}
         <header class="site">
           <div class="wrap">
             <a class="brand" href="${HOME_PATH}">${SITE_NAME}</a>
@@ -142,7 +175,7 @@ function acquireBlock(item: Item, offer: Offer): SafeHtml {
     </p>`;
 }
 
-export function homePage(): SafeHtml {
+export function homePage(): Page {
   const [featured] = AVAILABLE_ITEMS;
   const hero = html`<section class="hero" aria-labelledby="featured-heading">
     <figure class="art">${art(featured, featured.artAlt, true)}</figure>
@@ -228,7 +261,7 @@ export function crossSells(item: Item): readonly Item[] {
   return [...sameWing, ...forSale, ...pending].slice(0, CROSS_SELL_COUNT);
 }
 
-export function itemPage(item: Item, origin: string, offer: Offer = regularOffer(item)): SafeHtml {
+export function itemPage(item: Item, origin: string, offer: Offer = regularOffer(item)): Page {
   const { story } = item;
   const [opening, ...rest] = story.paragraphs;
   const others = crossSells(item);
@@ -567,7 +600,7 @@ function longDate(isoDate: string): string {
   });
 }
 
-export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): SafeHtml {
+export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): Page {
   return layout({
     title: "The Fine Print",
     description:
@@ -611,7 +644,7 @@ export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): SafeHtml {
   });
 }
 
-export function notFoundPage(): SafeHtml {
+export function notFoundPage(): Page {
   return layout({
     title: "Not found",
     description: "The Bureau is still looking.",
@@ -633,7 +666,7 @@ export type ReturnView =
  * confirmed the session was paid; anyone can open /thanks, so it never takes
  * the visit itself as proof. Orders are recorded by the webhook, not here.
  */
-export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
+export function thanksPage(view: ReturnView = { kind: "unchecked" }): Page {
   const item = view.kind === "unchecked" ? undefined : view.item;
   const back = html`<p><a href="${HOME_PATH}">Back to the collection</a></p>`;
 
@@ -723,7 +756,7 @@ export function checkoutPage(
   item: Item,
   publishableKey?: string,
   offer: Offer = regularOffer(item),
-): SafeHtml {
+): Page {
   const embedded = publishableKey !== undefined;
   return layout({
     title: `Acquire ${item.name}`,
@@ -758,7 +791,7 @@ export function checkoutPage(
 }
 
 /** Shown while checkout is switched off on purpose (no Stripe key yet), so nobody is told to retry. */
-export function checkoutClosedPage(item: Item): SafeHtml {
+export function checkoutClosedPage(item: Item): Page {
   return layout({
     title: "Acquisitions open soon",
     description: "The Bureau isn't taking acquisitions yet.",
@@ -771,7 +804,7 @@ export function checkoutClosedPage(item: Item): SafeHtml {
 }
 
 /** Shown when checkout fails unexpectedly (Stripe or network trouble), so the buyer is never left on a blank error. */
-export function checkoutUnavailablePage(item: Item): SafeHtml {
+export function checkoutUnavailablePage(item: Item): Page {
   return layout({
     title: "Checkout unavailable",
     description: "Checkout couldn't open just now.",

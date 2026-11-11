@@ -12,7 +12,7 @@ import { CATALOG, formatPrice } from "../core/catalog";
 import { NETWORKS, type Network } from "../core/share";
 import { clearlyDifferent, describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
 import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+import { layout, type Page } from "./pages";
 import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
 import { STREAK_BUCKETS, type StreakSummary } from "../core/streak";
 import { readStreakSummary } from "./streak";
@@ -463,7 +463,7 @@ function scrollTable(label: string, table: SafeHtml): SafeHtml {
   </div>`;
 }
 
-export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
+export function ledgerPage(ledger: Ledger, email: string): Page {
   // Sales include bought-back streaks, not just exhibits.
   const totalOrders = ledger.items.reduce((sum, row) => sum + row.orders, ledger.repairs.count);
   const totalRevenue = ledger.items.reduce(

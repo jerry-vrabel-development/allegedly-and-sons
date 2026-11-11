@@ -18,7 +18,7 @@ import {
   type VaultCard,
 } from "../core/vault";
 import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+import { layout, type Page } from "./pages";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
@@ -104,7 +104,7 @@ export function vaultPage(
   opened: boolean,
   repairOpen: boolean,
   effects: boolean,
-): SafeHtml {
+): Page {
   return layout({
     title: "The Vault",
     description: "One free pull a day. Vault cards are never for sale.",
