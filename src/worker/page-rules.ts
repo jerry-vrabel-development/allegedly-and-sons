@@ -47,7 +47,8 @@ const RULES: readonly (PageRule & { readonly matches: (pathname: string) => bool
     banner: false,
     sound: false,
   },
-  // Item pages report reads to our own origin (note 0001, C4).
+  // Item pages report reads to our own origin (note 0001, C4). The exhibit
+  // that's on air drops the banner from its own page (see onAirBanner).
   { matches: (path) => ITEM_PATH.test(path), policy: "ownOrigin", banner: true, sound: true },
   // The Vault's reel posts the pull to our own origin (note 0008).
   { matches: (path) => path === VAULT_PATH, policy: "ownOrigin", banner: true, sound: true },
