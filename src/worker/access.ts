@@ -9,6 +9,8 @@
  * See https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
  */
 
+import { isRecord } from "../core/guards";
+
 export interface AccessConfig {
   /** e.g. "allegedlyandsons.cloudflareaccess.com". */
   readonly teamDomain: string;
@@ -40,10 +42,6 @@ export function accessConfigFrom(vars: {
   const teamDomain = vars.ACCESS_TEAM_DOMAIN?.trim() ?? "";
   const aud = vars.ACCESS_AUD?.trim() ?? "";
   return TEAM_DOMAIN.test(teamDomain) && AUD.test(aud) ? { teamDomain, aud } : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function base64UrlBytes(text: string): Uint8Array | undefined {

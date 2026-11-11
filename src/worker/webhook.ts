@@ -24,8 +24,6 @@ import { milestoneBadges } from "../core/streak";
 import { vaultDay } from "../core/vault";
 import { readStreak } from "./streak";
 
-export const WEBHOOK_PATH = "/webhooks/stripe";
-
 /** Stripe events are a few kilobytes; anything near this is not from Stripe. */
 export const MAX_WEBHOOK_BYTES = 256 * 1024;
 

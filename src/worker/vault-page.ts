@@ -22,16 +22,12 @@ import { layout } from "./pages";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
-import { COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
-
-export const VAULT_PATH = "/vault";
-export const VAULT_PULL_PATH = "/vault/pull";
-
-/** The Vault's own script (vault-script.ts): the lever plays in place. */
-export const VAULT_SCRIPT_PATH = "/assets/vault.js";
-
-/** Where a pull sends the agent back to: the result, with the door opening. */
-export const VAULT_OPENED_LOCATION = `${VAULT_PATH}?opened=1#latest-pull`;
+import {
+  COUNTDOWN_SCRIPT_PATH,
+  DOSSIER_PATH,
+  VAULT_PULL_PATH,
+  VAULT_SCRIPT_PATH,
+} from "../core/paths";
 
 const BONUS_IDS: readonly string[] = BONUS_BADGES;
 const BONUS_NAMES = BADGES.filter((badge) => BONUS_IDS.includes(badge.id))
@@ -186,7 +182,10 @@ export function vaultPage(
           ${String(state.bonusEarned)} of ${String(BONUS_BADGES.length)}.
           <strong>Nothing you buy earns a pull or changes the odds.</strong>
         </p>
-        <p>Your vault cards also count toward your rank in <a href="/dossier">your dossier</a>.</p>
+        <p>
+          Your vault cards also count toward your rank in
+          <a href="${DOSSIER_PATH}">your dossier</a>.
+        </p>
       </section>`,
   });
 }

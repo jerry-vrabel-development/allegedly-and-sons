@@ -25,8 +25,7 @@ import {
   testStatus,
   type TestStatus,
 } from "../core/effects";
-
-export const LEDGER_PATH = "/bureau/ledger";
+import { LEDGER_PATH } from "../core/paths";
 
 /** The periods the ledger can show, in days (0 = everything). */
 export const PERIODS = [7, 30, 90, 0] as const;

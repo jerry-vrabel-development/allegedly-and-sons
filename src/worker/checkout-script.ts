@@ -13,8 +13,6 @@
  * method is initEmbeddedCheckout (renamed createEmbeddedCheckoutPage in dahlia).
  */
 
-export const CHECKOUT_SCRIPT_PATH = "/assets/checkout.js";
-
 /** Stripe.js, pinned to the release that matches STRIPE_API_VERSION (clover). */
 export const STRIPE_JS_URL = "https://js.stripe.com/clover/stripe.js";
 

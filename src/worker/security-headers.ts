@@ -22,8 +22,9 @@ import { ITEM_PATH } from "../core/catalog";
  * Pages that run our own scripts and talk only to our own origin: the Vault
  * (note 0008: the reel) and the Back-Room Broadcast (note 0009: the clock).
  */
-const OWN_SCRIPT_PAGES = new Set(["/vault", "/broadcast"]);
+const OWN_SCRIPT_PAGES = new Set<string>([VAULT_PATH, BROADCAST_PATH]);
 import { CHECKOUT_PATH } from "../core/checkout";
+import { BROADCAST_PATH, VAULT_PATH } from "../core/paths";
 
 type Directives = Readonly<Record<string, readonly string[]>>;
 

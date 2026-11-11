@@ -8,7 +8,8 @@ import {
   recordStoryRead,
 } from "../src/worker/analytics";
 import { route, type Deps } from "../src/worker/index";
-import { EVENTS_PATH, STORY_JS, STORY_SCRIPT_PATH } from "../src/worker/story-script";
+import { STORY_JS } from "../src/worker/story-script";
+import { EVENTS_PATH, STORY_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const ITEM = CATALOG[0];

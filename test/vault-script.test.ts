@@ -5,8 +5,8 @@ import worker, { route, type Deps } from "../src/worker/index";
 import { grantAwards } from "../src/worker/dossier";
 import { STRICT_CSP, VAULT_CSP } from "../src/worker/security-headers";
 import { VAULT_JS } from "../src/worker/vault-script";
-import { VAULT_SCRIPT_PATH } from "../src/worker/vault-page";
 import { testEnv } from "./test-env";
+import { VAULT_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);

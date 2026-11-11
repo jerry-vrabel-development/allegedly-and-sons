@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
 import { COUNTDOWN_JS, SEGMENT_END_EVENT } from "../src/worker/broadcast-script";
-import { itemPage, STYLESHEET_PATH, thanksPage } from "../src/worker/pages";
+import { itemPage, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
 import {
   CARD_EVENT,
@@ -14,13 +14,12 @@ import {
   SOUND_JS,
   SOUND_MUTE_KEY,
   SOUND_NAMES,
-  SOUND_SCRIPT_PATH,
   wantsSound,
   withSound,
 } from "../src/worker/sound-script";
 import { CASE_CLOSED_ID, STORY_JS } from "../src/worker/story-script";
-import { VAULT_SCRIPT_PATH } from "../src/worker/vault-page";
 import { testEnv } from "./test-env";
+import { SOUND_SCRIPT_PATH, STYLESHEET_PATH, VAULT_SCRIPT_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 /** Ends in "a": the "fx" group. */

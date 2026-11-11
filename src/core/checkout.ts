@@ -5,16 +5,16 @@
  * browser, so nobody can edit a form and pay one cent for an alien paperclip.
  */
 
+import { THANKS_PATH, itemPathFor } from "./paths";
+
 import type { Item } from "./catalog";
 import type { Offer } from "./broadcast";
+import { isRecord, SLUG } from "./guards";
 
 /** An item at its regular price, off air. */
 export function regularOffer(item: Item): Offer {
   return { priceCents: item.priceCents, regularCents: item.priceCents, segment: undefined };
 }
-
-/** Where buyers land after paying. */
-export const THANKS_PATH = "/thanks";
 
 /**
  * Where Stripe sends buyers back, from both the hosted and embedded checkout.
@@ -35,10 +35,6 @@ export type ReturnOutcome =
   | { readonly kind: "incomplete"; readonly slug: string | undefined }
   | { readonly kind: "unchecked" };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /**
  * Reads a Checkout Session (as Stripe returns it, still `unknown`) into what
  * the return page may say. Only a complete, paid session counts as paid; a
@@ -49,7 +45,7 @@ export function returnOutcome(session: unknown): ReturnOutcome {
   if (!isRecord(session)) return { kind: "unchecked" };
   const { status, payment_status, metadata } = session;
   const raw = isRecord(metadata) ? metadata["slug"] : undefined;
-  const slug = typeof raw === "string" && /^[a-z0-9-]{1,64}$/.test(raw) ? raw : undefined;
+  const slug = typeof raw === "string" && SLUG.test(raw) ? raw : undefined;
 
   if (status === "complete") {
     if (payment_status === "paid" || payment_status === "no_payment_required") {
@@ -151,7 +147,7 @@ export function checkoutSessionForm(
 ): URLSearchParams {
   const form = baseSessionForm(item, visitorId, offer);
   form.set("success_url", returnUrl(origin));
-  form.set("cancel_url", `${origin}/items/${item.slug}`);
+  form.set("cancel_url", `${origin}${itemPathFor(item.slug)}`);
   return form;
 }
 

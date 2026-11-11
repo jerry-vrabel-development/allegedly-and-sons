@@ -7,12 +7,18 @@
  * named there.
  */
 
-import { COUNTDOWN_JS, COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
-import { CHECKOUT_JS, CHECKOUT_SCRIPT_PATH } from "./checkout-script";
-import { SOUND_JS, SOUND_SCRIPT_PATH } from "./sound-script";
-import { STORY_JS, STORY_SCRIPT_PATH } from "./story-script";
-import { VAULT_SCRIPT_PATH } from "./vault-page";
+import { COUNTDOWN_JS } from "./broadcast-script";
+import { CHECKOUT_JS } from "./checkout-script";
+import { SOUND_JS } from "./sound-script";
+import { STORY_JS } from "./story-script";
 import { VAULT_JS } from "./vault-script";
+import {
+  CHECKOUT_SCRIPT_PATH,
+  COUNTDOWN_SCRIPT_PATH,
+  SOUND_SCRIPT_PATH,
+  STORY_SCRIPT_PATH,
+  VAULT_SCRIPT_PATH,
+} from "../core/paths";
 
 export const SCRIPTS: Readonly<Record<string, string>> = {
   [STORY_SCRIPT_PATH]: STORY_JS,

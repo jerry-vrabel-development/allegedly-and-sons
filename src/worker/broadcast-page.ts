@@ -10,7 +10,6 @@
  */
 
 import {
-  BROADCAST_PATH,
   chicagoTime,
   DISCOUNT_PERCENT,
   nextAuction,
@@ -23,8 +22,8 @@ import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { describeWait } from "../core/vault";
 import { html, type SafeHtml } from "./html";
-import { itemPath, layout, TERMS_PATH } from "./pages";
-import { COUNTDOWN_SCRIPT_PATH } from "./broadcast-script";
+import { itemPath, layout } from "./pages";
+import { BROADCAST_PATH, COUNTDOWN_SCRIPT_PATH, TERMS_PATH, artPath } from "../core/paths";
 
 function segmentName(segment: Segment): string {
   return segment.kind === "auction" ? "The Midnight Auction" : "Rolling segment";
@@ -67,7 +66,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Safe
       <div class="exhibit">
         <figure class="art">
           <img
-            src="/assets/art/${item.slug}.svg"
+            src="${artPath(item.slug)}"
             alt="${item.artAlt}"
             width="800"
             height="600"

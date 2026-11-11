@@ -2,9 +2,10 @@ import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker, { route, type Deps } from "../src/worker/index";
-import { MAX_WEBHOOK_BYTES, WEBHOOK_PATH } from "../src/worker/webhook";
+import { MAX_WEBHOOK_BYTES } from "../src/worker/webhook";
 import { stripeSignatureHeader } from "./stripe-test-signing";
 import { testEnv } from "./test-env";
+import { WEBHOOK_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const SECRET = "whsec_test_webhook";

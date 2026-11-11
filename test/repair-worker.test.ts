@@ -4,8 +4,8 @@ import { grantAwards } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
 import { readStreak } from "../src/worker/streak";
-import { WEBHOOK_PATH } from "../src/worker/webhook";
 import { stripeSignatureHeader } from "./stripe-test-signing";
+import { WEBHOOK_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);

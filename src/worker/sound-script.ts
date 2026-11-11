@@ -23,8 +23,7 @@
  */
 
 import { SEGMENT_END_EVENT } from "./broadcast-script";
-
-export const SOUND_SCRIPT_PATH = "/assets/sound.js";
+import { SOUND_SCRIPT_PATH } from "../core/paths";
 
 /** The browser-local key for the shop-wide mute setting. */
 export const SOUND_MUTE_KEY = "bureau-sound-muted";

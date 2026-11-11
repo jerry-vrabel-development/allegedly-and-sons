@@ -1,14 +1,25 @@
 import { AVAILABLE_ITEMS, CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
-import { BROADCAST_PATH, chicagoTime, type Offer } from "../core/broadcast";
+import { chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
-import { artPath } from "./art";
-import { CHECKOUT_SCRIPT_PATH, STRIPE_JS_URL } from "./checkout-script";
-import { CASE_CLOSED_ID, STORY_END_ID, STORY_SCRIPT_PATH } from "./story-script";
+import { STRIPE_JS_URL } from "./checkout-script";
+import { CASE_CLOSED_ID, STORY_END_ID } from "./story-script";
 import { html, type SafeHtml } from "./html";
+import {
+  BROADCAST_PATH,
+  CHECKOUT_SCRIPT_PATH,
+  DISCLAIMER_PATH,
+  DOSSIER_PATH,
+  HOME_PATH,
+  STORY_SCRIPT_PATH,
+  STYLESHEET_PATH,
+  TERMS_PATH,
+  VAULT_PATH,
+  artPath,
+  itemPathFor,
+} from "../core/paths";
 
 export const SITE_NAME = "Allegedly & Sons";
-export const STYLESHEET_PATH = "/assets/site.css";
 
 interface PageOptions {
   readonly title: string;
@@ -52,12 +63,12 @@ export function layout({
         <a class="skip-link" href="#main">Skip to content</a>
         <header class="site">
           <div class="wrap">
-            <a class="brand" href="/">${SITE_NAME}</a>
+            <a class="brand" href="${HOME_PATH}">${SITE_NAME}</a>
             <nav aria-label="Main">
               <ul>
-                <li><a href="/">The Collection</a></li>
-                <li><a href="/dossier">Your Dossier</a></li>
-                <li><a href="/vault">The Vault</a></li>
+                <li><a href="${HOME_PATH}">The Collection</a></li>
+                <li><a href="${DOSSIER_PATH}">Your Dossier</a></li>
+                <li><a href="${VAULT_PATH}">The Vault</a></li>
               </ul>
             </nav>
           </div>
@@ -70,7 +81,7 @@ export function layout({
             <p>${SITE_NAME}, Purveyors of Rare Objects. Est. “a long time ago.”</p>
             <p>
               Home of The Bureau of Improbable Acquisitions.
-              <a href="/disclaimer">Read the fine print</a>.
+              <a href="${DISCLAIMER_PATH}">Read the fine print</a>.
             </p>
           </div>
         </footer>
@@ -78,15 +89,8 @@ export function layout({
     </html> `;
 }
 
-/**
- * Where the terms of sale start on The Fine Print. Linked beside every place a
- * buyer pays, so the terms are in front of them when they agree to them; the
- * page itself is linked from every footer.
- */
-export const TERMS_PATH = "/disclaimer#terms-heading";
-
 export function itemPath(item: Item): string {
-  return `/items/${item.slug}`;
+  return itemPathFor(item.slug);
 }
 
 /** The item's illustration. Pass empty alt where a visible name already says it. */
@@ -602,7 +606,7 @@ export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): SafeHtml {
           <strong>Plainly:</strong> the flavor text is atmosphere. The Plainly lines are the deal.
         </p>
       </section>
-      <p><a href="/">Back to the collection</a></p>
+      <p><a href="${HOME_PATH}">Back to the collection</a></p>
     </div>`,
   });
 }
@@ -614,7 +618,7 @@ export function notFoundPage(): SafeHtml {
     body: html` <div class="prose">
       <h1>Not found</h1>
       <p>Not found. The Bureau is still looking.</p>
-      <p><a href="/">Back to the collection</a></p>
+      <p><a href="${HOME_PATH}">Back to the collection</a></p>
     </div>`,
   });
 }
@@ -631,7 +635,7 @@ export type ReturnView =
  */
 export function thanksPage(view: ReturnView = { kind: "unchecked" }): SafeHtml {
   const item = view.kind === "unchecked" ? undefined : view.item;
-  const back = html`<p><a href="/">Back to the collection</a></p>`;
+  const back = html`<p><a href="${HOME_PATH}">Back to the collection</a></p>`;
 
   switch (view.kind) {
     case "paid":

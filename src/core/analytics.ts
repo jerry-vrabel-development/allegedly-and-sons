@@ -13,6 +13,7 @@
 
 import { findItem } from "./catalog";
 import { isNetwork, REF, type Network } from "./share";
+import { isRecord } from "./guards";
 
 /**
  * Every event the shop records. Purchases aren't here: the orders table,
@@ -91,10 +92,6 @@ export function isHostName(value: string): boolean {
 /** A normalized UTM value, as stored in utm_source and utm_campaign. */
 export function isUtmValue(value: string): boolean {
   return UTM.test(value);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isEventName(value: unknown): value is EventName {

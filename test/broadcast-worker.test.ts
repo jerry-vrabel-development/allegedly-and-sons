@@ -5,11 +5,11 @@ import { segmentAt, specialPriceCents } from "../src/core/broadcast";
 import { CATALOG, formatPrice } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
-import { COUNTDOWN_JS, COUNTDOWN_SCRIPT_PATH } from "../src/worker/broadcast-script";
+import { COUNTDOWN_JS } from "../src/worker/broadcast-script";
 import { VAULT_CSP } from "../src/worker/security-headers";
-import { WEBHOOK_PATH } from "../src/worker/webhook";
 import { stripeSignatureHeader } from "./stripe-test-signing";
 import { testEnv } from "./test-env";
+import { COUNTDOWN_SCRIPT_PATH, WEBHOOK_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const T = (iso: string) => Date.parse(iso) / 1000;

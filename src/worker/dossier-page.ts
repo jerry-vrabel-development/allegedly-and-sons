@@ -21,8 +21,7 @@ import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout } from "./pages";
-
-export const DOSSIER_PATH = "/dossier";
+import { VAULT_PATH, artPath } from "../core/paths";
 
 function agentNumber(n: number): string {
   return String(n).padStart(4, "0");
@@ -33,7 +32,7 @@ function exhibitCard(item: Item, collected: boolean): SafeHtml {
   return collected
     ? html`<li class="card">
         <img
-          src="/assets/art/${item.slug}.svg"
+          src="${artPath(item.slug)}"
           alt="${item.artAlt}"
           width="800"
           height="600"
@@ -111,7 +110,7 @@ export function dossierPage(
 
       <section class="prose" aria-labelledby="vault-heading">
         <h2 id="vault-heading">Vault cards</h2>
-        <p>Never for sale. One free pull a day at <a href="/vault">the Vault</a>.</p>
+        <p>Never for sale. One free pull a day at <a href="${VAULT_PATH}">the Vault</a>.</p>
         <ul class="badges">
           ${VAULT_CARDS.map((card) =>
             earned.has(vaultAwardId(card.id))

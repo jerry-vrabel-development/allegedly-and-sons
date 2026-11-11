@@ -1,15 +1,11 @@
 import { createExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import {
-  CHECKOUT_JS,
-  CHECKOUT_SCRIPT_PATH,
-  CHECKOUT_STATUS,
-  STRIPE_JS_URL,
-} from "../src/worker/checkout-script";
+import { CHECKOUT_JS, CHECKOUT_STATUS, STRIPE_JS_URL } from "../src/worker/checkout-script";
 import { STRIPE_API_VERSION } from "../src/worker/stripe";
 import worker, { publishableKeyFrom } from "../src/worker/index";
 import { STRICT_CSP } from "../src/worker/security-headers";
 import { testEnv } from "./test-env";
+import { CHECKOUT_SCRIPT_PATH } from "../src/core/paths";
 
 describe("the checkout script", () => {
   it("is served from our origin as JavaScript, with the strict policy", async () => {
