@@ -6,7 +6,8 @@
  * 2. Read the raw body once, with a size cap, and verify the signature before
  *    parsing anything. Failures get a 400 and nothing is stored.
  * 3. In one D1 batch (a transaction), record the event id and, for a paid
- *    session, the order. Both ignore duplicates, so a redelivered event changes
+ *    session, the order. A session is paid either when checkout completes
+ *    (cards) or later, when a delayed payment clears; both events are handled. Both ignore duplicates, so a redelivered event changes
  *    nothing. If the batch fails, nothing is stored and we answer 500, so
  *    Stripe retries the whole event.
  *
@@ -15,7 +16,7 @@
 
 import { awardsForOrder } from "../core/dossier";
 import { grantAwards } from "./dossier";
-import { CHECKOUT_COMPLETED, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
+import { isOrderEvent, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
 import { verifyStripeSignature } from "./stripe-signature";
 import { REPAIR_SLUG } from "../core/repair";
 import { vaultDay } from "../core/vault";
@@ -80,7 +81,7 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
 
   let note = "acknowledged";
   let buyer: { visitorId: string; itemSlug: string } | undefined;
-  if (event.type === CHECKOUT_COMPLETED) {
+  if (isOrderEvent(event.type)) {
     const outcome = orderFromCompletedSession(event.object, event.created);
     if (outcome.kind === "order") {
       const { order } = outcome;
