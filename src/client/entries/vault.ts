@@ -6,7 +6,7 @@
  *    the card first; the reel only reveals it. If anything goes wrong (no
  *    script, no fetch, an error), the plain form submits as before.
  * 2. A dialog opens: the lever clunks, the reel spins through the vault's
- *    cards with a tick per card, slowing down, and lands on the real draw.
+ *    cards with a knock per card, slowing down and climbing in pitch, and lands on the real draw.
  * 3. The reveal grows with rarity (Common: a pop; Uncommon: a glint; Rare: a
  *    flash and a fanfare). The result is always also in text, announced to
  *    screen readers. "Collect" reloads the Vault to show it in the file.
@@ -28,6 +28,7 @@ import {
   reelGap,
   reelNameAt,
   reelNamesFrom,
+  reelPitch,
   reelSteps,
   resultLines,
   type Pull,
@@ -38,8 +39,8 @@ import type { SoundName } from "../sounds";
 /** How many pieces of confetti a milestone throws. */
 const CONFETTI_BITS = 18;
 
-function play(name: SoundName): void {
-  if (window.BureauSound) window.BureauSound.play(name);
+function play(name: SoundName, pitch?: number): void {
+  if (window.BureauSound) window.BureauSound.play(name, pitch);
 }
 
 function el<Tag extends keyof HTMLElementTagNameMap>(
@@ -161,7 +162,7 @@ function start(): void {
     const next = (): void => {
       step += 1;
       reel.textContent = reelNameAt(names, step);
-      play("tick");
+      play("reel", reelPitch(step, steps));
       if (step >= steps) {
         reveal(pull);
         return;

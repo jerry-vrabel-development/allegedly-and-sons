@@ -9,6 +9,7 @@ import {
   reelGap,
   reelNameAt,
   reelNamesFrom,
+  reelPitch,
   reelSteps,
   resultLines,
   type Pull,
@@ -149,15 +150,15 @@ describe("pullFrom", () => {
 });
 
 describe("the spin", () => {
-  it("goes round four times and stops on the drawn card", () => {
-    expect(reelSteps(NAMES, "Sock")).toBe(16);
-    expect(reelSteps(NAMES, "Thunder")).toBe(18);
+  it("goes round six times and stops on the drawn card", () => {
+    expect(reelSteps(NAMES, "Sock")).toBe(24);
+    expect(reelSteps(NAMES, "Thunder")).toBe(26);
     expect(reelNameAt(NAMES, reelSteps(NAMES, "Thunder"))).toBe("Thunder");
   });
 
   it("still stops, on the first card, if the draw isn't one the page listed", () => {
-    expect(reelSteps(NAMES, "Unlisted")).toBe(16);
-    expect(reelNameAt(NAMES, 16)).toBe("Sock");
+    expect(reelSteps(NAMES, "Unlisted")).toBe(24);
+    expect(reelNameAt(NAMES, 24)).toBe("Sock");
   });
 
   it("shows nothing, rather than failing, with no names at all", () => {
@@ -185,19 +186,43 @@ describe("the spin", () => {
       const name = reelNameAt(NAMES, step);
       shown.set(name, (shown.get(name) ?? 0) + 1);
     }
-    expect([...shown.values()]).toEqual([4, 4, 4, 4]);
+    expect([...shown.values()]).toEqual([6, 6, 6, 6]);
   });
 
   it("slows down as it goes: short gaps first, long ones at the end", () => {
     const gaps = Array.from({ length: 16 }, (_, index) => reelGap(index + 1, 16, 0));
     expect(gaps[0]).toBeGreaterThanOrEqual(30);
     expect(gaps[0]).toBeLessThan(31);
-    expect(gaps[15]).toBe(350);
+    expect(gaps[15]).toBe(510);
     for (let i = 1; i < gaps.length; i++) expect(gaps[i]).toBeGreaterThan(gaps[i - 1] ?? 0);
   });
 
   it("depends only on how far along it is, never on which card is showing", () => {
     expect(reelGap(8, 16, 0)).toBe(reelGap(9, 18, 0));
+  });
+
+  it("lasts about four seconds, long enough to build, and never trips its own hurry-up", () => {
+    for (const drawn of NAMES) {
+      const steps = reelSteps(NAMES, drawn);
+      let elapsed = 0;
+      for (let step = 1; step < steps; step++) {
+        const gap = reelGap(step, steps, elapsed);
+        expect(gap, `${drawn} step ${String(step)}`).toBeGreaterThan(0);
+        elapsed += gap;
+      }
+      expect(elapsed).toBeGreaterThan(3000);
+      expect(elapsed).toBeLessThan(REEL_MS * 1.2);
+    }
+  });
+
+  it("climbs in pitch as it slows, by how far along it is and nothing else", () => {
+    expect(reelPitch(0, 24)).toBe(1);
+    expect(reelPitch(24, 24)).toBe(1.6);
+    for (let step = 1; step <= 24; step++) {
+      expect(reelPitch(step, 24)).toBeGreaterThan(reelPitch(step - 1, 24));
+    }
+    // The same point in two spins sounds the same, whichever card is showing.
+    expect(reelPitch(12, 24)).toBe(reelPitch(13, 26));
   });
 
   it("hurries to the end if it has already run well past its time", () => {

@@ -12,11 +12,18 @@
 
 import { isRecord } from "../core/guards";
 
-/** How long the reel spins (ms) before it lands, when motion is allowed. */
-export const REEL_MS = 2400;
+/** About how long the reel spins (ms) before it lands, when motion is allowed. */
+export const REEL_MS = 4000;
 
 /** How many times the reel goes round every card before it stops. */
-const REEL_ROUNDS = 4;
+const REEL_ROUNDS = 6;
+
+/** The gap (ms) between cards at full speed, and how much longer the last gap is. */
+const FASTEST_GAP_MS = 30;
+const SLOWING_MS = 480;
+
+/** How much higher the last step sounds than the first: 0.6 is about eight semitones. */
+const PITCH_CLIMB = 0.6;
 
 /** The rarities a card can have; each has its own reveal and sound. */
 export const REEL_RARITIES = ["Common", "Uncommon", "Rare"] as const;
@@ -116,7 +123,16 @@ export function reelNameAt(names: readonly string[], step: number): string {
  */
 export function reelGap(step: number, steps: number, elapsedMs: number): number {
   if (elapsedMs > REEL_MS * 1.5) return 0;
-  return 30 + Math.pow(step / steps, 3) * 320;
+  return FASTEST_GAP_MS + Math.pow(step / steps, 3) * SLOWING_MS;
+}
+
+/**
+ * How much to raise the pitch of the reel's sound at `step`: 1 at the start,
+ * climbing steadily as the reel slows. Like the pace, it depends only on how
+ * far along the spin is, so it builds the same way whatever is about to land.
+ */
+export function reelPitch(step: number, steps: number): number {
+  return 1 + (step / steps) * PITCH_CLIMB;
 }
 
 function count(n: number, one: string, many: string): string {
