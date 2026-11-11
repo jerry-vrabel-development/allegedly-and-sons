@@ -152,6 +152,13 @@ it is built.
 
 ## Open questions
 
+- **The first price.** Who sets a new exhibit's opening price, and on what
+  basis? The price is part of the joke, and it is also what every share is
+  cut from. Does the shop set it, do the partners propose it, or does it
+  start somewhere modest and move with what sells? Any change has to stay
+  true to 0009: no invented "was" prices.
+- **What comes off the top.** Is a share cut from the price paid, or from
+  what is left after the object, packaging, shipping and card fees?
 - **The split:** what share goes to the shop, the writer and the artist, and
   whether the two crafts get the same.
 - **Sale prices.** When an exhibit sells at an on-air discount, do the shares
