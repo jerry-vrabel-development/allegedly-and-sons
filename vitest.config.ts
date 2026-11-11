@@ -20,7 +20,13 @@ export default defineConfig(async () => {
         // V8 coverage doesn't work inside the Workers runtime; Istanbul does.
         provider: "istanbul" as const,
         include: ["src/**/*.ts"],
-        exclude: ["src/worker-configuration.d.ts"],
+        // Not counted: generated files, and the browser entry scripts, which
+        // only wire the DOM and are exercised by Playwright (note 0012).
+        exclude: [
+          "src/worker-configuration.d.ts",
+          "src/worker/client-scripts.generated.ts",
+          "src/client/entries/**",
+        ],
         reporter: ["text", "html", "json-summary"],
         thresholds: {
           lines: 95,

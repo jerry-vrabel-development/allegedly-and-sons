@@ -7,7 +7,7 @@
  * named there.
  */
 
-import { COUNTDOWN_JS } from "./broadcast-script";
+import { COUNTDOWN_JS } from "./client-scripts.generated";
 import { CHECKOUT_JS } from "./checkout-script";
 import { SOUND_JS } from "./sound-script";
 import { STORY_JS } from "./story-script";
