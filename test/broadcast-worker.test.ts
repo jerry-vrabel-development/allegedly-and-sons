@@ -5,7 +5,7 @@ import { segmentAt, specialPriceCents } from "../src/core/broadcast";
 import { CATALOG, formatPrice } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
-import { COUNTDOWN_JS } from "../src/worker/broadcast-script";
+import { COUNTDOWN_JS } from "../src/worker/client-scripts.generated";
 import { VAULT_CSP } from "../src/worker/security-headers";
 import { stripeSignatureHeader } from "./stripe-test-signing";
 import { testEnv } from "./test-env";
@@ -249,13 +249,16 @@ describe("the Broadcast in the Ledger", () => {
 });
 
 describe("the countdown script", () => {
-  it("is served first-party, ticks from the server's count, and reloads at zero", async () => {
+  // Its arithmetic is unit tested in clock.test.ts, and a browser test watches
+  // it tick; this checks what's served and that it stays first-party.
+  it("is served first-party, as one classic script with nothing left to import", async () => {
     const response = await route(new Request(`${BASE}${COUNTDOWN_SCRIPT_PATH}`), deps());
     expect(response.headers.get("Content-Type")).toBe("text/javascript; charset=utf-8");
     expect(await response.text()).toBe(COUNTDOWN_JS);
     expect(COUNTDOWN_JS).toContain('getAttribute("data-seconds-left")');
     expect(COUNTDOWN_JS).toContain("window.location.reload()");
     expect(COUNTDOWN_JS).not.toMatch(/eval\(|innerHTML|localStorage|https?:\/\//);
+    expect(COUNTDOWN_JS).not.toMatch(/^\s*(import|export)\s/m);
   });
 });
 

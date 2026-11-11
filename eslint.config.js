@@ -12,6 +12,7 @@ export default defineConfig(
     "playwright-report/",
     "test-results/",
     "src/worker-configuration.d.ts",
+    "src/worker/client-scripts.generated.ts",
   ]),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
@@ -20,7 +21,12 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.js", "vitest.config.ts", "playwright.config.ts"],
+          allowDefaultProject: [
+            "eslint.config.js",
+            "vitest.config.ts",
+            "playwright.config.ts",
+            "scripts/build-client.js",
+          ],
           // Config files outside src/ and test/ are linted with Node's types. Without
           // this, playwright.config.ts got no `process` type unless the e2e project
           // happened to load first, so lint failed intermittently.
@@ -33,5 +39,10 @@ export default defineConfig(
   {
     files: ["**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
+  },
+  {
+    // Build scripts run in Node.
+    files: ["scripts/**/*.js"],
+    languageOptions: { globals: { console: "readonly", process: "readonly", URL: "readonly" } },
   },
 );

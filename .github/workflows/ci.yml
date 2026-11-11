@@ -34,6 +34,9 @@ jobs:
           npm run cf-typegen
           git diff --exit-code -- src/worker-configuration.d.ts
 
+      - name: Client scripts are up to date
+        run: npm run build:client:check
+
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

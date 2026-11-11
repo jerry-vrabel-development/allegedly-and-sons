@@ -3,7 +3,8 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
-import { COUNTDOWN_JS, SEGMENT_END_EVENT } from "../src/worker/broadcast-script";
+import { SEGMENT_END_EVENT } from "../src/core/dom-events";
+import { COUNTDOWN_JS } from "../src/worker/client-scripts.generated";
 import { itemPage, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
 import {
@@ -161,7 +162,9 @@ describe("tune in to the Broadcast (note 0011, PR 2)", () => {
   });
 
   it("plays the stinger when the segment ends, only for listeners who tuned in", () => {
-    expect(COUNTDOWN_JS).toContain(`new Event(${JSON.stringify(SEGMENT_END_EVENT)})`);
+    // The bundle carries the event's name and sends it.
+    expect(COUNTDOWN_JS).toContain(`SEGMENT_END_EVENT = ${JSON.stringify(SEGMENT_END_EVENT)}`);
+    expect(COUNTDOWN_JS).toContain("new Event(SEGMENT_END_EVENT)");
     // The event fires before the reload, so the stinger has time to start.
     expect(COUNTDOWN_JS.indexOf("dispatchEvent")).toBeLessThan(COUNTDOWN_JS.indexOf("reload()"));
     expect(SOUND_JS).toContain(

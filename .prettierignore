@@ -6,3 +6,4 @@ package-lock.json
 src/worker-configuration.d.ts
 playwright-report/
 test-results/
+src/worker/client-scripts.generated.ts
