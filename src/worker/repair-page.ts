@@ -9,7 +9,8 @@
 import { REPAIR_NAME } from "../core/repair";
 import type { ReturnOutcome } from "../core/checkout";
 import { html, type SafeHtml } from "./html";
-import { layout, ORDER_CONTACT_EMAIL, type Page } from "./pages";
+import { layout, type Page } from "./pages";
+import { ORDER_CONTACT_EMAIL } from "./terms";
 import { VAULT_PATH } from "../core/paths";
 
 /**

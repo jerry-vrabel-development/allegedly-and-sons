@@ -11,7 +11,8 @@ import {
 } from "../src/core/effects";
 import { grantAwards } from "../src/worker/dossier";
 import { route, type Deps } from "../src/worker/index";
-import { ledgerPage, readLedger } from "../src/worker/ledger";
+import { readLedger } from "../src/worker/ledger";
+import { ledgerPage } from "../src/worker/ledger-page";
 
 const FX = `${"a".repeat(31)}0`;
 const PLAIN = `${"a".repeat(31)}1`;

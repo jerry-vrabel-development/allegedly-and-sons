@@ -15,7 +15,7 @@ const BASE = "https://allegedly.example";
 
 /**
  * What The Fine Print says about each script we serve. A new script needs a
- * line here, and those words in "What Runs in Your Browser" (pages.ts), so the
+ * line here, and those words in "What Runs in Your Browser" (terms.ts), so the
  * shop never runs something its own disclosure doesn't name.
  */
 const NAMED_IN_THE_FINE_PRINT: Readonly<Record<string, string>> = {

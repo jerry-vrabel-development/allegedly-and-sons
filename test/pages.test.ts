@@ -8,13 +8,6 @@ import {
   CROSS_SELL_COUNT,
   crossSells,
   homePage,
-  MAX_SHIP_DAYS,
-  MERCHANDISE_TERMS,
-  ORDER_CONTACT_EMAIL,
-  METHODS_TERMS,
-  REFUND_WINDOW_HOURS,
-  saleTerms,
-  TERMS_LAST_AMENDED,
   itemPage,
   itemPath,
   layout,
@@ -22,6 +15,15 @@ import {
   SITE_NAME,
   thanksPage,
 } from "../src/worker/pages";
+import {
+  MAX_SHIP_DAYS,
+  MERCHANDISE_TERMS,
+  METHODS_TERMS,
+  ORDER_CONTACT_EMAIL,
+  REFUND_WINDOW_HOURS,
+  saleTerms,
+  TERMS_LAST_AMENDED,
+} from "../src/worker/terms";
 import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
 import { STORY_END_ID } from "../src/core/story";
 import { STORY_SCRIPT_PATH, TERMS_PATH } from "../src/core/paths";
