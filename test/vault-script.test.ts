@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import worker, { route, type Deps } from "../src/worker/index";
 import { grantAwards } from "../src/worker/dossier";
 import { STRICT_CSP, VAULT_CSP } from "../src/worker/security-headers";
-import { VAULT_JS } from "../src/worker/vault-script";
+import { VAULT_JS } from "../src/worker/client-scripts.generated";
 import { testEnv } from "./test-env";
 import { VAULT_SCRIPT_PATH } from "../src/core/paths";
+import { VAULT_CARDS } from "../src/core/vault";
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);
@@ -79,10 +80,22 @@ describe("the Vault script", () => {
     expect(VAULT_CSP).not.toContain("unsafe");
   });
 
+  // The reel's rules (the answer, the spin, the wording) are unit tested in
+  // reel.test.ts and the whole thing is watched in real browsers (e2e); these
+  // check the bundle itself.
   it("does nothing risky: no eval, no innerHTML, no other hosts, nothing stored", () => {
     expect(VAULT_JS).not.toMatch(
       /eval\(|new Function|innerHTML|outerHTML|document\.write|sessionStorage|localStorage|https?:\/\//,
     );
+    expect(VAULT_JS).not.toMatch(/^\s*(import|export)\s/m);
+  });
+
+  it("carries only the reel: no catalog, no card secrets, nothing it doesn't use", () => {
+    expect(VAULT_JS.length).toBeLessThan(10_000);
+    for (const card of VAULT_CARDS) {
+      expect(VAULT_JS).not.toContain(card.name);
+      expect(VAULT_JS).not.toContain(card.secretFile);
+    }
   });
 
   it("plays its sounds through the shop-wide module, and runs silently without it", () => {
@@ -94,20 +107,7 @@ describe("the Vault script", () => {
     expect(VAULT_JS).toContain('typeof fetch !== "function"');
     expect(VAULT_JS).toContain('.showModal !== "function"');
     expect(VAULT_JS).not.toContain("form.submit()");
-  });
-
-  it("celebrates milestones and new cards, and says what's left", () => {
-    expect(VAULT_JS).toContain("if (data.milestone)");
-    expect(VAULT_JS).toContain('"Day " + milestone.days + ": you\'re " + milestone.name + "."');
-    expect(VAULT_JS).toContain('burst.setAttribute("aria-hidden", "true")');
-    expect(VAULT_JS).toContain("bonus pull");
-    expect(VAULT_JS).toContain('windowBox.classList.add("new-card")');
-  });
-
-  it("reveals the server's draw, spinning evenly through every card (no teasing)", () => {
-    expect(VAULT_JS).toContain("names.indexOf(data.card.name)");
-    expect(VAULT_JS).toContain("names[step % names.length]");
-    expect(VAULT_JS).toContain("if (reduced) reveal(data); else spin(data);");
+    expect(VAULT_JS.match(/fetch\(form\.action/g)).toHaveLength(1);
   });
 });
 
