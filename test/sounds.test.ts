@@ -70,7 +70,6 @@ describe("the sounds", () => {
     expect(SOUNDS.tick).toEqual([
       { kind: "tone", frequency: 1400, start: 0, length: 0.03, wave: "square", volume: 0.05 },
     ]);
-    expect(SOUNDS.Uncommon.map((step) => step.start)).toEqual([0, 0.1, 0.2, 0.3]);
     expect(SOUNDS.stinger.map((step) => step.start)).toEqual([0, 0.12, 0.24, 0.4, 0.4, 0.4]);
   });
 
@@ -79,8 +78,23 @@ describe("the sounds", () => {
     expect(SOUNDS.whoosh).toEqual([
       { kind: "noise", start: 0, length: 0.35, volume: 0.25, from: 400, to: 3000 },
     ]);
-    // The lever's clunk is plain noise: no filter.
-    expect(SOUNDS.clunk[0]).toEqual({ kind: "noise", start: 0, length: 0.12, volume: 0.5 });
+  });
+
+  it("gives the reel its own loud step, and keeps the quiet tick for the toggle and the host", () => {
+    const loudest = (name: "tick" | "reel") => Math.max(...SOUNDS[name].map((step) => step.volume));
+    expect(loudest("tick")).toBeLessThanOrEqual(0.05);
+    expect(loudest("reel")).toBeGreaterThanOrEqual(0.25);
+    // Short enough that the fastest steps of the spin (30 ms apart) don't smear.
+    expect(soundLength("reel")).toBeLessThanOrEqual(0.06);
+  });
+
+  it("makes a rarer card a bigger moment: louder in all and longer", () => {
+    const weight = (name: "Common" | "Uncommon" | "Rare") =>
+      SOUNDS[name].reduce((sum, step) => sum + step.volume * step.length, 0);
+    expect(weight("Uncommon")).toBeGreaterThan(weight("Common"));
+    expect(weight("Rare")).toBeGreaterThan(weight("Uncommon"));
+    expect(soundLength("Rare")).toBeGreaterThan(soundLength("Uncommon"));
+    expect(soundLength("Uncommon")).toBeGreaterThan(soundLength("Common"));
   });
 
   it("knows its own names, and nothing an object happens to have", () => {

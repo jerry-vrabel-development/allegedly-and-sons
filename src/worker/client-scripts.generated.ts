@@ -218,8 +218,11 @@ export const VAULT_JS = `"use strict";
   }
 
   // src/client/reel.ts
-  var REEL_MS = 2400;
-  var REEL_ROUNDS = 4;
+  var REEL_MS = 4e3;
+  var REEL_ROUNDS = 6;
+  var FASTEST_GAP_MS = 30;
+  var SLOWING_MS = 480;
+  var PITCH_CLIMB = 0.6;
   var REEL_RARITIES = ["Common", "Uncommon", "Rare"];
   function reelNamesFrom(attribute) {
     if (attribute === null) return void 0;
@@ -270,7 +273,10 @@ export const VAULT_JS = `"use strict";
   }
   function reelGap(step, steps, elapsedMs) {
     if (elapsedMs > REEL_MS * 1.5) return 0;
-    return 30 + Math.pow(step / steps, 3) * 320;
+    return FASTEST_GAP_MS + Math.pow(step / steps, 3) * SLOWING_MS;
+  }
+  function reelPitch(step, steps) {
+    return 1 + step / steps * PITCH_CLIMB;
   }
   function count(n, one, many) {
     return \`\${String(n)} \${n === 1 ? one : many}\`;
@@ -301,8 +307,8 @@ export const VAULT_JS = `"use strict";
 
   // src/client/entries/vault.ts
   var CONFETTI_BITS = 18;
-  function play(name) {
-    if (window.BureauSound) window.BureauSound.play(name);
+  function play(name, pitch) {
+    if (window.BureauSound) window.BureauSound.play(name, pitch);
   }
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -401,7 +407,7 @@ export const VAULT_JS = `"use strict";
       const next = () => {
         step += 1;
         reel.textContent = reelNameAt(names, step);
-        play("tick");
+        play("reel", reelPitch(step, steps));
         if (step >= steps) {
           reveal(pull);
           return;
@@ -484,8 +490,7 @@ export const SOUND_JS = `"use strict";
     return slideTo === void 0 ? step : { ...step, slideTo };
   }
   function noise(start2, length, volume, sweep) {
-    const step = { kind: "noise", start: start2, length, volume };
-    return sweep === void 0 ? step : { ...step, from: sweep[0], to: sweep[1] };
+    return { kind: "noise", start: start2, length, volume, from: sweep[0], to: sweep[1] };
   }
   function run(frequencies, start2, gap, length, wave, volume) {
     return frequencies.map((frequency, i) => tone(frequency, start2 + i * gap, length, wave, volume));
@@ -493,6 +498,10 @@ export const SOUND_JS = `"use strict";
   function chord(frequencies, start2, length, wave, volume) {
     return run(frequencies, start2, 0, length, wave, volume);
   }
+  var THUNK = [
+    tone(150, 0, 0.14, "sine", 0.6, 70),
+    noise(0, 0.05, 0.4, [1200, 300])
+  ];
   var SOUNDS = {
     // The back room: brass, stamps, drawers, vault mechanics.
     creak: [
@@ -514,23 +523,54 @@ export const SOUND_JS = `"use strict";
       tone(2093, 0.22, 0.4, "sine", 0.06),
       tone(2637, 0.26, 0.5, "sine", 0.05)
     ],
-    // The Vault's lever and reel.
-    clunk: [noise(0, 0.12, 0.5), tone(90, 0, 0.25, "sine", 0.6), tone(60, 0.08, 0.3, "sine", 0.4)],
+    // A small click: the sound toggle, and the Broadcast host's lines. Quiet on
+    // purpose, because the host's lines repeat.
     tick: [tone(1400, 0, 0.03, "square", 0.05)],
-    Common: [tone(523, 0, 0.18, "triangle", 0.25), tone(659, 0.12, 0.3, "triangle", 0.25)],
+    // The Vault's lever: the thud, a spring, three ratchet clicks.
+    clunk: [
+      noise(0, 0.18, 0.8, [900, 90]),
+      tone(65, 0, 0.4, "sine", 0.9),
+      tone(130, 0, 0.12, "square", 0.15),
+      tone(420, 0.05, 0.28, "sawtooth", 0.12, 140),
+      noise(0.1, 0.02, 0.35, [3e3, 2e3]),
+      noise(0.15, 0.02, 0.3, [3e3, 2e3]),
+      noise(0.2, 0.02, 0.25, [3e3, 2e3])
+    ],
+    // Each card the reel passes: a click, a knock and a low tock. Short, so the
+    // fastest steps don't smear; the reel raises its pitch as it slows.
+    reel: [
+      noise(0, 0.025, 0.35, [2600, 1400]),
+      tone(1100, 0, 0.05, "square", 0.14),
+      tone(275, 0, 0.06, "sine", 0.25)
+    ],
+    // The landings grow with rarity: a bell, a climbing run, the jackpot.
+    Common: [
+      ...THUNK,
+      ...run([784, 1047], 0.02, 0.09, 0.35, "triangle", 0.3),
+      tone(1568, 0.2, 0.6, "sine", 0.14),
+      tone(2093, 0.2, 0.5, "sine", 0.07)
+    ],
     Uncommon: [
-      ...run([523, 659, 784], 0, 0.1, 0.35, "triangle", 0.25),
-      tone(1568, 0.3, 0.5, "sine", 0.08)
+      ...THUNK,
+      ...run([523, 659, 784, 1047], 0.02, 0.08, 0.3, "triangle", 0.28),
+      ...chord([1047, 1319, 1568], 0.36, 0.9, "triangle", 0.16),
+      ...run([2093, 2637, 3136], 0.42, 0.07, 0.2, "sine", 0.08)
     ],
+    // A sub thump, a fast climb, a held chord and ringing bells.
     Rare: [
-      ...run([523, 659, 784, 1047], 0, 0.11, 0.5, "sawtooth", 0.12),
-      ...chord([1047, 1319, 1568], 0.45, 1.4, "triangle", 0.15),
-      ...run([2093, 2637, 3136, 2637], 0.5, 0.12, 0.25, "sine", 0.05)
+      tone(55, 0, 0.5, "sine", 0.9),
+      noise(0, 0.3, 0.3, [300, 4e3]),
+      ...run([523, 659, 784, 1047, 1319, 1568], 0, 0.07, 0.4, "sawtooth", 0.14),
+      ...chord([523, 784, 1047, 1319, 1568], 0.45, 1.9, "triangle", 0.14),
+      ...run([2093, 2637, 2093, 2637, 2093, 2637, 2093, 2637], 0.5, 0.09, 0.12, "sine", 0.09),
+      ...run([3136, 3520, 4186], 1.3, 0.08, 0.3, "sine", 0.06)
     ],
-    sparkle: run([2637, 3136, 3520], 0, 0.06, 0.18, "sine", 0.06),
+    sparkle: run([2637, 3136, 3520, 4186], 0, 0.05, 0.22, "sine", 0.09),
     milestone: [
-      ...run([392, 523, 659, 784, 1047], 0, 0.09, 0.4, "square", 0.07),
-      ...chord([523, 659, 784, 1047], 0.5, 1.2, "triangle", 0.12)
+      tone(60, 0, 0.5, "sine", 0.8),
+      ...run([392, 523, 659, 784, 1047, 1319], 0, 0.08, 0.4, "square", 0.09),
+      ...chord([523, 659, 784, 1047, 1319], 0.52, 1.6, "triangle", 0.13),
+      ...run([2093, 2637, 3136, 4186], 0.6, 0.09, 0.3, "sine", 0.07)
     ],
     // The Broadcast: a dial finding the station, then the station's brass sting.
     static: [noise(0, 0.7, 0.12, [1800, 900]), tone(440, 0.1, 0.5, "sine", 0.03, 880)],
@@ -538,15 +578,23 @@ export const SOUND_JS = `"use strict";
       ...run([196, 247, 294], 0, 0.12, 0.3, "sawtooth", 0.09),
       ...chord([392, 494, 587], 0.4, 0.9, "sawtooth", 0.07)
     ],
-    // /thanks: the vault door, then the fanfare.
+    // /thanks: the vault door (two hits, a long rumble, a metal ring), then the fanfare.
     slam: [
-      noise(0, 0.25, 0.7, [500, 80]),
-      tone(55, 0, 0.6, "sine", 0.8),
-      tone(110, 0.02, 0.3, "square", 0.08)
+      noise(0, 0.45, 0.9, [700, 60]),
+      tone(45, 0, 0.9, "sine", 1),
+      tone(90, 0, 0.35, "square", 0.12),
+      noise(0.14, 0.2, 0.6, [400, 70]),
+      tone(50, 0.14, 0.6, "sine", 0.8),
+      tone(220, 0.02, 0.7, "triangle", 0.06),
+      tone(277, 0.02, 0.6, "triangle", 0.05)
     ],
     fanfare: [
-      ...run([523, 659, 784], 0.4, 0.12, 0.3, "square", 0.08),
-      ...chord([523, 659, 784, 1047], 0.8, 1.6, "triangle", 0.12)
+      ...run([392, 523, 659, 784], 0.4, 0.1, 0.28, "sawtooth", 0.12),
+      ...run([784, 1047, 1319, 1568], 0.4, 0.1, 0.28, "square", 0.05),
+      ...chord([523, 659, 784, 1047, 1319], 0.85, 1.7, "sawtooth", 0.08),
+      ...chord([523, 784, 1047], 0.85, 1.7, "triangle", 0.14),
+      ...run([2093, 2637, 3136, 4186], 0.95, 0.1, 0.3, "sine", 0.07),
+      tone(65, 0.85, 0.8, "sine", 0.6)
     ]
   };
   var SOUND_NAMES = Object.keys(SOUNDS);
@@ -566,6 +614,7 @@ export const SOUND_JS = `"use strict";
     const store = () => window.localStorage;
     let muted = readMuted(store);
     let audio;
+    let output;
     const context = () => {
       if (muted) return void 0;
       if (audio === void 0) {
@@ -573,30 +622,38 @@ export const SOUND_JS = `"use strict";
         const Ctor = names.AudioContext ?? names.webkitAudioContext;
         if (Ctor === void 0) return void 0;
         audio = new Ctor();
+        const limiter = audio.createDynamicsCompressor();
+        limiter.threshold.value = -10;
+        limiter.knee.value = 6;
+        limiter.ratio.value = 12;
+        limiter.attack.value = 2e-3;
+        limiter.release.value = 0.15;
+        limiter.connect(audio.destination);
+        output = limiter;
       }
       if (audio.state === "suspended") void audio.resume();
       return audio;
     };
-    const playTone = (step) => {
+    const playTone = (step, pitch) => {
       const a = context();
       if (a === void 0) return;
       const t = a.currentTime + step.start;
       const osc = a.createOscillator();
       const gain = a.createGain();
       osc.type = step.wave;
-      osc.frequency.setValueAtTime(step.frequency, t);
+      osc.frequency.setValueAtTime(step.frequency * pitch, t);
       if (step.slideTo !== void 0) {
-        osc.frequency.exponentialRampToValueAtTime(step.slideTo, t + step.length);
+        osc.frequency.exponentialRampToValueAtTime(step.slideTo * pitch, t + step.length);
       }
       gain.gain.setValueAtTime(1e-4, t);
       gain.gain.exponentialRampToValueAtTime(step.volume, t + 0.01);
       gain.gain.exponentialRampToValueAtTime(1e-4, t + step.length);
       osc.connect(gain);
-      gain.connect(a.destination);
+      gain.connect(output ?? a.destination);
       osc.start(t);
       osc.stop(t + step.length + 0.02);
     };
-    const playNoise = (step) => {
+    const playNoise = (step, pitch) => {
       const a = context();
       if (a === void 0) return;
       const frames = Math.floor(a.sampleRate * step.length);
@@ -607,26 +664,22 @@ export const SOUND_JS = `"use strict";
       const gain = a.createGain();
       gain.gain.value = step.volume;
       source.buffer = buffer;
-      if (step.from !== void 0) {
-        const filter = a.createBiquadFilter();
-        filter.type = "bandpass";
-        const t = a.currentTime + step.start;
-        filter.frequency.setValueAtTime(step.from, t);
-        filter.frequency.exponentialRampToValueAtTime(step.to ?? step.from, t + step.length);
-        source.connect(filter);
-        filter.connect(gain);
-      } else {
-        source.connect(gain);
-      }
-      gain.connect(a.destination);
+      const filter = a.createBiquadFilter();
+      filter.type = "bandpass";
+      const t = a.currentTime + step.start;
+      filter.frequency.setValueAtTime(step.from * pitch, t);
+      filter.frequency.exponentialRampToValueAtTime(step.to * pitch, t + step.length);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(output ?? a.destination);
       source.start(a.currentTime + step.start);
     };
-    const play = (name) => {
+    const play = (name, pitch = 1) => {
       if (muted || !isSoundName(name)) return;
       try {
         for (const step of SOUNDS[name]) {
-          if (step.kind === "tone") playTone(step);
-          else playNoise(step);
+          if (step.kind === "tone") playTone(step, pitch);
+          else playNoise(step, pitch);
         }
       } catch {
       }
