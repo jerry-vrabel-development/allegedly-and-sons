@@ -23,7 +23,6 @@
  */
 
 import { SEGMENT_END_EVENT } from "./broadcast-script";
-import { SOUND_SCRIPT_PATH } from "../core/paths";
 
 /** The browser-local key for the shop-wide mute setting. */
 export const SOUND_MUTE_KEY = "bureau-sound-muted";
@@ -269,21 +268,3 @@ export const SOUND_JS = `"use strict";
   }
 })();
 `;
-
-/**
- * Adds the sound script to a page, right after the stylesheet so it runs
- * before any page script that uses it (deferred scripts run in order). Our
- * own layout always has that link; anything else is left unchanged.
- */
-export function withSound(page: string, stylesheetPath: string): string {
-  const marker = `<link rel="stylesheet" href="${stylesheetPath}" />`;
-  return page.replace(marker, `${marker}<script src="${SOUND_SCRIPT_PATH}" defer></script>`);
-}
-
-/** Pages that never get the sound script: checkout (its own policy), private pages, posts. */
-const NO_SOUND = /^\/(?:checkout\/|bureau|vault\/pull|healthz)/;
-
-/** Whether a page gets the sound script (for the "fx" group). */
-export function wantsSound(pathname: string): boolean {
-  return !NO_SOUND.test(pathname);
-}

@@ -7,7 +7,7 @@
 import { maskEmail } from "../core/dispatch";
 import type { Registration } from "./dispatch";
 import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+import { layout, type Page } from "./pages";
 import {
   DISPATCH_CONFIRM_PATH,
   DISPATCH_PATH,
@@ -103,7 +103,7 @@ export function dispatchSection(view: DispatchView): SafeHtml {
 }
 
 /** After the form: the same answer whatever was typed. */
-export function sentPage(): SafeHtml {
+export function sentPage(): Page {
   return layout({
     title: "Check your inbox",
     description: "A dispatch from the Bureau is on its way.",
@@ -146,7 +146,7 @@ const LINK_PAGES = {
 export type LinkKind = keyof typeof LINK_PAGES;
 
 /** The page an email link opens: a button that does the thing. */
-export function linkPage(kind: LinkKind, token: string): SafeHtml {
+export function linkPage(kind: LinkKind, token: string): Page {
   const page = LINK_PAGES[kind];
   const field = kind === "unsubscribe" ? "u" : "t";
   return layout({
@@ -165,7 +165,7 @@ export function linkPage(kind: LinkKind, token: string): SafeHtml {
 }
 
 /** A link that's been used, has expired, or never existed. */
-export function linkExpiredPage(): SafeHtml {
+export function linkExpiredPage(): Page {
   return layout({
     title: "That link has expired",
     description: "Bureau links work once, for a limited time.",
@@ -180,7 +180,7 @@ export function linkExpiredPage(): SafeHtml {
   });
 }
 
-export function unsubscribedPage(): SafeHtml {
+export function unsubscribedPage(): Page {
   return layout({
     title: "Unsubscribed",
     description: "No more Bureau mail.",
@@ -195,7 +195,7 @@ export function unsubscribedPage(): SafeHtml {
   });
 }
 
-export function dispatchClosedPage(): SafeHtml {
+export function dispatchClosedPage(): Page {
   return layout({
     title: "Registration opens soon",
     description: "The Bureau Dispatch isn't open yet.",

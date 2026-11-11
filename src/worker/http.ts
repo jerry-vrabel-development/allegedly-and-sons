@@ -6,7 +6,7 @@
 import { isAutomated } from "../core/analytics";
 import { visitorIdFromCookie } from "../core/visitor";
 import type { Deps } from "./deps";
-import type { SafeHtml } from "./html";
+import type { Chrome, Page } from "./pages";
 
 export const TEXT = "text/plain; charset=utf-8";
 
@@ -22,15 +22,34 @@ export const PAGE_CACHE = "private, max-age=0, must-revalidate, no-transform";
 /** For pages about one buyer's checkout: never cached, never rewritten. */
 export const PRIVATE_PAGE_CACHE = "no-store, no-transform";
 
+/**
+ * An HTML page on its way out. It keeps the laid-out page it was built from,
+ * so the router can add a request's chrome (banner, sound) by rendering the
+ * layout again, not by editing the HTML.
+ */
+export class PageResponse extends Response {
+  readonly #page: Page;
+
+  constructor(page: Page, status: number) {
+    super(page.value, {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": PAGE_CACHE,
+      },
+    });
+    this.#page = page;
+  }
+
+  /** This response, with its status and headers as they are now, and the chrome added. */
+  withChrome(chrome: Chrome): Response {
+    return new Response(this.#page.withChrome(chrome).value, this);
+  }
+}
+
 /** Pages may change often while the shop is a prototype, so browsers revalidate. */
-export function page(body: SafeHtml, status = 200): Response {
-  return new Response(body.value, {
-    status,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": PAGE_CACHE,
-    },
-  });
+export function page(body: Page, status = 200): PageResponse {
+  return new PageResponse(body, status);
 }
 
 export function json(body: unknown, status = 200): Response {

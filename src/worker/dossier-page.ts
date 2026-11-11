@@ -20,7 +20,7 @@ import { dispatchSection, type DispatchView } from "./dispatch-pages";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
 import { html, type SafeHtml } from "./html";
-import { itemPath, layout } from "./pages";
+import { itemPath, layout, type Page } from "./pages";
 import { VAULT_PATH, artPath } from "../core/paths";
 
 function agentNumber(n: number): string {
@@ -60,7 +60,7 @@ export function dossierPage(
   streak: Streak,
   nowSeconds: number,
   repairOpen: boolean,
-): SafeHtml {
+): Page {
   // Wing commendations are worked out from the cards held (note 0010).
   const earned = withWingAwards(agent?.awards.map((award) => award.id) ?? []);
   const count = earned.size;
