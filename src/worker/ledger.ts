@@ -3,29 +3,19 @@
  * (design note 0001, C5). Locked behind Cloudflare Access, which the Worker
  * also verifies (see access.ts).
  *
- * Plain server-rendered HTML, no script. Numbers come straight from the raw
- * events and orders: at the shop's traffic that's milliseconds, and there's
- * no second copy of the numbers to drift (rollups wait until it isn't).
+ * This file reads the numbers; ledger-page.ts lays them out. They come
+ * straight from the raw events and orders: at the shop's traffic that's
+ * milliseconds, and there's no second copy of the numbers to drift (rollups
+ * wait until it isn't).
  */
 
-import { CATALOG, formatPrice } from "../core/catalog";
-import { NETWORKS, type Network } from "../core/share";
-import { clearlyDifferent, describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
-import { html, type SafeHtml } from "./html";
-import { layout, type Page } from "./pages";
-import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
-import { STREAK_BUCKETS, type StreakSummary } from "../core/streak";
-import { readStreakSummary } from "./streak";
+import { CATALOG } from "../core/catalog";
+import { FX_SQL, TEST_STARTED, testStatus, type TestStatus } from "../core/effects";
 import { REPAIR_SLUG } from "../core/repair";
-import {
-  FX_SQL,
-  TARGET_PULLERS,
-  TEST_DAYS,
-  TEST_STARTED,
-  testStatus,
-  type TestStatus,
-} from "../core/effects";
-import { LEDGER_PATH } from "../core/paths";
+import { NETWORKS, type Network } from "../core/share";
+import type { StreakSummary } from "../core/streak";
+import { dispatchCountsQuery, type DispatchCounts } from "./dispatch";
+import { readStreakSummary } from "./streak";
 
 /** The periods the ledger can show, in days (0 = everything). */
 export const PERIODS = [7, 30, 90, 0] as const;
@@ -119,72 +109,45 @@ export interface Ledger {
   readonly shares: readonly ShareRow[];
 }
 
+/** A row as D1 hands it back: nothing about it is trusted until read. */
 type Row = Record<string, unknown>;
 
+/** A count or a sum from a row. SUM over no rows is NULL, which reads as 0. */
 const num = (value: unknown): number => (typeof value === "number" ? value : 0);
 
-function groupName(variant: "fx" | "plain"): string {
-  return variant === "fx" ? "Sound and motion" : "Plain";
-}
+/**
+ * The only row of an aggregate with no GROUP BY, which always returns exactly
+ * one. (Were there none, this is an empty row, and every number reads as 0.)
+ */
+const one = (rows: readonly Row[]): Row => ({ ...rows[0] });
 
-/** Where the stopping rule stands (note 0011), in words. */
-function effectsTestStatus(status: TestStatus): SafeHtml {
-  const progress = html`Agents who pulled since the test began:
-    <strong>${String(status.fxPullers)}</strong> with sound and motion and
-    <strong>${String(status.plainPullers)}</strong> plain, of ${String(TARGET_PULLERS)} each.`;
-  if (status.ended === undefined) {
-    return html`<p>Day ${String(status.day)} of ${String(TEST_DAYS)}. ${progress}</p>`;
-  }
-  const why =
-    status.ended === "target"
-      ? `Both groups reached ${String(TARGET_PULLERS)} agents who pulled.`
-      : `${String(TEST_DAYS)} days have passed.`;
-  return html`<p>
-    <strong>The stopping rule is met.</strong> ${why} ${progress} Time to decide: ship a clear
-    winner to everyone, and if there's none, give everyone the effects (note 0011).
-  </p>`;
-}
+/** Which test group a row's visitor is in (note 0008), as a SQL column. */
+const VARIANT_SQL = `CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant`;
+
+const byKey = (rows: readonly Row[], key: string): Map<unknown, Row> =>
+  new Map(rows.map((row) => [row[key], row]));
 
 /**
- * The measures where the groups clearly differ, in words: both have enough
- * trials to mean something (as the table's "too few to say"), and their 95%
- * intervals don't overlap.
+ * Runs named statements as one batch and hands back each one's rows under its
+ * name, so nothing depends on the order they were written in.
  */
-function effectsDifferences(rows: readonly EffectsRow[]): SafeHtml {
-  const [fx, plain] = rows as readonly [EffectsRow, EffectsRow];
-  const measures: readonly [string, (row: EffectsRow) => [number, number]][] = [
-    ["opening a case file", (row) => [row.opened, row.visitors]],
-    ["finishing it", (row) => [row.finished, row.opened]],
-    ["sharing", (row) => [row.sharers, row.visitors]],
-    ["buying", (row) => [row.buyers, row.visitors]],
-    ["coming back to the Vault", (row) => [row.returners, row.pullers]],
-  ];
-  const clear = measures.flatMap(([name, of]) => {
-    const a = wilson(...of(fx));
-    const b = wilson(...of(plain));
-    if (a === undefined || b === undefined) return [];
-    if (Math.min(a.trials, b.trials) < MIN_VISITORS_TO_RANK || !clearlyDifferent(a, b)) return [];
-    return [`${name} (${a.rate > b.rate ? groupName("fx") : groupName("plain")} is higher)`];
-  });
-  return clear.length === 0
-    ? html`<p>Clear differences so far: none yet.</p>`
-    : html`<p>Clear differences so far: ${clear.join("; ")}.</p>`;
-}
-
-/**
- * Gathers the ledger's numbers for events since `since` (Unix seconds).
- * `ownHost` is the shop's host, so internal clicks show as "(this site)".
- */
-export async function readLedger(
+async function batchByName<Name extends string>(
   db: D1Database,
-  period: Period,
-  nowSeconds: number,
-  ownHost: string,
-): Promise<Ledger> {
-  const since = period === 0 ? 0 : nowSeconds - period * 86_400;
+  statements: Record<Name, D1PreparedStatement>,
+): Promise<Record<Name, Row[]>> {
+  const names = Object.keys(statements) as Name[];
+  const results = await db.batch<Row>(names.map((name) => statements[name]));
+  // A batch returns one result per statement, in order.
+  return Object.fromEntries(
+    results.map((result, index) => [String(names[index]), result.results]),
+  ) as Record<Name, Row[]>;
+}
 
-  const results = await db.batch<Record<string, unknown>>([
-    db
+/** Every query the Ledger runs, by name, for events and orders since `since`. */
+function ledgerQueries(db: D1Database, since: number, ownHost: string) {
+  return {
+    /** Each exhibit's funnel, from the raw events. */
+    itemEvents: db
       .prepare(
         `SELECT item_slug,
            COUNT(DISTINCT CASE WHEN event = 'item_viewed' THEN visitor_id END) AS visitors,
@@ -197,7 +160,8 @@ export async function readLedger(
          FROM analytics_events WHERE ts >= ? GROUP BY item_slug`,
       )
       .bind(since),
-    db
+    /** Each exhibit's sales, and how many of its visitors bought it. */
+    itemOrders: db
       .prepare(
         // Sales count every paid order; buyers only visitors who viewed the
         // item in the period and then bought it, so "Bought" never mixes in
@@ -213,7 +177,8 @@ export async function readLedger(
          FROM orders o WHERE o.paid_at >= ? GROUP BY o.item_slug`,
       )
       .bind(since, since),
-    db
+    /** Where visitors first came from, and how many later bought. */
+    sources: db
       .prepare(
         // Each visitor counts once, by the source of their first item view in
         // the period (first touch). Rows from before the visitor cookie have
@@ -241,7 +206,8 @@ export async function readLedger(
          GROUP BY source ORDER BY visitors DESC, source LIMIT 20`,
       )
       .bind(since, ownHost, REPAIR_SLUG),
-    db
+    /** Shares by network, the visits they brought and the orders that followed. */
+    shares: db
       .prepare(
         // A sharer opening their own link isn't a return visit, and a streak
         // buy-back isn't a sale the share brought in.
@@ -259,7 +225,8 @@ export async function readLedger(
          GROUP BY s.channel`,
       )
       .bind(since, REPAIR_SLUG),
-    db
+    /** The Vault lever: who pulled, how often, and who came back. One row. */
+    vault: db
       .prepare(
         `SELECT COUNT(DISTINCT visitor_id) AS pullers,
            COUNT(*) AS pulls,
@@ -271,14 +238,17 @@ export async function readLedger(
          FROM vault_pulls WHERE pulled_at >= ?1`,
       )
       .bind(since),
-    dispatchCountsQuery(db, since),
-    db
+    /** Dispatch registrations and emails. One row. */
+    dispatch: dispatchCountsQuery(db, since),
+    /** Streak buy-backs. One row. */
+    repairs: db
       .prepare(
         `SELECT COUNT(*) AS count, SUM(amount_cents) AS revenue FROM orders
          WHERE item_slug = ? AND paid_at >= ?`,
       )
       .bind(REPAIR_SLUG, since),
-    db
+    /** Exhibit sales on and off air. One row. */
+    broadcast: db
       .prepare(
         `SELECT
            SUM(segment IS NOT NULL) AS on_orders,
@@ -288,9 +258,10 @@ export async function readLedger(
          FROM orders WHERE paid_at >= ? AND item_slug != ?`,
       )
       .bind(since, REPAIR_SLUG),
-    db
+    /** Vault pulls by test group. */
+    effectsPulls: db
       .prepare(
-        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+        `SELECT ${VARIANT_SQL},
            COUNT(DISTINCT visitor_id) AS pullers,
            COUNT(*) AS pulls,
            COUNT(DISTINCT CASE WHEN visitor_id IN (
@@ -300,9 +271,10 @@ export async function readLedger(
          FROM vault_pulls WHERE pulled_at >= ?1 GROUP BY variant`,
       )
       .bind(since),
-    db
+    /** Reading and sharing by test group. */
+    effectsEvents: db
       .prepare(
-        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+        `SELECT ${VARIANT_SQL},
            COUNT(DISTINCT CASE WHEN event = 'item_viewed' THEN visitor_id END) AS visitors,
            COUNT(DISTINCT CASE WHEN event = 'lore_expanded' AND read_depth = 'opened' THEN visitor_id END) AS opened,
            COUNT(DISTINCT CASE WHEN event = 'lore_expanded' AND read_depth = 'finished' THEN visitor_id END) AS finished,
@@ -310,22 +282,25 @@ export async function readLedger(
          FROM analytics_events WHERE ts >= ? AND visitor_id IS NOT NULL GROUP BY variant`,
       )
       .bind(since),
-    db
+    /** Buyers by test group. */
+    effectsBuyers: db
       .prepare(
-        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+        `SELECT ${VARIANT_SQL},
            COUNT(DISTINCT visitor_id) AS buyers
          FROM orders WHERE paid_at >= ? AND visitor_id IS NOT NULL AND item_slug != ?
          GROUP BY variant`,
       )
       .bind(since, REPAIR_SLUG),
-    db
+    /** The stopping rule: pullers by group since the test began, whatever the period. */
+    testPullers: db
       .prepare(
-        `SELECT CASE WHEN ${FX_SQL} THEN 'fx' ELSE 'plain' END AS variant,
+        `SELECT ${VARIANT_SQL},
            COUNT(DISTINCT visitor_id) AS pullers
          FROM vault_pulls WHERE pulled_at >= ? GROUP BY variant`,
       )
       .bind(TEST_STARTED),
-    db
+    /** Everyone who viewed any exhibit, each counted once. One row. */
+    visitors: db
       .prepare(
         // Each visitor once across all exhibits, for the headline. Rows from
         // before the visitor cookie have no visitor id and aren't counted,
@@ -334,60 +309,47 @@ export async function readLedger(
          WHERE event = 'item_viewed' AND ts >= ?`,
       )
       .bind(since),
-  ]);
+  };
+}
 
-  // A batch returns one result per statement, in order.
+/**
+ * Gathers the ledger's numbers for events since `since` (Unix seconds).
+ * `ownHost` is the shop's host, so internal clicks show as "(this site)".
+ */
+export async function readLedger(
+  db: D1Database,
+  period: Period,
+  nowSeconds: number,
+  ownHost: string,
+): Promise<Ledger> {
+  const since = period === 0 ? 0 : nowSeconds - period * 86_400;
+  const rows = await batchByName(db, ledgerQueries(db, since, ownHost));
   const streaks = await readStreakSummary(db, nowSeconds);
-  const [
-    items,
-    orders,
-    sources,
-    shares,
-    [vault],
-    [dispatch],
-    [repairs],
-    [onAir],
-    effects,
-    effectsEvents,
-    effectsBuyers,
-    testPullers,
-    [visitors],
-  ] = results.map((result) => result.results) as [
-    Row[],
-    Row[],
-    Row[],
-    Row[],
-    [Row],
-    [Row],
-    [Row],
-    [Row],
-    Row[],
-    Row[],
-    Row[],
-    Row[],
-    [Row],
-  ];
-  const byVariant = (rows: Row[]) => new Map(rows.map((row) => [row["variant"], row]));
-  const effectsByVariant = byVariant(effects);
-  const eventsByVariant = byVariant(effectsEvents);
-  const buyersByVariant = byVariant(effectsBuyers);
-  const pullersByVariant = byVariant(testPullers);
-  const byItem = new Map(items.map((row) => [row["item_slug"], row]));
-  const ordersByItem = new Map(orders.map((row) => [row["item_slug"], row]));
-  const sharesByChannel = new Map(shares.map((row) => [row["channel"], row]));
+
+  const vault = one(rows.vault);
+  const dispatch = one(rows.dispatch);
+  const repairs = one(rows.repairs);
+  const broadcast = one(rows.broadcast);
+  const pullsByVariant = byKey(rows.effectsPulls, "variant");
+  const eventsByVariant = byKey(rows.effectsEvents, "variant");
+  const buyersByVariant = byKey(rows.effectsBuyers, "variant");
+  const testPullersByVariant = byKey(rows.testPullers, "variant");
+  const eventsByItem = byKey(rows.itemEvents, "item_slug");
+  const ordersByItem = byKey(rows.itemOrders, "item_slug");
+  const sharesByChannel = byKey(rows.shares, "channel");
 
   return {
     period,
     streaks,
-    visitors: num(visitors["visitors"]),
+    visitors: num(one(rows.visitors)["visitors"]),
     repairs: { count: num(repairs["count"]), revenueCents: num(repairs["revenue"]) },
     effectsTest: testStatus(
       nowSeconds,
-      num(pullersByVariant.get("fx")?.["pullers"]),
-      num(pullersByVariant.get("plain")?.["pullers"]),
+      num(testPullersByVariant.get("fx")?.["pullers"]),
+      num(testPullersByVariant.get("plain")?.["pullers"]),
     ),
     effects: (["fx", "plain"] as const).map((variant) => {
-      const row = effectsByVariant.get(variant);
+      const row = pullsByVariant.get(variant);
       const events = eventsByVariant.get(variant);
       return {
         variant,
@@ -402,8 +364,8 @@ export async function readLedger(
       };
     }),
     broadcast: {
-      onAir: { orders: num(onAir["on_orders"]), revenueCents: num(onAir["on_revenue"]) },
-      offAir: { orders: num(onAir["off_orders"]), revenueCents: num(onAir["off_revenue"]) },
+      onAir: { orders: num(broadcast["on_orders"]), revenueCents: num(broadcast["on_revenue"]) },
+      offAir: { orders: num(broadcast["off_orders"]), revenueCents: num(broadcast["off_revenue"]) },
     },
     vault: {
       pullers: num(vault["pullers"]),
@@ -418,7 +380,7 @@ export async function readLedger(
       recoveries: num(dispatch["recoveries"]),
     },
     items: CATALOG.map((item) => {
-      const row = byItem.get(item.slug);
+      const row = eventsByItem.get(item.slug);
       const sold = ordersByItem.get(item.slug);
       return {
         slug: item.slug,
@@ -435,7 +397,7 @@ export async function readLedger(
         revenueCents: num(sold?.["revenue"]),
       };
     }),
-    sources: sources.map((row) => ({
+    sources: rows.sources.map((row) => ({
       source: String(row["source"]),
       visitors: num(row["visitors"]),
       buyers: num(row["buyers"]),
@@ -450,298 +412,4 @@ export async function readLedger(
       };
     }),
   };
-}
-
-function periodLabel(period: Period): string {
-  return period === 0 ? "All time" : `Last ${String(period)} days`;
-}
-
-/** A table that scrolls sideways on its own on a phone, reachable by keyboard. */
-function scrollTable(label: string, table: SafeHtml): SafeHtml {
-  return html`<div class="table-scroll" role="region" aria-label="${label}" tabindex="0">
-    ${table}
-  </div>`;
-}
-
-export function ledgerPage(ledger: Ledger, email: string): Page {
-  // Sales include bought-back streaks, not just exhibits.
-  const totalOrders = ledger.items.reduce((sum, row) => sum + row.orders, ledger.repairs.count);
-  const totalRevenue = ledger.items.reduce(
-    (sum, row) => sum + row.revenueCents,
-    ledger.repairs.revenueCents,
-  );
-
-  return layout({
-    title: "The Ledger",
-    description: "Private: the Bureau's numbers.",
-    noindex: true,
-    body: html`<div class="ledger">
-      <h1>The Ledger</h1>
-      <p class="tagline">For the Bureau's eyes only. Signed in as ${email}.</p>
-
-      <nav class="period" aria-label="Period">
-        <p>
-          ${PERIODS.map(
-            (period, index) =>
-              html`${index === 0 ? html`` : html` · `}<a
-                  href="${LEDGER_PATH}?days=${String(period)}"
-                  ${period === ledger.period ? html`aria-current="page"` : html``}
-                  >${periodLabel(period)}</a
-                >`,
-          )}
-        </p>
-      </nav>
-
-      <h2>${periodLabel(ledger.period)}</h2>
-      <p>
-        <strong>${String(ledger.visitors)}</strong> visitors ·
-        <strong>${String(totalOrders)}</strong> orders ·
-        <strong>${formatPrice(totalRevenue)}</strong> in sales
-      </p>
-      <p>
-        Rates show the share, a 95% range, and how many it's out of. Under
-        ${String(MIN_VISITORS_TO_RANK)}, they show raw counts: too few to say.
-      </p>
-
-      ${scrollTable(
-        "Items",
-        html`<table>
-          <caption>
-            Each item: does the lore land, and does it sell?
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Item</th>
-              <th scope="col" class="num">Visitors</th>
-              <th scope="col">Opened the case file</th>
-              <th scope="col">Finished it (of openers)</th>
-              <th scope="col">Started checkout</th>
-              <th scope="col">Bought (visitors who did)</th>
-              <th scope="col" class="num">Shares</th>
-              <th scope="col" class="num">Visits from shares</th>
-              <th scope="col" class="num">Sales</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ledger.items.map(
-              (row) =>
-                html`<tr>
-                  <th scope="row">${row.name}</th>
-                  <td class="num">${String(row.visitors)}</td>
-                  <td>${describeRate(wilson(row.opened, row.visitors))}</td>
-                  <td>${describeRate(wilson(row.finished, row.opened))}</td>
-                  <td>${describeRate(wilson(row.checkouts, row.visitors))}</td>
-                  <td>${describeRate(wilson(row.buyers, row.visitors))}</td>
-                  <td class="num">${String(row.shares)}</td>
-                  <td class="num">${String(row.sharedVisits)}</td>
-                  <td class="num">${formatPrice(row.revenueCents)}</td>
-                </tr>`,
-            )}
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "Where visitors came from",
-        html`<table>
-          <caption>
-            Where visitors came from (by their first visit: campaign, else the site that sent them)
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Source</th>
-              <th scope="col" class="num">Visitors</th>
-              <th scope="col" class="num">Later bought</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              ledger.sources.length === 0
-                ? html`<tr>
-                    <td colspan="3">No visits yet.</td>
-                  </tr>`
-                : ledger.sources.map(
-                    (row) =>
-                      html`<tr>
-                        <th scope="row">${row.source}</th>
-                        <td class="num">${String(row.visitors)}</td>
-                        <td class="num">${String(row.buyers)}</td>
-                      </tr>`,
-                  )
-            }
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "Shares by network",
-        html`<table>
-          <caption>
-            Shares by network (visits exclude the sharer's own)
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Network</th>
-              <th scope="col" class="num">Shares</th>
-              <th scope="col" class="num">Visits back</th>
-              <th scope="col" class="num">Orders from those visitors</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ledger.shares.map(
-              (row) =>
-                html`<tr>
-                  <th scope="row">${row.channel}</th>
-                  <td class="num">${String(row.shares)}</td>
-                  <td class="num">${String(row.visits)}</td>
-                  <td class="num">${String(row.orders)}</td>
-                </tr>`,
-            )}
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "The Vault",
-        html`<table>
-          <caption>
-            The Vault: does the daily pull bring agents back?
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col" class="num">Agents who pulled</th>
-              <th scope="col" class="num">Pulls</th>
-              <th scope="col" class="num">Bonus pulls</th>
-              <th scope="col">Came back another day (of pullers)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="num">${String(ledger.vault.pullers)}</td>
-              <td class="num">${String(ledger.vault.pulls)}</td>
-              <td class="num">${String(ledger.vault.bonusPulls)}</td>
-              <td>${describeRate(wilson(ledger.vault.returners, ledger.vault.pullers))}</td>
-            </tr>
-          </tbody>
-        </table>`,
-      )}
-      <section class="prose" aria-labelledby="effects-test-heading">
-        <h2 id="effects-test-heading">The effects test</h2>
-        ${effectsTestStatus(ledger.effectsTest)} ${effectsDifferences(ledger.effects)}
-      </section>
-      ${scrollTable(
-        "The effects test, by group",
-        html`<table>
-          <caption>
-            The shop with sound and motion (half of agents) and without, in this period: rates are
-            of visitors who viewed an exhibit, except finished (of openers) and came back (of
-            pullers)
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Group</th>
-              <th scope="col" class="num">Visitors</th>
-              <th scope="col">Opened a case file</th>
-              <th scope="col">Finished it (of openers)</th>
-              <th scope="col">Shared</th>
-              <th scope="col">Bought</th>
-              <th scope="col" class="num">Agents who pulled</th>
-              <th scope="col" class="num">Pulls per agent</th>
-              <th scope="col">Came back another day (of pullers)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ledger.effects.map(
-              (row) =>
-                html`<tr>
-                  <th scope="row">${groupName(row.variant)}</th>
-                  <td class="num">${String(row.visitors)}</td>
-                  <td>${describeRate(wilson(row.opened, row.visitors))}</td>
-                  <td>${describeRate(wilson(row.finished, row.opened))}</td>
-                  <td>${describeRate(wilson(row.sharers, row.visitors))}</td>
-                  <td>${describeRate(wilson(row.buyers, row.visitors))}</td>
-                  <td class="num">${String(row.pullers)}</td>
-                  <td class="num">
-                    ${row.pullers === 0 ? "–" : (row.pulls / row.pullers).toFixed(1)}
-                  </td>
-                  <td>${describeRate(wilson(row.returners, row.pullers))}</td>
-                </tr>`,
-            )}
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "The Back-Room Broadcast",
-        html`<table>
-          <caption>
-            The Back-Room Broadcast: exhibit sales on air (in a segment, at the special price) and
-            off air
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col"></th>
-              <th scope="col" class="num">Orders</th>
-              <th scope="col" class="num">Sales</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">On air</th>
-              <td class="num">${String(ledger.broadcast.onAir.orders)}</td>
-              <td class="num">${formatPrice(ledger.broadcast.onAir.revenueCents)}</td>
-            </tr>
-            <tr>
-              <th scope="row">Off air</th>
-              <td class="num">${String(ledger.broadcast.offAir.orders)}</td>
-              <td class="num">${formatPrice(ledger.broadcast.offAir.revenueCents)}</td>
-            </tr>
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "Duty streaks",
-        html`<table>
-          <caption>
-            Duty streaks right now: ${String(ledger.streaks.alive)} alive
-            (${String(ledger.streaks.safe)} already pulled today), ${String(ledger.streaks.dead)}
-            dead, longest ever ${String(ledger.streaks.longest)} days,
-            ${String(ledger.streaks.freezesSpent)} freezes spent. Bought back in the period:
-            ${String(ledger.repairs.count)} (${formatPrice(ledger.repairs.revenueCents)})
-          </caption>
-          <thead>
-            <tr>
-              ${STREAK_BUCKETS.map((bucket) => html`<th scope="col" class="num">${bucket.label}</th>`)}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              ${ledger.streaks.byLength.map((count) => html`<td class="num">${String(count)}</td>`)}
-            </tr>
-          </tbody>
-        </table>`,
-      )}
-      ${scrollTable(
-        "The Bureau Dispatch",
-        html`<table>
-          <caption>
-            The Bureau Dispatch (registered and unsubscribed are right now; links used are in the
-            period)
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col" class="num">Registered</th>
-              <th scope="col" class="num">Unsubscribed</th>
-              <th scope="col" class="num">Confirmations</th>
-              <th scope="col" class="num">Files opened on another device</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="num">${String(ledger.dispatch.registered)}</td>
-              <td class="num">${String(ledger.dispatch.unsubscribed)}</td>
-              <td class="num">${String(ledger.dispatch.confirmations)}</td>
-              <td class="num">${String(ledger.dispatch.recoveries)}</td>
-            </tr>
-          </tbody>
-        </table>`,
-      )}
-    </div>`,
-  });
 }

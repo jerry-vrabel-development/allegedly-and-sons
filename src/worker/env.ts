@@ -2,7 +2,7 @@
 
 import { DISPATCH_FROM, type OutgoingEmail } from "../core/dispatch";
 import type { PublicVars, Secrets } from "./deps";
-import { ORDER_CONTACT_EMAIL } from "./pages";
+import { ORDER_CONTACT_EMAIL } from "./terms";
 
 /**
  * The real `fetch`, wrapped so it's never called with the wrong `this`

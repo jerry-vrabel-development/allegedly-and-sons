@@ -2,7 +2,8 @@ import { LEDGER_PATH } from "../core/paths";
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from "./access";
 import type { Deps } from "./deps";
 import { page } from "./http";
-import { ledgerPage, periodFrom, readLedger } from "./ledger";
+import { periodFrom, readLedger } from "./ledger";
+import { ledgerPage } from "./ledger-page";
 import { notFoundPage } from "./pages";
 
 /**
