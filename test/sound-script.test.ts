@@ -3,12 +3,11 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import worker, { route, type Deps } from "../src/worker/index";
-import { SEGMENT_END_EVENT } from "../src/core/dom-events";
-import { COUNTDOWN_JS } from "../src/worker/client-scripts.generated";
+import { CARD_EVENT, SEGMENT_END_EVENT } from "../src/core/dom-events";
+import { COUNTDOWN_JS, STORY_JS } from "../src/worker/client-scripts.generated";
 import { itemPage, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
 import {
-  CARD_EVENT,
   HOST_LINE_MS,
   LEGACY_MUTE_KEY,
   LINK_DELAY_MS,
@@ -16,7 +15,7 @@ import {
   SOUND_MUTE_KEY,
   SOUND_NAMES,
 } from "../src/worker/sound-script";
-import { CASE_CLOSED_ID, STORY_JS } from "../src/worker/story-script";
+import { CASE_CLOSED_ID } from "../src/core/story";
 import { testEnv } from "./test-env";
 import { SOUND_SCRIPT_PATH, VAULT_SCRIPT_PATH } from "../src/core/paths";
 
@@ -136,8 +135,9 @@ describe("case closed (note 0011)", () => {
   });
 
   it("says the card was earned in words, safely, and fires the card event", () => {
-    expect(STORY_JS).toContain('"Case closed. Card " + card + " is in your dossier."');
-    expect(STORY_JS).toContain(`new Event(${JSON.stringify(CARD_EVENT)})`);
+    expect(STORY_JS).toContain("`Case closed. Card ${card} is in your dossier.`");
+    expect(STORY_JS).toContain(`CARD_EVENT = ${JSON.stringify(CARD_EVENT)}`);
+    expect(STORY_JS).toContain("new Event(CARD_EVENT)");
     expect(STORY_JS).not.toMatch(/innerHTML|outerHTML/);
   });
 });

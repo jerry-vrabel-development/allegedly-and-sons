@@ -32,7 +32,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
 /**
  * How far into an item's case file a reader got (lore_expanded only):
  * "opened" the rest of the story, or "finished" it (the last paragraph stayed
- * on screen for STORY_DWELL_MS).
+ * on screen for STORY_DWELL_MS, in story.ts).
  */
 export const READ_DEPTHS = ["opened", "finished"] as const;
 
@@ -41,9 +41,6 @@ export type ReadDepth = (typeof READ_DEPTHS)[number];
 export function isReadDepth(value: unknown): value is ReadDepth {
   return typeof value === "string" && (READ_DEPTHS as readonly string[]).includes(value);
 }
-
-/** How long the end of a story must stay on screen to count as finished. */
-export const STORY_DWELL_MS = 3000;
 
 export interface AnalyticsEvent {
   readonly event: EventName;

@@ -2,8 +2,8 @@ import { AVAILABLE_ITEMS, CATALOG, formatPrice, isAvailable, type Item } from ".
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
 import { chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
-import { STRIPE_JS_URL } from "./checkout-script";
-import { CASE_CLOSED_ID, STORY_END_ID } from "./story-script";
+import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/checkout-page";
+import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { html, SafeHtml } from "./html";
 import {
   BROADCAST_PATH,
@@ -746,8 +746,8 @@ export function thanksPage(view: ReturnView = { kind: "unchecked" }): Page {
 
 /**
  * The embedded checkout page (design note 0005, Option B). With a publishable
- * key, it loads Stripe.js and our small script (checkout-script.ts), which
- * mounts Stripe's Checkout into #checkout. Without one, or whenever JavaScript
+ * key, it loads Stripe.js and our small script (src/client/entries/checkout.ts),
+ * which mounts Stripe's Checkout into #checkout. Without one, or whenever JavaScript
  * or Stripe.js isn't available, the hosted-checkout button below still works,
  * so nobody gets stuck. The page itself creates nothing at Stripe: the script
  * asks `data-session-url` for a session when it runs.
@@ -758,6 +758,7 @@ export function checkoutPage(
   offer: Offer = regularOffer(item),
 ): Page {
   const embedded = publishableKey !== undefined;
+  const sessionUrl = checkoutSessionPath(item);
   return layout({
     title: `Acquire ${item.name}`,
     description: `Checkout for ${item.name}.`,
@@ -768,15 +769,15 @@ export function checkoutPage(
       <h1>Acquire ${item.name}</h1>
       <p class="price">${priceLine(offer)}</p>
       ${onAirNote(offer)}
-      <p id="checkout-status" class="checkout-status" role="status"></p>
+      <p id="${CHECKOUT_STATUS_ID}" class="checkout-status" role="status"></p>
       ${
         embedded
           ? html`<div
-              id="checkout"
-              data-session-url="${checkoutSessionPath(item)}"
+              id="${CHECKOUT_MOUNT_ID}"
+              data-session-url="${sessionUrl}"
               data-publishable-key="${publishableKey}"
             ></div>`
-          : html`<div id="checkout" data-session-url="${checkoutSessionPath(item)}"></div>`
+          : html`<div id="${CHECKOUT_MOUNT_ID}" data-session-url="${sessionUrl}"></div>`
       }
       <form class="acquire" method="post" action="${checkoutPath(item)}">
         <button class="button" type="submit">Continue on Stripe’s secure page</button>

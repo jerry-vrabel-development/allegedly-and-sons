@@ -4,5 +4,8 @@
  * builds scripts as text agree on them.
  */
 
+/** Fired when a case file is finished and its card earned; the sound script stamps it. */
+export const CARD_EVENT = "bureau:card";
+
 /** Fired when a clock reaches zero, just before the page reloads. */
 export const SEGMENT_END_EVENT = "bureau:segment-end";

@@ -22,7 +22,7 @@
  * silence.
  */
 
-import { SEGMENT_END_EVENT } from "../core/dom-events";
+import { CARD_EVENT, SEGMENT_END_EVENT } from "../core/dom-events";
 
 /** The browser-local key for the shop-wide mute setting. */
 export const SOUND_MUTE_KEY = "bureau-sound-muted";
@@ -32,9 +32,6 @@ export const LEGACY_MUTE_KEY = "bureau-vault-muted";
 
 /** How long a link with a sound waits before navigating (ms). */
 export const LINK_DELAY_MS = 180;
-
-/** The event the story script fires when a case file is finished. */
-export const CARD_EVENT = "bureau:card";
 
 /** Every sound the module can play, by name. */
 export const SOUND_NAMES = [

@@ -44,3 +44,164 @@ export const COUNTDOWN_JS = `"use strict";
   if (clocks.length > 0) tick();
 })();
 `;
+
+/** Bundled from src/client/entries/story.ts. */
+export const STORY_JS = `"use strict";
+(() => {
+  // src/core/dom-events.ts
+  var CARD_EVENT = "bureau:card";
+
+  // src/core/paths.ts
+  var DOSSIER_PATH = "/dossier";
+  var EVENTS_PATH = "/events";
+
+  // src/core/story.ts
+  var STORY_END_ID = "story-end";
+  var CASE_CLOSED_ID = "case-closed";
+  var STORY_DWELL_MS = 3e3;
+
+  // src/client/dwell.ts
+  function dwell(ms, done, timers) {
+    let waiting;
+    let finished = false;
+    return (visible) => {
+      if (finished) return;
+      if (visible && waiting === void 0) {
+        waiting = timers.set(() => {
+          finished = true;
+          done();
+        }, ms);
+      } else if (!visible && waiting !== void 0) {
+        timers.clear(waiting);
+        waiting = void 0;
+      }
+    };
+  }
+
+  // src/client/story-beacon.ts
+  function readBeaconBody(item, depth) {
+    return JSON.stringify({ item, depth });
+  }
+  function oncePerDepth(send) {
+    const done = /* @__PURE__ */ new Set();
+    return {
+      send: (depth) => {
+        if (done.has(depth)) return;
+        done.add(depth);
+        send(depth);
+      },
+      sent: (depth) => done.has(depth)
+    };
+  }
+
+  // src/client/entries/story.ts
+  function caseClosed(box) {
+    const line = document.getElementById(CASE_CLOSED_ID);
+    const card = box.getAttribute("data-card");
+    if (line !== null && card !== null && card !== "") {
+      line.textContent = \`Case closed. Card \${card} is in your dossier.\`;
+      const link = document.createElement("a");
+      link.href = DOSSIER_PATH;
+      link.textContent = "See your dossier";
+      line.append(" ", link, ".");
+    }
+    document.dispatchEvent(new Event(CARD_EVENT));
+  }
+  function start() {
+    const box = document.querySelector("details[data-story]");
+    const end = document.getElementById(STORY_END_ID);
+    if (box === null || end === null || !("sendBeacon" in navigator)) return;
+    const item = box.getAttribute("data-story") ?? "";
+    const beacon = oncePerDepth((depth) => {
+      navigator.sendBeacon(EVENTS_PATH, readBeaconBody(item, depth));
+    });
+    let watcher;
+    if ("IntersectionObserver" in window) {
+      const seen = dwell(
+        STORY_DWELL_MS,
+        () => {
+          beacon.send("finished");
+          watcher?.disconnect();
+          caseClosed(box);
+        },
+        {
+          set: (callback, ms) => window.setTimeout(callback, ms),
+          clear: (id) => {
+            window.clearTimeout(id);
+          }
+        }
+      );
+      watcher = new IntersectionObserver((entries) => {
+        seen(entries[entries.length - 1]?.isIntersecting === true);
+      });
+    }
+    box.addEventListener("toggle", () => {
+      if (!box.open) return;
+      beacon.send("opened");
+      if (watcher !== void 0 && !beacon.sent("finished")) watcher.observe(end);
+    });
+  }
+  start();
+})();
+`;
+
+/** Bundled from src/client/entries/checkout.ts. */
+export const CHECKOUT_JS = `"use strict";
+(() => {
+  // src/core/checkout-page.ts
+  var CHECKOUT_MOUNT_ID = "checkout";
+  var CHECKOUT_STATUS_ID = "checkout-status";
+  var CHECKOUT_STATUS = {
+    loading: "Opening the vault…",
+    failed: "The secure form couldn’t open here. Nothing was charged. You can still pay on Stripe’s own secure page below."
+  };
+
+  // src/client/client-secret.ts
+  function clientSecretFrom(body) {
+    if (typeof body === "object" && body !== null && "clientSecret" in body) {
+      const { clientSecret } = body;
+      if (typeof clientSecret === "string") return clientSecret;
+    }
+    throw new Error("no client secret");
+  }
+  async function fetchClientSecret(sessionUrl, request) {
+    const response = await request(sessionUrl, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      credentials: "same-origin"
+    });
+    if (!response.ok) throw new Error(\`session \${String(response.status)}\`);
+    return clientSecretFrom(await response.json());
+  }
+
+  // src/client/entries/checkout.ts
+  function start() {
+    const mount = document.getElementById(CHECKOUT_MOUNT_ID);
+    const status = document.getElementById(CHECKOUT_STATUS_ID);
+    if (mount === null || status === null) return;
+    const key = mount.getAttribute("data-publishable-key");
+    const sessionUrl = mount.getAttribute("data-session-url");
+    if (key === null || key === "" || sessionUrl === null || sessionUrl === "") return;
+    const fail = () => {
+      status.textContent = CHECKOUT_STATUS.failed;
+    };
+    if (typeof window.Stripe !== "function") {
+      fail();
+      return;
+    }
+    status.textContent = CHECKOUT_STATUS.loading;
+    try {
+      window.Stripe(key).initEmbeddedCheckout({
+        fetchClientSecret: () => fetchClientSecret(sessionUrl, (url, init) => fetch(url, init))
+      }).then((checkout) => {
+        checkout.mount(mount);
+        status.textContent = "";
+        mount.closest(".checkout")?.classList.add("embedded");
+      }).catch(fail);
+    } catch {
+      fail();
+    }
+  }
+  start();
+})();
+`;

@@ -12,7 +12,11 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 /** Each entry in src/client/entries, and the constant its bundle is exported as. */
-const ENTRIES = [{ file: "countdown.ts", constant: "COUNTDOWN_JS" }];
+const ENTRIES = [
+  { file: "countdown.ts", constant: "COUNTDOWN_JS" },
+  { file: "story.ts", constant: "STORY_JS" },
+  { file: "checkout.ts", constant: "CHECKOUT_JS" },
+];
 
 const root = new URL("../", import.meta.url);
 const outFile = new URL("src/worker/client-scripts.generated.ts", root);
