@@ -14,7 +14,6 @@ import {
   checkoutSessionForm,
   embeddedCheckoutSessionForm,
   returnOutcome,
-  type ReturnOutcome,
   SESSION_ID,
   THANKS_PATH,
 } from "../core/checkout";
@@ -64,7 +63,7 @@ import { broadcastPage, onAirBanner, wantsBanner, withBanner } from "./broadcast
 import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
 import { canRepair } from "../core/streak";
 import { vaultDay } from "../core/vault";
-import { repairReturnPage, repairUnavailablePage } from "./repair-page";
+import { repairReturnPage, repairUnavailablePage, type RepairReturn } from "./repair-page";
 import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
 import { wantsSound, withSound } from "./sound-script";
 import { rollFrom } from "../core/vault";
@@ -499,16 +498,35 @@ async function repairCheckout(request: Request, deps: Deps): Promise<Response> {
   return seeOther(result.url);
 }
 
-/** Where Stripe sends a buy-back buyer: says only what Stripe confirms. */
+/**
+ * What our own records say about a paid buy-back: restored (the repair is on
+ * file), owed (the order is on file with no repair, so the payment restored
+ * nothing), or pending (the webhook hasn't landed yet).
+ */
+async function paidRepairState(db: D1Database, sessionId: string): Promise<RepairReturn> {
+  const [repairs, orders] = await db.batch([
+    db.prepare("SELECT 1 FROM streak_repairs WHERE stripe_session_id = ?").bind(sessionId),
+    db.prepare("SELECT 1 FROM orders WHERE stripe_session_id = ?").bind(sessionId),
+  ]);
+  if (repairs?.results.length === 1) return "restored";
+  return orders?.results.length === 1 ? "owed" : "pending";
+}
+
+/**
+ * Where Stripe sends a buy-back buyer. Says only what Stripe confirms about
+ * the payment, and only what our records show about the streak.
+ */
 async function repairReturn(url: URL, deps: Deps): Promise<Response> {
   const id = url.searchParams.get("session_id");
-  let outcome: ReturnOutcome["kind"] = "unchecked";
+  let outcome: RepairReturn = "unchecked";
   if (id !== null && SESSION_ID.test(id) && deps.stripeKey !== undefined) {
     const lookup = await retrieveCheckoutSession(deps.stripeKey, id, deps.fetch);
-    if (lookup.ok) outcome = returnOutcome(lookup.session).kind;
-    else console.error(`repair return page: ${lookup.reason}`);
+    if (lookup.ok) {
+      const { kind } = returnOutcome(lookup.session);
+      outcome = kind === "paid" ? await paidRepairState(deps.db, id) : kind;
+    } else console.error(`repair return page: ${lookup.reason}`);
   }
-  const response = page(repairReturnPage(outcome));
+  const response = page(repairReturnPage(outcome, id ?? ""));
   response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
   return response;
 }
