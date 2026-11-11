@@ -7,10 +7,8 @@
  * named there.
  */
 
-import { COUNTDOWN_JS } from "./client-scripts.generated";
-import { CHECKOUT_JS } from "./checkout-script";
+import { CHECKOUT_JS, COUNTDOWN_JS, STORY_JS } from "./client-scripts.generated";
 import { SOUND_JS } from "./sound-script";
-import { STORY_JS } from "./story-script";
 import { VAULT_JS } from "./vault-script";
 import {
   CHECKOUT_SCRIPT_PATH,

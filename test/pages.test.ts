@@ -23,7 +23,7 @@ import {
   thanksPage,
 } from "../src/worker/pages";
 import { escapeHtml, html, type SafeHtml } from "../src/worker/html";
-import { STORY_END_ID } from "../src/worker/story-script";
+import { STORY_END_ID } from "../src/core/story";
 import { STORY_SCRIPT_PATH, TERMS_PATH } from "../src/core/paths";
 
 /** Collapses whitespace, since Prettier is free to reflow the HTML templates. */

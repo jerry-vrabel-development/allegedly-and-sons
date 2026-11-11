@@ -1,6 +1,7 @@
 import { createExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { CHECKOUT_JS, CHECKOUT_STATUS, STRIPE_JS_URL } from "../src/worker/checkout-script";
+import { CHECKOUT_STATUS, STRIPE_JS_URL } from "../src/core/checkout-page";
+import { CHECKOUT_JS } from "../src/worker/client-scripts.generated";
 import { STRIPE_API_VERSION } from "../src/worker/stripe";
 import { publishableKeyFrom } from "../src/worker/env";
 import worker from "../src/worker/index";
@@ -29,10 +30,14 @@ describe("the checkout script", () => {
     expect(CHECKOUT_JS).not.toContain("createEmbeddedCheckoutPage");
   });
 
+  // How it asks for the client secret is unit tested (client-secret.test.ts)
+  // and the mount is watched in real browsers; these check the bundle itself.
   it("does nothing risky: no eval, no innerHTML, no storage, no other hosts", () => {
     expect(CHECKOUT_JS).not.toMatch(
       /eval\(|innerHTML|outerHTML|document\.write|localStorage|sessionStorage|https?:\/\//,
     );
+    expect(CHECKOUT_JS).not.toMatch(/^\s*(import|export)\s/m);
+    expect(CHECKOUT_JS.length).toBeLessThan(5000);
   });
 
   it("quiets the fallback only after Stripe's form has mounted", () => {

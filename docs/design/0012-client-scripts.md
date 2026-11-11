@@ -1,7 +1,7 @@
 # 0012 — Browser scripts as real TypeScript
 
-Status: accepted (2026-11-11). The countdown has moved; the other four scripts
-follow, one PR each.
+Status: accepted (2026-11-11). The countdown, story reads and the checkout
+mount have moved; the Vault's reel and sound follow.
 
 ## The problem
 
@@ -74,6 +74,10 @@ src/worker/client-scripts.generated.ts   the bundles, as exported strings
 - **esbuild is pinned** to the exact version Wrangler and Vitest already
   install, so the output is the same on every machine and nothing new is
   downloaded.
+- **Entries import only from small, import-free core modules** (`paths.ts`,
+  `dom-events.ts`, `story.ts`, `checkout-page.ts`). A core module that pulls in the catalog would
+  bundle the catalog into the script. Each script's Worker test caps its size
+  to catch that.
 - **Still first-party.** The scripts are served from our own origin at the
   same paths, never inline, and are listed in `src/worker/scripts.ts`. The
   Content Security Policy and the Fine Print don't change.
@@ -91,9 +95,9 @@ scripts' logic. It still doesn't measure the entries.
 
 ## Rollout
 
-1. The countdown (this PR): the smallest script, to prove the setup.
-2. Story reads.
-3. The checkout mount.
+1. The countdown: the smallest script, to prove the setup. Done.
+2. Story reads. Done.
+3. The checkout mount. Done.
 4. The Vault's reel.
 5. Sound, the largest, last.
 
