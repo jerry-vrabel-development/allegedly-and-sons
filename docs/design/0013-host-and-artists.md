@@ -95,6 +95,15 @@ The same as for writers:
 - Artists may use a **pen name** and choose what appears on their page. We
   show nothing personal they haven't approved, and never payout details.
 
+## Every piece has two seats (decided 2026-11-11)
+
+- **A writer's seat and an artist's seat.** The writer builds the character
+  or the lore; the artist renders it in their style. That holds for an
+  exhibit, a Vault card, the host and the callers.
+- Vault cards already work this way: each has a name, a one-line summary and
+  a secret file of lore, beside its picture.
+- Today the Bureau sits in both seats of every piece.
+
 ## The product is what earns (decided 2026-11-11)
 
 - **The product sits between the writer and the artist.** An exhibit has a
@@ -112,8 +121,25 @@ The same as for writers:
   payment between the shop and more than one partner and handles their tax
   forms.
 
-Characters that aren't products, like the host and the callers, don't earn by
-this rule. How their artists are paid is an open question below.
+Work that isn't a product doesn't earn by this rule: the host, the callers,
+and Vault cards, which are pulled for free and never sold. How the writers
+and artists of that work are paid is an open question below.
+
+## Cards as a line of their own (ideas, not decided)
+
+Cards could grow into several products, each with its two seats:
+
+- **Rarity:** the tiers the Vault already has, as a reason to collect.
+- **Foil:** a shinier printing of the same card.
+- **Seasonal:** sets that come and go with the calendar.
+- **Sold as things:** prints, or physical cards and packs.
+
+Two lines already drawn apply to all of it. Pulls are free and the Vault's
+cards are never for sale ([0003](0003-gamification.md)), and odds stay posted
+and honest ([0008](0008-sound-and-motion.md)). Selling cards in any form
+would change the first of those on purpose, so it needs its own decision.
+Selling packs with random contents would also need a look at the law before
+it is built.
 
 ## Rights and agreements
 
@@ -134,8 +160,12 @@ this rule. How their artists are paid is an open question below.
   out, how is it taken back?
 - **How partners meet:** do a writer and an artist arrive as a team, does the
   shop pair them, or can an artist pick a published story to illustrate?
-- **Art that isn't a product** (the host, callers, the Vault): house-owned,
-  a flat fee on acceptance, or something else?
+- **Work that isn't a product** (the host, callers, Vault cards), for both
+  crafts. Options so far: a flat fee on acceptance; tie a card to an exhibit
+  and share in that exhibit's sales; or let a card or character people
+  respond to graduate into something sold, where it earns like any product.
+- **Card variants.** If foil, seasonal or printed cards are sold, do the
+  card's writer and artist share in every variant of it?
 - **Where artists are found:** open submissions, invitations, local Chicago
   artists, or a mix.
 - Which tools count as human-made, and how a submission says so.
