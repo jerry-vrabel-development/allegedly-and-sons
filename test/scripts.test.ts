@@ -1,13 +1,15 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { COUNTDOWN_SCRIPT_PATH } from "../src/worker/broadcast-script";
-import { CHECKOUT_SCRIPT_PATH } from "../src/worker/checkout-script";
 import { route, type Deps } from "../src/worker/index";
 import { disclaimerPage } from "../src/worker/pages";
 import { scriptResponse, SCRIPTS } from "../src/worker/scripts";
-import { SOUND_SCRIPT_PATH } from "../src/worker/sound-script";
-import { STORY_SCRIPT_PATH } from "../src/worker/story-script";
-import { VAULT_SCRIPT_PATH } from "../src/worker/vault-page";
+import {
+  CHECKOUT_SCRIPT_PATH,
+  COUNTDOWN_SCRIPT_PATH,
+  SOUND_SCRIPT_PATH,
+  STORY_SCRIPT_PATH,
+  VAULT_SCRIPT_PATH,
+} from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 

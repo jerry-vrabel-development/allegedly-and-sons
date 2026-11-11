@@ -3,12 +3,6 @@
  * registration, recovery and unsubscribing. No address is ever logged.
  */
 
-export const DISPATCH_PATH = "/dispatch";
-export const DISPATCH_SENT_PATH = "/dispatch/sent";
-export const DISPATCH_CONFIRM_PATH = "/dispatch/confirm";
-export const DISPATCH_RECOVER_PATH = "/dispatch/recover";
-export const DISPATCH_UNSUBSCRIBE_PATH = "/dispatch/unsubscribe";
-
 /** The address Dispatch mail comes from. Replies go to the order contact. */
 export const DISPATCH_FROM = {
   email: "dispatch@allegedlyandsons.com",
@@ -33,11 +27,6 @@ export const UNSUBSCRIBE_BYTES = 16;
 
 export const TOKEN = /^[0-9a-f]{64}$/;
 export const UNSUBSCRIBE_TOKEN = /^[0-9a-f]{32}$/;
-
-/** Lowercase hex for random bytes. */
-export function hexFrom(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 const EMAIL = /^[^\s@<>"(),;:\\[\]]+@[^\s@<>"(),;:\\[\]]+\.[^\s@<>"(),;:\\[\].]+$/;
 

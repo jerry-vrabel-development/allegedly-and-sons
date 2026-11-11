@@ -8,6 +8,9 @@
  * widgets or third-party scripts.
  */
 
+import { itemPathFor } from "./paths";
+import { hexFrom } from "./hex";
+
 /** The networks we offer, in the order shown. Also the allowed `channel` values. */
 export const NETWORKS = ["bluesky", "x", "facebook", "reddit", "email"] as const;
 
@@ -52,7 +55,7 @@ export function refFrom(bytes: Uint8Array): string {
   if (bytes.length !== REF_BYTES) {
     throw new RangeError(`a ref code needs ${String(REF_BYTES)} random bytes`);
   }
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return hexFrom(bytes);
 }
 
 /** The query parameter that carries a ref code on a shared link. */
@@ -60,7 +63,7 @@ export const REF_PARAM = "r";
 
 /** The link a share sends people to: the item page, tagged with the share's ref. */
 export function sharedItemUrl(origin: string, slug: string, ref: string): string {
-  return `${origin}/items/${slug}?${REF_PARAM}=${ref}`;
+  return `${origin}${itemPathFor(slug)}?${REF_PARAM}=${ref}`;
 }
 
 export interface ShareLink {

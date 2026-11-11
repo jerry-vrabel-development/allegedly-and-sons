@@ -7,8 +7,8 @@ import {
   checkoutPath,
   checkoutSessionForm,
   paymentDescription,
-  THANKS_PATH,
 } from "../src/core/checkout";
+import { THANKS_PATH } from "../src/core/paths";
 
 const ORIGIN = "https://allegedly.example";
 

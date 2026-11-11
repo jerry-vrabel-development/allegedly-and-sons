@@ -16,8 +16,6 @@
 /** Fired when a clock reaches zero, just before the page reloads. */
 export const SEGMENT_END_EVENT = "bureau:segment-end";
 
-export const COUNTDOWN_SCRIPT_PATH = "/assets/countdown.js";
-
 export const COUNTDOWN_JS = `"use strict";
 (function () {
   var clocks = document.querySelectorAll("[data-seconds-left]");

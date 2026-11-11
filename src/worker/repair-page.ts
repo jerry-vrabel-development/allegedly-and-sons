@@ -10,6 +10,7 @@ import { REPAIR_NAME } from "../core/repair";
 import type { ReturnOutcome } from "../core/checkout";
 import { html, type SafeHtml } from "./html";
 import { layout, ORDER_CONTACT_EMAIL } from "./pages";
+import { VAULT_PATH } from "../core/paths";
 
 /**
  * What the return page can say. Stripe's answer, and for a paid session what
@@ -21,7 +22,7 @@ export type RepairReturn = "restored" | "pending" | "owed" | Exclude<ReturnOutco
 
 /** `sessionId` is the reference shown on the "owed" page; unused by the others. */
 export function repairReturnPage(outcome: RepairReturn, sessionId: string): SafeHtml {
-  const back = html`<p><a class="button" href="/vault">Back to the Vault</a></p>`;
+  const back = html`<p><a class="button" href="${VAULT_PATH}">Back to the Vault</a></p>`;
   const email = html`<a href="mailto:${ORDER_CONTACT_EMAIL}">${ORDER_CONTACT_EMAIL}</a>`;
   const pages: Record<RepairReturn, { title: string; body: SafeHtml }> = {
     restored: {
@@ -91,7 +92,7 @@ export function repairUnavailablePage(): SafeHtml {
     body: html`<div class="prose">
       <h1>The clerk is out</h1>
       <p>Checkout couldn't be started just now. Nothing was charged. Please try again shortly.</p>
-      <p><a href="/vault">Back to the Vault</a></p>
+      <p><a href="${VAULT_PATH}">Back to the Vault</a></p>
     </div>`,
   });
 }

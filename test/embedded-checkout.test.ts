@@ -2,11 +2,7 @@ import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import {
-  checkoutSessionForm,
-  embeddedCheckoutSessionForm,
-  THANKS_PATH,
-} from "../src/core/checkout";
+import { checkoutSessionForm, embeddedCheckoutSessionForm } from "../src/core/checkout";
 import worker, { route, type Deps } from "../src/worker/index";
 import { CHECKOUT_CSP, STRICT_CSP } from "../src/worker/security-headers";
 import {
@@ -15,6 +11,7 @@ import {
   MAX_CLIENT_SECRET_LENGTH,
 } from "../src/worker/stripe";
 import { testEnv } from "./test-env";
+import { THANKS_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const ITEM = CATALOG[0];

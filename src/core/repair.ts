@@ -10,6 +10,7 @@
  */
 
 import { CHECKOUT_BRANDING } from "./checkout";
+import { REPAIR_RETURN_PATH, VAULT_PATH } from "./paths";
 
 /** The order's item slug, and the Stripe metadata that marks a repair. */
 export const REPAIR_SLUG = "streak-repair";
@@ -18,9 +19,6 @@ export const REPAIR_SLUG = "streak-repair";
 export const REPAIR_PRICE_CENTS = 299;
 
 export const REPAIR_NAME = "Grease the Clerk";
-
-export const REPAIR_PATH = "/streak/repair";
-export const REPAIR_RETURN_PATH = "/streak/restored";
 
 /** "a 12-day streak" → the line on the receipt. */
 export function repairDescription(days: number): string {
@@ -52,7 +50,7 @@ export function repairSessionForm(
     client_reference_id: visitorId,
     // Stripe fills in the session id, so the page can ask Stripe whether it was paid.
     success_url: `${origin}${REPAIR_RETURN_PATH}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/vault`,
+    cancel_url: `${origin}${VAULT_PATH}`,
   });
   for (const [key, value] of Object.entries(CHECKOUT_BRANDING)) {
     form.set(`branding_settings[${key}]`, value);

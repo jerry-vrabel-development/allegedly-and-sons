@@ -15,7 +15,6 @@ import {
   embeddedCheckoutSessionForm,
   returnOutcome,
   SESSION_ID,
-  THANKS_PATH,
 } from "../core/checkout";
 import {
   recordCheckoutStarted,
@@ -24,7 +23,6 @@ import {
   recordStoryRead,
   type AnalyticsDeps,
 } from "./analytics";
-import { EVENTS_PATH } from "./story-script";
 import { ART } from "./art";
 import type { SafeHtml } from "./html";
 import {
@@ -36,7 +34,6 @@ import {
   itemPage,
   notFoundPage,
   ORDER_CONTACT_EMAIL,
-  STYLESHEET_PATH,
   thanksPage,
   type ReturnView,
 } from "./pages";
@@ -51,32 +48,27 @@ import { SITE_CSS } from "./styles";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { landingFromRequest } from "../core/landing";
 import { ACCESS_JWT_HEADER, accessConfigFrom, verifyAccessJwt, type AccessDeps } from "./access";
-import { LEDGER_PATH, ledgerPage, periodFrom, readLedger } from "./ledger";
+import { ledgerPage, periodFrom, readLedger } from "./ledger";
 import { readDossier } from "./dossier";
-import { DOSSIER_PATH, dossierPage } from "./dossier-page";
-import { stripeWebhook, WEBHOOK_PATH, type WebhookDeps } from "./webhook";
+import { dossierPage } from "./dossier-page";
+import { stripeWebhook, type WebhookDeps } from "./webhook";
 import { pullJson, pullLever, readVault, secureUint32 } from "./vault";
 import { readStreak } from "./streak";
-import { BROADCAST_PATH, offerFor, segmentAt } from "../core/broadcast";
+import { offerFor, segmentAt } from "../core/broadcast";
 import { effectsOn } from "../core/effects";
 import { broadcastPage, onAirBanner, wantsBanner, withBanner } from "./broadcast-page";
-import { REPAIR_PATH, REPAIR_RETURN_PATH, repairSessionForm } from "../core/repair";
+import { repairSessionForm } from "../core/repair";
 import { canRepair } from "../core/streak";
 import { vaultDay } from "../core/vault";
 import { repairReturnPage, repairUnavailablePage, type RepairReturn } from "./repair-page";
-import { VAULT_OPENED_LOCATION, VAULT_PATH, VAULT_PULL_PATH, vaultPage } from "./vault-page";
+import { vaultPage } from "./vault-page";
 import { wantsSound, withSound } from "./sound-script";
 import { rollFrom } from "../core/vault";
 import { visitorCookie, visitorIdFromCookie } from "../core/visitor";
 import {
-  DISPATCH_CONFIRM_PATH,
   DISPATCH_FROM,
   TOKEN,
   UNSUBSCRIBE_TOKEN,
-  DISPATCH_PATH,
-  DISPATCH_RECOVER_PATH,
-  DISPATCH_SENT_PATH,
-  DISPATCH_UNSUBSCRIBE_PATH,
   normalizeEmail,
   type OutgoingEmail,
 } from "../core/dispatch";
@@ -97,6 +89,27 @@ import {
   unsubscribedPage,
   type LinkKind,
 } from "./dispatch-pages";
+import {
+  BROADCAST_PATH,
+  BUREAU_PATH,
+  DISCLAIMER_PATH,
+  DISPATCH_CONFIRM_PATH,
+  DISPATCH_PATH,
+  DISPATCH_RECOVER_PATH,
+  DISPATCH_SENT_PATH,
+  DISPATCH_UNSUBSCRIBE_PATH,
+  DOSSIER_PATH,
+  EVENTS_PATH,
+  LEDGER_PATH,
+  REPAIR_PATH,
+  REPAIR_RETURN_PATH,
+  STYLESHEET_PATH,
+  THANKS_PATH,
+  VAULT_OPENED_LOCATION,
+  VAULT_PATH,
+  VAULT_PULL_PATH,
+  WEBHOOK_PATH,
+} from "../core/paths";
 
 /**
  * Secrets the Worker reads. Set each with `npx wrangler secret put <NAME>`, and
@@ -610,7 +623,7 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
   switch (pathname) {
     case "/":
       return page(homePage());
-    case "/disclaimer":
+    case DISCLAIMER_PATH:
       return page(disclaimerPage());
     case THANKS_PATH:
       return returnPage(new URL(request.url), deps);
@@ -671,7 +684,7 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
   const script = scriptResponse(pathname);
   if (script !== undefined) return script;
 
-  if (pathname === "/bureau" || pathname.startsWith("/bureau/")) {
+  if (pathname === BUREAU_PATH || pathname.startsWith(`${BUREAU_PATH}/`)) {
     return bureau(request, pathname, deps);
   }
 

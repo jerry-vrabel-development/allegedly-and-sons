@@ -10,6 +10,7 @@
  */
 
 import { isHostName, isUtmValue, referrerHostFrom, utmValue } from "./analytics";
+import { cookieValue } from "./cookies";
 
 export interface Landing {
   /** The outside site that sent the visit, or null. */
@@ -52,25 +53,18 @@ export function landingCookie(landing: Landing): string {
 
 /** The remembered landing from a Cookie header, or undefined if absent or malformed. */
 export function landingFromCookie(header: string | null): Landing | undefined {
-  if (header === null) return undefined;
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator === -1 || part.slice(0, separator).trim() !== LANDING_COOKIE) continue;
-    const pieces = part
-      .slice(separator + 1)
-      .trim()
-      .split(SEPARATOR);
-    if (pieces.length !== 3) return undefined;
-    const [host, source, campaign] = pieces as [string, string, string];
-    if (host !== "" && !isHostName(host)) return undefined;
-    if (source !== "" && !isUtmValue(source)) return undefined;
-    if (campaign !== "" && !isUtmValue(campaign)) return undefined;
-    if (host === "" && source === "" && campaign === "") return undefined;
-    return {
-      referrerHost: host === "" ? null : host,
-      utmSource: source === "" ? null : source,
-      utmCampaign: campaign === "" ? null : campaign,
-    };
-  }
-  return undefined;
+  const value = cookieValue(header, LANDING_COOKIE);
+  if (value === undefined) return undefined;
+  const pieces = value.split(SEPARATOR);
+  if (pieces.length !== 3) return undefined;
+  const [host, source, campaign] = pieces as [string, string, string];
+  if (host !== "" && !isHostName(host)) return undefined;
+  if (source !== "" && !isUtmValue(source)) return undefined;
+  if (campaign !== "" && !isUtmValue(campaign)) return undefined;
+  if (host === "" && source === "" && campaign === "") return undefined;
+  return {
+    referrerHost: host === "" ? null : host,
+    utmSource: source === "" ? null : source,
+    utmCampaign: campaign === "" ? null : campaign,
+  };
 }

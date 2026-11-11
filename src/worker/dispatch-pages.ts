@@ -4,16 +4,19 @@
  * button acts, since mail scanners open links by themselves.
  */
 
+import { maskEmail } from "../core/dispatch";
+import type { Registration } from "./dispatch";
+import { html, type SafeHtml } from "./html";
+import { layout } from "./pages";
 import {
   DISPATCH_CONFIRM_PATH,
   DISPATCH_PATH,
   DISPATCH_RECOVER_PATH,
   DISPATCH_UNSUBSCRIBE_PATH,
-  maskEmail,
-} from "../core/dispatch";
-import type { Registration } from "./dispatch";
-import { html, type SafeHtml } from "./html";
-import { layout } from "./pages";
+  DOSSIER_DISPATCH_PATH,
+  DOSSIER_PATH,
+  METHODS_PATH,
+} from "../core/paths";
 
 /** What the dossier says about the Dispatch for this visitor. */
 export interface DispatchView {
@@ -89,7 +92,7 @@ export function dispatchSection(view: DispatchView): SafeHtml {
       <p class="small-print">
         Already registered on another device? Enter the same address and we'll send a link to open
         your file here. Your address is used only for Bureau mail; see
-        <a href="/disclaimer#methods-heading">the fine print</a>.
+        <a href="${METHODS_PATH}">the fine print</a>.
       </p>`;
   }
 
@@ -114,7 +117,7 @@ export function sentPage(): SafeHtml {
         device.
       </p>
       <p>Nothing there after a few minutes? Check your spam folder, or try again later.</p>
-      <p><a href="/dossier">Back to your dossier</a></p>
+      <p><a href="${DOSSIER_PATH}">Back to your dossier</a></p>
     </div>`,
   });
 }
@@ -171,7 +174,7 @@ export function linkExpiredPage(): SafeHtml {
       <h1>That link has expired</h1>
       <p>
         Bureau links work once, for a limited time. Enter your address again on
-        <a href="/dossier#dispatch">your dossier</a> and we'll send a fresh one.
+        <a href="${DOSSIER_DISPATCH_PATH}">your dossier</a> and we'll send a fresh one.
       </p>
     </div>`,
   });
@@ -186,7 +189,7 @@ export function unsubscribedPage(): SafeHtml {
       <h1>Unsubscribed</h1>
       <p>
         The Bureau won't send you mail any more. Your file is still yours: you can still open it on
-        another device, and register again any time from <a href="/dossier">your dossier</a>.
+        another device, and register again any time from <a href="${DOSSIER_PATH}">your dossier</a>.
       </p>
     </div>`,
   });
@@ -200,7 +203,7 @@ export function dispatchClosedPage(): SafeHtml {
     body: html`<div class="prose">
       <h1>Registration opens soon</h1>
       <p>The Bureau isn't sending mail yet. Nothing was sent or saved.</p>
-      <p><a href="/dossier">Back to your dossier</a></p>
+      <p><a href="${DOSSIER_PATH}">Back to your dossier</a></p>
     </div>`,
   });
 }

@@ -15,11 +15,11 @@ import {
   repairDeadline,
   type Streak,
 } from "../core/streak";
-import { REPAIR_NAME, REPAIR_PATH, REPAIR_PRICE_CENTS } from "../core/repair";
+import { REPAIR_NAME, REPAIR_PRICE_CENTS } from "../core/repair";
 import { formatPrice } from "../core/catalog";
 import { describeWait, nextDailyAt } from "../core/vault";
-import { TERMS_PATH } from "./pages";
 import { html, type SafeHtml } from "./html";
+import { REPAIR_PATH, TERMS_PATH, VAULT_PATH } from "../core/paths";
 
 function plural(n: number, unit: string): string {
   return `${String(n)} ${unit}${n === 1 ? "" : "s"}`;
@@ -100,7 +100,7 @@ export function streakPanel(
   const clock = html`<span class="clock" data-seconds-left="${secondsLeft}">${wait}</span>`;
   const goPull = onVault
     ? html``
-    : html`<p><a class="button" href="/vault">Pull the lever before it's gone</a></p>`;
+    : html`<p><a class="button" href="${VAULT_PATH}">Pull the lever before it's gone</a></p>`;
 
   let body: SafeHtml;
   if (streak.status === "safe") {

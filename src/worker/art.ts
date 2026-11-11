@@ -494,7 +494,3 @@ export const ART: Readonly<Record<string, string>> = {
   "marble-of-infinite-regret": MARBLE,
   "prototype-fortune-cookie-fortune": FORTUNE,
 };
-
-export function artPath(slug: string): string {
-  return `/assets/art/${slug}.svg`;
-}

@@ -20,7 +20,7 @@
  * flash; sound still plays unless muted.
  */
 
-import { VAULT_PULL_PATH } from "./vault-page";
+import { VAULT_PULL_PATH } from "../core/paths";
 
 /** How long the reel spins (ms) before it lands, when motion is allowed. */
 export const REEL_MS = 2400;

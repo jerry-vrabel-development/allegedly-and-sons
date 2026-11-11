@@ -7,6 +7,7 @@
 
 import { VISITOR_ID } from "./analytics";
 import { isSegmentId } from "./broadcast";
+import { isRecord, SLUG } from "./guards";
 
 /** Checkout finished. Paid on the spot for cards; still unpaid for delayed methods. */
 export const CHECKOUT_COMPLETED = "checkout.session.completed";
@@ -55,12 +56,6 @@ export type SessionOutcome =
 
 /** Stands in for a missing or odd item slug, so a paid order is never dropped. */
 export const UNKNOWN_ITEM = "unknown";
-
-const SLUG = /^[a-z0-9-]{1,64}$/;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 function isPositiveInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0;

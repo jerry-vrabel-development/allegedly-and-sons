@@ -6,10 +6,6 @@
 import { codenameFor } from "../core/dossier";
 import {
   confirmEmail,
-  DISPATCH_CONFIRM_PATH,
-  DISPATCH_RECOVER_PATH,
-  DISPATCH_UNSUBSCRIBE_PATH,
-  hexFrom,
   LIMITS,
   recoverEmail,
   TOKEN,
@@ -20,6 +16,12 @@ import {
   type OutgoingEmail,
   type TokenPurpose,
 } from "../core/dispatch";
+import {
+  DISPATCH_CONFIRM_PATH,
+  DISPATCH_RECOVER_PATH,
+  DISPATCH_UNSUBSCRIBE_PATH,
+} from "../core/paths";
+import { hexFrom } from "../core/hex";
 
 export interface Registration {
   readonly email: string;

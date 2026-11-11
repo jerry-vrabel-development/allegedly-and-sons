@@ -2,8 +2,9 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import { route, type Deps } from "../src/worker/index";
-import { LEDGER_PATH, periodFrom, readLedger } from "../src/worker/ledger";
+import { periodFrom, readLedger } from "../src/worker/ledger";
 import { AUD, NOW, OTHER, SIGNER, TEAM, token, urlOf } from "./access-signing";
+import { LEDGER_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const A = "a".repeat(32);

@@ -17,11 +17,7 @@
 
 import { STORY_DWELL_MS } from "../core/analytics";
 import { CARD_EVENT } from "./sound-script";
-
-export const STORY_SCRIPT_PATH = "/assets/story.js";
-
-/** Where the script reports reads. */
-export const EVENTS_PATH = "/events";
+import { DOSSIER_PATH, EVENTS_PATH } from "../core/paths";
 
 /** The id of a story's last paragraph, watched for "finished". */
 export const STORY_END_ID = "story-end";
@@ -51,7 +47,7 @@ export const STORY_JS = `"use strict";
     if (line && card) {
       line.textContent = "Case closed. Card " + card + " is in your dossier.";
       var link = document.createElement("a");
-      link.href = "/dossier";
+      link.href = ${JSON.stringify(DOSSIER_PATH)};
       link.textContent = "See your dossier";
       line.appendChild(document.createTextNode(" "));
       line.appendChild(link);

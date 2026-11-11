@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   confirmEmail,
-  hexFrom,
   maskEmail,
   normalizeEmail,
   recoverEmail,
   TOKEN_LIFETIME,
 } from "../src/core/dispatch";
+import { hexFrom } from "../src/core/hex";
 
 describe("addresses", () => {
   it("trims and lowercases a plausible address", () => {
