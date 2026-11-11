@@ -41,9 +41,10 @@ We need the shop to know, reliably, when an order is paid, so that:
    order row and a `purchased` event in one D1 batch.
 5. It answers 200 quickly. Anything slow can move to a queue later.
 
-Events handled at first: `checkout.session.completed`. Later:
-`checkout.session.async_payment_succeeded` (delayed payment methods) and
-`charge.refunded` (mark the order refunded).
+Events handled: `checkout.session.completed`, and
+`checkout.session.async_payment_succeeded` for delayed payment methods (the
+session completes unpaid, then arrives again, paid, when the payment clears;
+added 2026-11-10). Later: `charge.refunded` (mark the order refunded).
 
 ## Options
 

@@ -187,6 +187,64 @@ describe(`POST ${WEBHOOK_PATH}`, () => {
     expect(logs).toEqual(["webhook checkout.session.completed evt_test_1: not paid"]);
   });
 
+  it("records the order when a delayed payment clears, after skipping the unpaid session", async () => {
+    // A delayed method (a bank debit, say): the session completes unpaid, and
+    // Stripe sends async_payment_succeeded for the same session once it clears.
+    const visitor = "c".repeat(32);
+    const session = { client_reference_id: visitor };
+    await deliver(completedEvent("evt_test_1", { ...session, payment_status: "unpaid" }));
+    expect(await count("orders")).toBe(0);
+
+    const cleared = completedEvent(
+      "evt_test_2",
+      session,
+      "checkout.session.async_payment_succeeded",
+    );
+    expect((await deliver(cleared)).status).toBe(200);
+    const order = await env.DB.prepare(
+      "SELECT stripe_session_id, item_slug, amount_cents, paid_at, visitor_id FROM orders",
+    ).first();
+    expect(order).toEqual({
+      stripe_session_id: "cs_test_a1",
+      item_slug: "alien-paperclip",
+      amount_cents: 99_900,
+      // Paid when the payment cleared: the later event's time.
+      paid_at: NOW - 2,
+      visitor_id: visitor,
+    });
+    expect(logs).toContain(
+      "webhook checkout.session.async_payment_succeeded evt_test_2: order cs_test_a1",
+    );
+    // The buyer's dossier is granted then too, once.
+    const { results } = await env.DB.prepare("SELECT award FROM awards ORDER BY award").all<{
+      award: string;
+    }>();
+    expect(results.map((row) => row.award)).toEqual(["acquirer", "card:alien-paperclip"]);
+
+    // Redelivered, it changes nothing.
+    await deliver(cleared);
+    expect(await count("orders")).toBe(1);
+  });
+
+  it("records one order when a paid session is reported by both events", async () => {
+    await deliver(completedEvent("evt_test_1"));
+    await deliver(completedEvent("evt_test_2", {}, "checkout.session.async_payment_succeeded"));
+    expect(await count("orders")).toBe(1);
+  });
+
+  it("records nothing when a delayed payment fails", async () => {
+    const failed = completedEvent(
+      "evt_test_1",
+      { payment_status: "unpaid" },
+      "checkout.session.async_payment_failed",
+    );
+    expect((await deliver(failed)).status).toBe(200);
+    expect(await count("orders")).toBe(0);
+    expect(logs).toEqual([
+      "webhook checkout.session.async_payment_failed evt_test_1: acknowledged",
+    ]);
+  });
+
   it("acknowledges other event types without recording an order", async () => {
     expect((await deliver(completedEvent("evt_test_1", {}, "charge.refunded"))).status).toBe(200);
     expect(await count("orders")).toBe(0);

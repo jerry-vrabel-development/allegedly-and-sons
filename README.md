@@ -71,9 +71,7 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
   a minimum sample before anything is ranked, behind Cloudflare Access (which
   the Worker verifies too).
 
-**Not built yet:** a private order list for fulfillment, orders paid by
-delayed payment methods (only `checkout.session.completed` is handled), and
-refund tracking.
+**Not built yet:** a private order list for fulfillment, and refund tracking.
 
 ## How a purchase works
 
@@ -87,7 +85,10 @@ refund tracking.
 4. Stripe sends a signed `checkout.session.completed` event to
    `POST /webhooks/stripe`. The Worker verifies the signature, then records the
    event id and the order in one D1 transaction; a repeated event changes
-   nothing, and a failure stores nothing so Stripe retries.
+   nothing, and a failure stores nothing so Stripe retries. For a delayed
+   payment method the session completes unpaid and no order is recorded yet;
+   the order is recorded when `checkout.session.async_payment_succeeded`
+   arrives for the same session.
 5. Stripe returns the buyer to `/thanks?session_id=…`, which asks Stripe about
    that session and says "recorded", "processing" or "not completed"
    accordingly.
@@ -191,9 +192,10 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET       # from the Stripe webhook en
 ```
 
 In Stripe (Workbench → Webhooks), add **one** endpoint per environment:
-`https://allegedlyandsons.com/webhooks/stripe`, event
-`checkout.session.completed`, snapshot payload. Its signing secret is
-`STRIPE_WEBHOOK_SECRET`.
+`https://allegedlyandsons.com/webhooks/stripe`, with the events
+`checkout.session.completed` and `checkout.session.async_payment_succeeded`
+(the second is how an order paid by a delayed method gets recorded), snapshot
+payload. Its signing secret is `STRIPE_WEBHOOK_SECRET`.
 
 Check recorded orders:
 
