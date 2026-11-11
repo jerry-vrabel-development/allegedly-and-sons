@@ -23,7 +23,13 @@ import { checkoutPath } from "../core/checkout";
 import { describeWait } from "../core/vault";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout, type Page } from "./pages";
-import { BROADCAST_PATH, COUNTDOWN_SCRIPT_PATH, TERMS_PATH, artPath } from "../core/paths";
+import {
+  BROADCAST_PATH,
+  COUNTDOWN_SCRIPT_PATH,
+  TERMS_PATH,
+  artPath,
+  itemPathFor,
+} from "../core/paths";
 
 function segmentName(segment: Segment): string {
   return segment.kind === "auction" ? "The Midnight Auction" : "Rolling segment";
@@ -130,9 +136,15 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
   });
 }
 
-/** The ON AIR strip at the top of other pages. */
-export function onAirBanner(nowSeconds: number): SafeHtml {
+/**
+ * The ON AIR strip at the top of other pages, or undefined on the page of
+ * the exhibit that's on air: its buy box already says so, with the price and
+ * the deadline, and on a phone the strip pushed the buy button off the first
+ * screen.
+ */
+export function onAirBanner(nowSeconds: number, pathname: string): SafeHtml | undefined {
   const segment = segmentAt(nowSeconds);
+  if (pathname === itemPathFor(segment.item.slug)) return undefined;
   // On phones the end time is dropped (the broadcast page has it) so the
   // banner stays short and the item page's buy button stays on screen.
   const price = formatPrice(specialPriceCents(segment.item, segment.kind));

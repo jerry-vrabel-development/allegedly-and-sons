@@ -116,12 +116,30 @@ test.describe("item page", () => {
     for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
       await page.goto(`/items/${slug}`);
       await expect(page.locator(".buybox .price")).toBeInViewport();
-      // The whole button, not a sliver: whichever item is on air (and the
-      // ON AIR banner) must still leave it on the first screen.
+      // The whole button, not a sliver, whichever exhibit is on air. The one
+      // on air has a taller buy box (its on-air line), so its own page drops
+      // the ON AIR banner to keep the button on the first screen.
       await expect(page.getByRole("link", { name: "Acquire this exhibit" })).toBeInViewport({
         ratio: 1,
       });
     }
+  });
+
+  test("the exhibit on air drops the banner from its own page, and only that one", async ({
+    page,
+  }) => {
+    // One of the three purchasable exhibits is always on air, whatever the time.
+    const withoutBanner: string[] = [];
+    for (const slug of ["alien-paperclip", "second-best-quill", "viking-participation-trophy"]) {
+      await page.goto(`/items/${slug}`);
+      if ((await page.locator(".on-air-banner").count()) === 0) {
+        withoutBanner.push(slug);
+        await expect(page.locator(".buybox")).toContainText("On air now");
+      } else {
+        await expect(page.locator(".buybox")).not.toContainText("On air now");
+      }
+    }
+    expect(withoutBanner).toHaveLength(1);
   });
 
   test("describes the art for screen readers", async ({ page }) => {
