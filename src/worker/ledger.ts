@@ -110,6 +110,11 @@ export interface Ledger {
   readonly effectsTest: TestStatus;
   /** Streaks bought back in the period ("Grease the Clerk"). */
   readonly repairs: { readonly count: number; readonly revenueCents: number };
+  /**
+   * Visitors who viewed any exhibit in the period, each counted once. Not the
+   * sum of the items' visitors: one visitor often views several exhibits.
+   */
+  readonly visitors: number;
   readonly items: readonly ItemRow[];
   readonly sources: readonly SourceRow[];
   readonly shares: readonly ShareRow[];
@@ -213,31 +218,34 @@ export async function readLedger(
       .prepare(
         // Each visitor counts once, by the source of their first item view in
         // the period (first touch). Rows from before the visitor cookie have
-        // no visitor to follow, so they're left out here.
+        // no visitor to follow, so they're left out here. "Later bought" means
+        // an exhibit: a streak buy-back isn't a purchase the source earned.
         `WITH firsts AS (
            SELECT visitor_id, ts, utm_source, referrer_host,
              ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY ts, id) AS n
            FROM analytics_events
-           WHERE event = 'item_viewed' AND ts >= ? AND visitor_id IS NOT NULL
+           WHERE event = 'item_viewed' AND ts >= ?1 AND visitor_id IS NOT NULL
          )
          SELECT
            CASE
              WHEN f.utm_source IS NOT NULL THEN f.utm_source
              WHEN f.referrer_host IS NULL THEN '(direct)'
-             WHEN f.referrer_host = ? THEN '(this site)'
+             WHEN f.referrer_host = ?2 THEN '(this site)'
              ELSE f.referrer_host
            END AS source,
            COUNT(DISTINCT f.visitor_id) AS visitors,
            COUNT(DISTINCT o.visitor_id) AS buyers
          FROM firsts f
-         LEFT JOIN orders o ON o.visitor_id = f.visitor_id AND o.paid_at >= f.ts
+         LEFT JOIN orders o
+           ON o.visitor_id = f.visitor_id AND o.paid_at >= f.ts AND o.item_slug != ?3
          WHERE f.n = 1
          GROUP BY source ORDER BY visitors DESC, source LIMIT 20`,
       )
-      .bind(since, ownHost),
+      .bind(since, ownHost, REPAIR_SLUG),
     db
       .prepare(
-        // A sharer opening their own link isn't a return visit.
+        // A sharer opening their own link isn't a return visit, and a streak
+        // buy-back isn't a sale the share brought in.
         `SELECT s.channel,
            COUNT(DISTINCT s.ref) AS shares,
            COUNT(DISTINCT v.id) AS visits,
@@ -246,11 +254,12 @@ export async function readLedger(
          LEFT JOIN analytics_events v
            ON v.event = 'shared_visit' AND v.ref = s.ref
           AND (v.visitor_id IS NULL OR s.visitor_id IS NULL OR v.visitor_id != s.visitor_id)
-         LEFT JOIN orders o ON o.visitor_id = v.visitor_id AND o.paid_at >= v.ts
-         WHERE s.event = 'share_clicked' AND s.ts >= ?
+         LEFT JOIN orders o
+           ON o.visitor_id = v.visitor_id AND o.paid_at >= v.ts AND o.item_slug != ?2
+         WHERE s.event = 'share_clicked' AND s.ts >= ?1
          GROUP BY s.channel`,
       )
-      .bind(since),
+      .bind(since, REPAIR_SLUG),
     db
       .prepare(
         `SELECT COUNT(DISTINCT visitor_id) AS pullers,
@@ -317,6 +326,15 @@ export async function readLedger(
          FROM vault_pulls WHERE pulled_at >= ? GROUP BY variant`,
       )
       .bind(TEST_STARTED),
+    db
+      .prepare(
+        // Each visitor once across all exhibits, for the headline. Rows from
+        // before the visitor cookie have no visitor id and aren't counted,
+        // the same as in each item's own count.
+        `SELECT COUNT(DISTINCT visitor_id) AS visitors FROM analytics_events
+         WHERE event = 'item_viewed' AND ts >= ?`,
+      )
+      .bind(since),
   ]);
 
   // A batch returns one result per statement, in order.
@@ -334,6 +352,7 @@ export async function readLedger(
     effectsEvents,
     effectsBuyers,
     testPullers,
+    [visitors],
   ] = results.map((result) => result.results) as [
     Row[],
     Row[],
@@ -347,6 +366,7 @@ export async function readLedger(
     Row[],
     Row[],
     Row[],
+    [Row],
   ];
   const byVariant = (rows: Row[]) => new Map(rows.map((row) => [row["variant"], row]));
   const effectsByVariant = byVariant(effects);
@@ -360,6 +380,7 @@ export async function readLedger(
   return {
     period,
     streaks,
+    visitors: num(visitors["visitors"]),
     repairs: { count: num(repairs["count"]), revenueCents: num(repairs["revenue"]) },
     effectsTest: testStatus(
       nowSeconds,
@@ -444,7 +465,6 @@ function scrollTable(label: string, table: SafeHtml): SafeHtml {
 }
 
 export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
-  const totalVisitors = ledger.items.reduce((sum, row) => sum + row.visitors, 0);
   // Sales include bought-back streaks, not just exhibits.
   const totalOrders = ledger.items.reduce((sum, row) => sum + row.orders, ledger.repairs.count);
   const totalRevenue = ledger.items.reduce(
@@ -475,7 +495,7 @@ export function ledgerPage(ledger: Ledger, email: string): SafeHtml {
 
       <h2>${periodLabel(ledger.period)}</h2>
       <p>
-        <strong>${String(totalVisitors)}</strong> visitors ·
+        <strong>${String(ledger.visitors)}</strong> visitors ·
         <strong>${String(totalOrders)}</strong> orders ·
         <strong>${formatPrice(totalRevenue)}</strong> in sales
       </p>
