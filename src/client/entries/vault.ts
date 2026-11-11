@@ -33,18 +33,12 @@ import {
   type Pull,
   type ReachedMilestone,
 } from "../reel";
-
-declare global {
-  interface Window {
-    /** Set by the shop-wide sound script when it's on the page. */
-    BureauSound?: { play(name: string): void };
-  }
-}
+import type { SoundName } from "../sounds";
 
 /** How many pieces of confetti a milestone throws. */
 const CONFETTI_BITS = 18;
 
-function play(name: string): void {
+function play(name: SoundName): void {
   if (window.BureauSound) window.BureauSound.play(name);
 }
 

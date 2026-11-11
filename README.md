@@ -135,14 +135,11 @@ are the same.
 branches). Property-based tests (fast-check) cover the signature check, order
 parsing and HTML escaping.
 
-The browser scripts are being moved from strings to real TypeScript in
-`src/client` ([0012](docs/design/0012-client-scripts.md)). The countdown, story
-reads, the checkout mount and the Vault's reel have moved: their logic is unit
-tested and counted in coverage, and their DOM wiring is exercised by the browser
-tests. Sound is still plain JavaScript kept as a string in
-`src/worker/sound-script.ts`, where the type checker and linter don't see inside
-it and the coverage figure doesn't measure it; Worker tests check its text and
-the browser tests exercise it.
+The browser scripts are real TypeScript in `src/client`
+([0012](docs/design/0012-client-scripts.md)), bundled into a generated module
+the Worker serves. Their logic is unit tested and counted in coverage. Their
+DOM wiring (`src/client/entries`) is not counted; the browser tests exercise
+it, apart from two paths noted in 0012.
 
 After editing anything in `src/client`, run `npm run build:client` and commit
 the generated file. CI fails if it's stale.
@@ -234,7 +231,7 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0009 — The Back-Room Broadcast](docs/design/0009-back-room-broadcast.md) (built)
 - [0010 — The exhibit pipeline: adding products, wings and prices](docs/design/0010-exhibit-pipeline.md) (built)
 - [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md) (built; the test is running)
-- [0012 — Browser scripts as real TypeScript](docs/design/0012-client-scripts.md) (countdown, story reads, checkout mount and Vault reel moved; sound to go)
+- [0012 — Browser scripts as real TypeScript](docs/design/0012-client-scripts.md) (built)
 
 ## Branch flow
 
