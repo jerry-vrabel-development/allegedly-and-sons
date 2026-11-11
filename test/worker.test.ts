@@ -2,13 +2,8 @@ import { createExecutionContext } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
-import worker, {
-  globalFetch,
-  nowSeconds,
-  route,
-  stripeKeyFrom,
-  webhookSecretFrom,
-} from "../src/worker/index";
+import { globalFetch, nowSeconds, stripeKeyFrom, webhookSecretFrom } from "../src/worker/env";
+import worker, { route } from "../src/worker/index";
 import { ITEM_CSP, SHOP_CSP, STRICT_CSP } from "../src/worker/security-headers";
 import { testEnv } from "./test-env";
 
