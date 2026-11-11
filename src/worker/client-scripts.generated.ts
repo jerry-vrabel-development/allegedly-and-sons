@@ -435,3 +435,303 @@ export const VAULT_JS = `"use strict";
   start();
 })();
 `;
+
+/** Bundled from src/client/entries/sound.ts. */
+export const SOUND_JS = `"use strict";
+(() => {
+  // src/core/dom-events.ts
+  var CARD_EVENT = "bureau:card";
+  var SEGMENT_END_EVENT = "bureau:segment-end";
+
+  // src/client/sound-rules.ts
+  var SOUND_MUTE_KEY = "bureau-sound-muted";
+  var LEGACY_MUTE_KEY = "bureau-vault-muted";
+  var LINK_DELAY_MS = 180;
+  var HOST_LINE_MS = 4e3;
+  function readMuted(store) {
+    try {
+      const storage = store();
+      return (storage.getItem(SOUND_MUTE_KEY) ?? storage.getItem(LEGACY_MUTE_KEY)) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function writeMuted(store, muted) {
+    try {
+      store().setItem(SOUND_MUTE_KEY, muted ? "1" : "0");
+    } catch {
+    }
+  }
+  function toggleLabel(muted) {
+    return muted ? { text: "Sound: off", pressed: "false" } : { text: "Sound: on", pressed: "true" };
+  }
+  function isPlainClick(event) {
+    return !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) && event.button === 0;
+  }
+  function linkWaits(click) {
+    return click.href !== null && click.href !== "" && click.plain && !click.muted && !click.defaultPrevented && !click.opensElsewhere;
+  }
+  function nextLine(lit, count) {
+    return (lit + 1) % count;
+  }
+  function stampText(certificate) {
+    return \`Stamped: Bureau Certificate No. \${certificate.replace("-", "‑")}. Authenticity: Allegedly.\`;
+  }
+
+  // src/client/sounds.ts
+  function tone(frequency, start2, length, wave, volume, slideTo) {
+    const step = { kind: "tone", frequency, start: start2, length, wave, volume };
+    return slideTo === void 0 ? step : { ...step, slideTo };
+  }
+  function noise(start2, length, volume, sweep) {
+    const step = { kind: "noise", start: start2, length, volume };
+    return sweep === void 0 ? step : { ...step, from: sweep[0], to: sweep[1] };
+  }
+  function run(frequencies, start2, gap, length, wave, volume) {
+    return frequencies.map((frequency, i) => tone(frequency, start2 + i * gap, length, wave, volume));
+  }
+  function chord(frequencies, start2, length, wave, volume) {
+    return run(frequencies, start2, 0, length, wave, volume);
+  }
+  var SOUNDS = {
+    // The back room: brass, stamps, drawers, vault mechanics.
+    creak: [
+      tone(180, 0, 0.45, "sawtooth", 0.05, 120),
+      tone(240, 0.05, 0.4, "sawtooth", 0.03, 150),
+      noise(0, 0.3, 0.08, [600, 300])
+    ],
+    stamp: [
+      noise(0, 0.08, 0.6, [900, 200]),
+      tone(110, 0, 0.18, "sine", 0.6),
+      tone(82, 0.04, 0.22, "sine", 0.4)
+    ],
+    whoosh: [noise(0, 0.35, 0.25, [400, 3e3])],
+    kachunk: [
+      noise(0, 0.05, 0.4, [2e3, 800]),
+      tone(140, 0, 0.12, "square", 0.08),
+      noise(0.12, 0.08, 0.5, [600, 200]),
+      tone(70, 0.12, 0.3, "sine", 0.5),
+      tone(2093, 0.22, 0.4, "sine", 0.06),
+      tone(2637, 0.26, 0.5, "sine", 0.05)
+    ],
+    // The Vault's lever and reel.
+    clunk: [noise(0, 0.12, 0.5), tone(90, 0, 0.25, "sine", 0.6), tone(60, 0.08, 0.3, "sine", 0.4)],
+    tick: [tone(1400, 0, 0.03, "square", 0.05)],
+    Common: [tone(523, 0, 0.18, "triangle", 0.25), tone(659, 0.12, 0.3, "triangle", 0.25)],
+    Uncommon: [
+      ...run([523, 659, 784], 0, 0.1, 0.35, "triangle", 0.25),
+      tone(1568, 0.3, 0.5, "sine", 0.08)
+    ],
+    Rare: [
+      ...run([523, 659, 784, 1047], 0, 0.11, 0.5, "sawtooth", 0.12),
+      ...chord([1047, 1319, 1568], 0.45, 1.4, "triangle", 0.15),
+      ...run([2093, 2637, 3136, 2637], 0.5, 0.12, 0.25, "sine", 0.05)
+    ],
+    sparkle: run([2637, 3136, 3520], 0, 0.06, 0.18, "sine", 0.06),
+    milestone: [
+      ...run([392, 523, 659, 784, 1047], 0, 0.09, 0.4, "square", 0.07),
+      ...chord([523, 659, 784, 1047], 0.5, 1.2, "triangle", 0.12)
+    ],
+    // The Broadcast: a dial finding the station, then the station's brass sting.
+    static: [noise(0, 0.7, 0.12, [1800, 900]), tone(440, 0.1, 0.5, "sine", 0.03, 880)],
+    stinger: [
+      ...run([196, 247, 294], 0, 0.12, 0.3, "sawtooth", 0.09),
+      ...chord([392, 494, 587], 0.4, 0.9, "sawtooth", 0.07)
+    ],
+    // /thanks: the vault door, then the fanfare.
+    slam: [
+      noise(0, 0.25, 0.7, [500, 80]),
+      tone(55, 0, 0.6, "sine", 0.8),
+      tone(110, 0.02, 0.3, "square", 0.08)
+    ],
+    fanfare: [
+      ...run([523, 659, 784], 0.4, 0.12, 0.3, "square", 0.08),
+      ...chord([523, 659, 784, 1047], 0.8, 1.6, "triangle", 0.12)
+    ]
+  };
+  var SOUND_NAMES = Object.keys(SOUNDS);
+  function isSoundName(name) {
+    return name !== null && Object.prototype.hasOwnProperty.call(SOUNDS, name);
+  }
+
+  // src/client/entries/sound.ts
+  function button(text) {
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = "button";
+    node.textContent = text;
+    return node;
+  }
+  function start() {
+    const store = () => window.localStorage;
+    let muted = readMuted(store);
+    let audio;
+    const context = () => {
+      if (muted) return void 0;
+      if (audio === void 0) {
+        const names = window;
+        const Ctor = names.AudioContext ?? names.webkitAudioContext;
+        if (Ctor === void 0) return void 0;
+        audio = new Ctor();
+      }
+      if (audio.state === "suspended") void audio.resume();
+      return audio;
+    };
+    const playTone = (step) => {
+      const a = context();
+      if (a === void 0) return;
+      const t = a.currentTime + step.start;
+      const osc = a.createOscillator();
+      const gain = a.createGain();
+      osc.type = step.wave;
+      osc.frequency.setValueAtTime(step.frequency, t);
+      if (step.slideTo !== void 0) {
+        osc.frequency.exponentialRampToValueAtTime(step.slideTo, t + step.length);
+      }
+      gain.gain.setValueAtTime(1e-4, t);
+      gain.gain.exponentialRampToValueAtTime(step.volume, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(1e-4, t + step.length);
+      osc.connect(gain);
+      gain.connect(a.destination);
+      osc.start(t);
+      osc.stop(t + step.length + 0.02);
+    };
+    const playNoise = (step) => {
+      const a = context();
+      if (a === void 0) return;
+      const frames = Math.floor(a.sampleRate * step.length);
+      const buffer = a.createBuffer(1, frames, a.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+      const source = a.createBufferSource();
+      const gain = a.createGain();
+      gain.gain.value = step.volume;
+      source.buffer = buffer;
+      if (step.from !== void 0) {
+        const filter = a.createBiquadFilter();
+        filter.type = "bandpass";
+        const t = a.currentTime + step.start;
+        filter.frequency.setValueAtTime(step.from, t);
+        filter.frequency.exponentialRampToValueAtTime(step.to ?? step.from, t + step.length);
+        source.connect(filter);
+        filter.connect(gain);
+      } else {
+        source.connect(gain);
+      }
+      gain.connect(a.destination);
+      source.start(a.currentTime + step.start);
+    };
+    const play = (name) => {
+      if (muted || !isSoundName(name)) return;
+      try {
+        for (const step of SOUNDS[name]) {
+          if (step.kind === "tone") playTone(step);
+          else playNoise(step);
+        }
+      } catch {
+      }
+    };
+    window.BureauSound = { play, isMuted: () => muted };
+    const nav = document.querySelector("header.site nav ul");
+    if (nav !== null) {
+      const item = document.createElement("li");
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "sound-toggle";
+      const label = () => {
+        const { text, pressed } = toggleLabel(muted);
+        toggle.textContent = text;
+        toggle.setAttribute("aria-pressed", pressed);
+      };
+      label();
+      toggle.addEventListener("click", () => {
+        muted = !muted;
+        writeMuted(store, muted);
+        label();
+        if (!muted) play("tick");
+      });
+      item.append(toggle);
+      nav.append(item);
+    }
+    document.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target.closest("[data-sound]") : null;
+      if (target === null) return;
+      play(target.getAttribute("data-sound"));
+      const href = target.tagName === "A" ? target.getAttribute("href") : null;
+      const waits = linkWaits({
+        href,
+        plain: isPlainClick(event),
+        muted,
+        defaultPrevented: event.defaultPrevented,
+        opensElsewhere: target.hasAttribute("target")
+      });
+      if (href !== null && waits) {
+        event.preventDefault();
+        setTimeout(() => {
+          window.location.assign(href);
+        }, LINK_DELAY_MS);
+      }
+    });
+    const story = document.querySelector("details[data-story]");
+    if (story !== null) {
+      story.addEventListener("toggle", () => {
+        if (story.open) play("creak");
+      });
+    }
+    document.addEventListener(CARD_EVENT, () => {
+      play("stamp");
+    });
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const show = document.querySelector("[data-broadcast]");
+    const heading = show?.querySelector("h1") ?? null;
+    if (show !== null && heading !== null) {
+      let tuned = false;
+      const tune = button("Tune in");
+      tune.classList.add("tune-in");
+      tune.setAttribute("aria-pressed", "false");
+      const lines = show.querySelectorAll(".patter p");
+      let lit = -1;
+      const lightNext = () => {
+        if (lines.length === 0) return;
+        lines[lit]?.classList.remove("speaking");
+        lit = nextLine(lit, lines.length);
+        lines[lit]?.classList.add("speaking");
+        play("tick");
+        setTimeout(lightNext, HOST_LINE_MS);
+      };
+      tune.addEventListener("click", () => {
+        if (tuned) return;
+        tuned = true;
+        tune.textContent = "Tuned in";
+        tune.setAttribute("aria-pressed", "true");
+        play("static");
+        setTimeout(() => {
+          play("stinger");
+        }, 650);
+        if (!reduced) setTimeout(lightNext, 1500);
+      });
+      heading.after(tune);
+      document.addEventListener(SEGMENT_END_EVENT, () => {
+        if (tuned) play("stinger");
+      });
+    }
+    const moment = document.querySelector("[data-certificate]");
+    if (moment !== null) {
+      const certificate = moment.getAttribute("data-certificate") ?? "";
+      const stamp = button("Stamp your certificate");
+      const said = document.createElement("p");
+      said.className = "stamp-mark";
+      said.setAttribute("role", "status");
+      stamp.addEventListener("click", () => {
+        play("slam");
+        play("fanfare");
+        stamp.hidden = true;
+        said.textContent = stampText(certificate);
+        if (!reduced) said.classList.add("stamping");
+      });
+      moment.append(stamp, said);
+    }
+  }
+  start();
+})();
+`;

@@ -17,6 +17,7 @@ const ENTRIES = [
   { file: "story.ts", constant: "STORY_JS" },
   { file: "checkout.ts", constant: "CHECKOUT_JS" },
   { file: "vault.ts", constant: "VAULT_JS" },
+  { file: "sound.ts", constant: "SOUND_JS" },
 ];
 
 const root = new URL("../", import.meta.url);

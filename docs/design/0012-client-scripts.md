@@ -1,7 +1,6 @@
 # 0012 — Browser scripts as real TypeScript
 
-Status: accepted (2026-11-11). The countdown, story reads, the checkout mount
-and the Vault's reel have moved; sound follows.
+Status: built (2026-11-11). All five scripts have moved.
 
 ## The problem
 
@@ -86,7 +85,10 @@ src/worker/client-scripts.generated.ts   the bundles, as exported strings
 
 - Pure modules: unit tests, counted in coverage.
 - Entries: not counted in coverage (they can't run in the Workers runtime).
-  They are exercised by the Playwright suite in real browsers.
+  They are exercised by the Playwright suite in real browsers. Two paths have
+  no browser test yet, because they need state the suite can't easily set up:
+  the Vault's milestone celebration (a 3-day streak) and "Stamp your
+  certificate" (a paid order). Their wording and numbers are unit tested.
 - The generated file: not counted. A Worker test checks each script is served
   as generated and carries no `import`, `eval`, `innerHTML` or remote URL.
 
@@ -99,7 +101,7 @@ scripts' logic. It still doesn't measure the entries.
 2. Story reads. Done.
 3. The checkout mount. Done.
 4. The Vault's reel. Done.
-5. Sound, the largest, last.
+5. Sound, the largest, last. Done.
 
 Each PR moves one script, replaces its text-matching tests with unit tests and
 the existing browser tests, and deletes its `*-script.ts` string.
