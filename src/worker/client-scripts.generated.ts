@@ -205,3 +205,233 @@ export const CHECKOUT_JS = `"use strict";
   start();
 })();
 `;
+
+/** Bundled from src/client/entries/vault.ts. */
+export const VAULT_JS = `"use strict";
+(() => {
+  // src/core/paths.ts
+  var VAULT_PULL_PATH = "/vault/pull";
+
+  // src/core/guards.ts
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  // src/client/reel.ts
+  var REEL_MS = 2400;
+  var REEL_ROUNDS = 4;
+  var REEL_RARITIES = ["Common", "Uncommon", "Rare"];
+  function reelNamesFrom(attribute) {
+    if (attribute === null) return void 0;
+    let parsed;
+    try {
+      parsed = JSON.parse(attribute);
+    } catch {
+      return void 0;
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) return void 0;
+    const names = parsed.filter((name) => typeof name === "string");
+    return names.length === parsed.length ? names : void 0;
+  }
+  function isRarity(value) {
+    return REEL_RARITIES.some((rarity) => rarity === value);
+  }
+  function cardFrom(value) {
+    if (!isRecord(value)) return void 0;
+    const { designation, name, rarity, summary } = value;
+    if (typeof designation !== "string" || typeof name !== "string") return void 0;
+    if (typeof summary !== "string" || !isRarity(rarity)) return void 0;
+    return { designation, name, rarity, summary };
+  }
+  function milestoneFrom(value) {
+    if (!isRecord(value)) return void 0;
+    const { days, name } = value;
+    return typeof days === "number" && typeof name === "string" ? { days, name } : void 0;
+  }
+  function pullFrom(body) {
+    if (!isRecord(body) || body["ok"] !== true) return void 0;
+    const { duplicate, streakDays, next, milestone: reached } = body;
+    const card = cardFrom(body["card"]);
+    if (card === void 0 || typeof duplicate !== "boolean" || typeof streakDays !== "number") {
+      return void 0;
+    }
+    if (!isRecord(next)) return void 0;
+    const { bonusLeft } = next;
+    if (typeof bonusLeft !== "number") return void 0;
+    const milestone = milestoneFrom(reached);
+    if (milestone === void 0 && reached !== null) return void 0;
+    return { card, duplicate, bonusLeft, streakDays, milestone };
+  }
+  function reelSteps(names, drawnName) {
+    return names.length * REEL_ROUNDS + Math.max(names.indexOf(drawnName), 0);
+  }
+  function reelNameAt(names, step) {
+    return names[step % names.length] ?? "";
+  }
+  function reelGap(step, steps, elapsedMs) {
+    if (elapsedMs > REEL_MS * 1.5) return 0;
+    return 30 + Math.pow(step / steps, 3) * 320;
+  }
+  function count(n, one, many) {
+    return \`\${String(n)} \${n === 1 ? one : many}\`;
+  }
+  function resultLines(pull) {
+    const { card } = pull;
+    const notes = [];
+    if (pull.streakDays > 0) notes.push(\`Duty streak: \${count(pull.streakDays, "day", "days")}.\`);
+    if (pull.bonusLeft > 0) {
+      notes.push(\`You have \${count(pull.bonusLeft, "bonus pull", "bonus pulls")} left.\`);
+    }
+    return {
+      // Rarity is always said in words too, never by color alone.
+      kicker: \`Vault card \${card.designation} · \${card.rarity} · \${pull.duplicate ? "Duplicate" : "New to your file"}\`,
+      notes
+    };
+  }
+  function milestoneTitle(milestone) {
+    return \`Day \${String(milestone.days)}: you're \${milestone.name}.\`;
+  }
+  function confettiBit(random) {
+    return {
+      x: \`\${String(Math.round(random() * 240 - 120))}px\`,
+      y: \`\${String(Math.round(-60 - random() * 120))}px\`,
+      r: \`\${String(Math.round(random() * 720 - 360))}deg\`
+    };
+  }
+
+  // src/client/entries/vault.ts
+  var CONFETTI_BITS = 18;
+  function play(name) {
+    if (window.BureauSound) window.BureauSound.play(name);
+  }
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className !== void 0) node.className = className;
+    if (text !== void 0) node.textContent = text;
+    return node;
+  }
+  function start() {
+    const form = document.querySelector(\`form.lever[action="\${VAULT_PULL_PATH}"]\`);
+    const vault = document.querySelector("[data-reel]");
+    if (form === null || vault === null || typeof fetch !== "function" || typeof document.createElement("dialog").showModal !== "function") {
+      return;
+    }
+    const names = reelNamesFrom(vault.getAttribute("data-reel"));
+    if (names === void 0) return;
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dialog = el("dialog", "reel-dialog");
+    dialog.setAttribute("aria-labelledby", "reel-heading");
+    const heading = el("h2", void 0, "The vault creaks open…");
+    heading.id = "reel-heading";
+    const windowBox = el("div", "reel-window");
+    const reel = el("p", "reel-name", reelNameAt(names, 0));
+    reel.setAttribute("aria-hidden", "true");
+    windowBox.append(reel);
+    const result = el("div", "reel-result");
+    result.setAttribute("role", "status");
+    const collect = el("button", "button", "Collect");
+    collect.type = "button";
+    collect.hidden = true;
+    dialog.append(heading, windowBox, result, collect);
+    document.body.append(dialog);
+    const done = () => {
+      window.location.hash = "latest-pull";
+      window.location.reload();
+    };
+    collect.addEventListener("click", done);
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      if (!collect.hidden) done();
+    });
+    const celebrate = (milestone) => {
+      const box = el("div", "milestone");
+      box.append(
+        el("p", "milestone-title", milestoneTitle(milestone)),
+        el("p", void 0, "A new rank, and a bonus pull is yours.")
+      );
+      if (!reduced) {
+        const burst = el("div", "confetti");
+        burst.setAttribute("aria-hidden", "true");
+        for (let i = 0; i < CONFETTI_BITS; i++) {
+          const bit = el("span", "confetti-bit");
+          const { x, y, r } = confettiBit(Math.random);
+          bit.style.setProperty("--x", x);
+          bit.style.setProperty("--y", y);
+          bit.style.setProperty("--r", r);
+          burst.append(bit);
+        }
+        box.append(burst);
+      }
+      result.append(box);
+      play("milestone");
+    };
+    const reveal = (pull) => {
+      const { card, milestone } = pull;
+      const lines = resultLines(pull);
+      reel.textContent = card.name;
+      windowBox.className = \`reel-window landed rarity-\${card.rarity.toLowerCase()}\`;
+      play(card.rarity);
+      result.append(
+        el("p", "kicker", lines.kicker),
+        el("h3", void 0, card.name),
+        el("p", void 0, card.summary),
+        ...lines.notes.map((note) => el("p", void 0, note))
+      );
+      if (!pull.duplicate) {
+        windowBox.classList.add("new-card");
+        setTimeout(() => {
+          play("sparkle");
+        }, 250);
+      }
+      if (milestone !== void 0) {
+        setTimeout(
+          () => {
+            celebrate(milestone);
+          },
+          reduced ? 0 : 900
+        );
+      }
+      collect.hidden = false;
+      collect.focus();
+    };
+    const spin = (pull) => {
+      const steps = reelSteps(names, pull.card.name);
+      const started = Date.now();
+      let step = 0;
+      const next = () => {
+        step += 1;
+        reel.textContent = reelNameAt(names, step);
+        play("tick");
+        if (step >= steps) {
+          reveal(pull);
+          return;
+        }
+        setTimeout(next, reelGap(step, steps, Date.now() - started));
+      };
+      next();
+    };
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const button = form.querySelector("button");
+      if (button !== null) button.disabled = true;
+      form.classList.add("pulling");
+      play("clunk");
+      fetch(form.action, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        credentials: "same-origin"
+      }).then((response) => response.ok ? response.json() : Promise.resolve(null)).then((body) => {
+        const pull = pullFrom(body);
+        if (pull === void 0) {
+          window.location.reload();
+          return;
+        }
+        dialog.showModal();
+        if (reduced) reveal(pull);
+        else spin(pull);
+      }).catch(done);
+    });
+  }
+  start();
+})();
+`;

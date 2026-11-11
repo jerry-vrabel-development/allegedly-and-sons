@@ -1,7 +1,7 @@
 # 0012 — Browser scripts as real TypeScript
 
-Status: accepted (2026-11-11). The countdown, story reads and the checkout
-mount have moved; the Vault's reel and sound follow.
+Status: accepted (2026-11-11). The countdown, story reads, the checkout mount
+and the Vault's reel have moved; sound follows.
 
 ## The problem
 
@@ -75,7 +75,7 @@ src/worker/client-scripts.generated.ts   the bundles, as exported strings
   install, so the output is the same on every machine and nothing new is
   downloaded.
 - **Entries import only from small, import-free core modules** (`paths.ts`,
-  `dom-events.ts`, `story.ts`, `checkout-page.ts`). A core module that pulls in the catalog would
+  `dom-events.ts`, `story.ts`, `checkout-page.ts`, `guards.ts`). A core module that pulls in the catalog would
   bundle the catalog into the script. Each script's Worker test caps its size
   to catch that.
 - **Still first-party.** The scripts are served from our own origin at the
@@ -98,7 +98,7 @@ scripts' logic. It still doesn't measure the entries.
 1. The countdown: the smallest script, to prove the setup. Done.
 2. Story reads. Done.
 3. The checkout mount. Done.
-4. The Vault's reel.
+4. The Vault's reel. Done.
 5. Sound, the largest, last.
 
 Each PR moves one script, replaces its text-matching tests with unit tests and

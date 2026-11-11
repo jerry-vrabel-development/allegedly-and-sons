@@ -16,6 +16,7 @@ const ENTRIES = [
   { file: "countdown.ts", constant: "COUNTDOWN_JS" },
   { file: "story.ts", constant: "STORY_JS" },
   { file: "checkout.ts", constant: "CHECKOUT_JS" },
+  { file: "vault.ts", constant: "VAULT_JS" },
 ];
 
 const root = new URL("../", import.meta.url);

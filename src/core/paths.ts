@@ -77,7 +77,7 @@ export const STYLESHEET_PATH = "/assets/site.css";
 /** Our own scripts (see worker/scripts.ts for what each one is). */
 export const STORY_SCRIPT_PATH = "/assets/story.js";
 export const COUNTDOWN_SCRIPT_PATH = "/assets/countdown.js";
-/** The Vault's own script (vault-script.ts): the lever plays in place. */
+/** The Vault's own script (src/client/entries/vault.ts): the lever plays in place. */
 export const VAULT_SCRIPT_PATH = "/assets/vault.js";
 export const SOUND_SCRIPT_PATH = "/assets/sound.js";
 export const CHECKOUT_SCRIPT_PATH = "/assets/checkout.js";
