@@ -14,6 +14,10 @@ they will share their own work, which brings traffic.
 We want a partnership where writers submit lore, we publish the stories we
 accept, and each writer earns a share of every sale of their item.
 
+The matching plan for artists is in [0013](0013-host-and-artists.md), along
+with the principle behind both: the shop's hard-sell act is for the audience,
+and partners are dealt with fairly and plainly.
+
 ## Phases
 
 1. **First batch (now):** AI-assisted concepts and lore, credited to
@@ -47,6 +51,8 @@ accept, and each writer earns a share of every sale of their item.
 - Leading option: **Stripe Connect**, which can split each payment between the
   shop and the writer and handles writers' tax forms.
 - Payout percentage: to decide.
+- An exhibit can also have a partnered artist, who earns from the same sale
+  ([0013](0013-host-and-artists.md)): the product sits between the two.
 - Purchases are still confirmed only by verified Stripe webhooks (see
   [0001](0001-analytics.md)), so payouts are based on real, verified sales.
 
