@@ -28,7 +28,9 @@ from the back room.
   ticking clock, the real tally of orders this segment, and what's coming
   up.
 - **An ON AIR banner** on every shop page, except checkout, private,
-  return and error pages.
+  return and error pages, and (since 2026-11-11) the page of the exhibit
+  that's on air: its buy box already says so, and on a phone the banner
+  pushed the buy button off the first screen.
 - **The price you see is the price you pay.** The item page and checkout
   page show the on-air price too; the Checkout Session is created with it
   and tagged with the segment, so the price is locked when checkout starts.

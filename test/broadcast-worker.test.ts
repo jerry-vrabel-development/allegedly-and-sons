@@ -143,6 +143,21 @@ describe("the ON AIR banner", () => {
     }
   });
 
+  it("stays off the on-air exhibit's own page, whose buy box already says it", async () => {
+    // The strip repeated the buy box there, and on a phone it pushed the buy
+    // button off the first screen.
+    const { html } = await get(`/items/${segment.item.slug}`);
+    expect(html).not.toContain('class="on-air-banner"');
+    expect(html).toContain("<strong>On air now.</strong> This price ends at 3:00 PM Chicago time.");
+    // Every other exhibit's page still carries it.
+    const other = CATALOG.find((item) => item.slug !== segment.item.slug);
+    expect((await get(`/items/${other?.slug ?? ""}`)).html).toContain('class="on-air-banner"');
+    // Sound still loads there for the sound-and-motion group: only the strip goes.
+    const withSound = await get(`/items/${segment.item.slug}?fx=on`);
+    expect(withSound.html).toContain('<script src="/assets/sound.js" defer></script>');
+    expect(withSound.html).not.toContain('class="on-air-banner"');
+  });
+
   it("stays off checkout, private, error and return pages", async () => {
     for (const path of ["/broadcast", "/checkout/alien-paperclip", "/thanks", "/nope"]) {
       expect((await get(path)).html).not.toContain('class="on-air-banner"');
