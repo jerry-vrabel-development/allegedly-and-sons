@@ -7,7 +7,8 @@
  *    parsing anything. Failures get a 400 and nothing is stored.
  * 3. In one D1 batch (a transaction), record the event id and, for a paid
  *    session, the order. A session is paid either when checkout completes
- *    (cards) or later, when a delayed payment clears; both events are handled. Both ignore duplicates, so a redelivered event changes
+ *    (cards) or later, when a delayed payment clears; both events are
+ *    handled. Both inserts ignore duplicates, so a redelivered event changes
  *    nothing. If the batch fails, nothing is stored and we answer 500, so
  *    Stripe retries the whole event.
  *
@@ -19,7 +20,9 @@ import { grantAwards } from "./dossier";
 import { isOrderEvent, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
 import { verifyStripeSignature } from "./stripe-signature";
 import { REPAIR_SLUG } from "../core/repair";
+import { milestoneBadges } from "../core/streak";
 import { vaultDay } from "../core/vault";
+import { readStreak } from "./streak";
 
 export const WEBHOOK_PATH = "/webhooks/stripe";
 
@@ -81,6 +84,8 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
 
   let note = "acknowledged";
   let buyer: { visitorId: string; itemSlug: string } | undefined;
+  /** A paid buy-back, and where its streak_repairs insert sits in the batch (if it has one). */
+  let repair: { sessionId: string; visitorId: string | null; at: number | undefined } | undefined;
   if (isOrderEvent(event.type)) {
     const outcome = orderFromCompletedSession(event.object, event.created);
     if (outcome.kind === "order") {
@@ -106,19 +111,23 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
       );
       note = `order ${order.stripeSessionId}`;
       if (order.itemSlug === REPAIR_SLUG) {
-        // A bought-back streak: bridge the days missed since the agent's last
-        // free pull, up to the day before payment, in the same transaction as
-        // the order. Skipped (never failing the batch) if there's no gap to
-        // bridge or it's longer than a repair can cover.
+        // A bought-back streak: bridge the days missed between the agent's
+        // last free pull before the day of payment and that day, in the same
+        // transaction as the order. A pull made on the day of payment doesn't
+        // count as the last one, so pulling first and paying second works
+        // too. Skipped (never failing the batch) if there's no gap to bridge
+        // or it's longer than a repair can cover.
         note = `repair ${order.stripeSessionId}`;
+        repair = { sessionId: order.stripeSessionId, visitorId: order.visitorId, at: undefined };
         if (order.visitorId !== null) {
+          repair.at = statements.length;
           statements.push(
             deps.db
               .prepare(
                 `INSERT OR IGNORE INTO streak_repairs
                    (stripe_session_id, visitor_id, from_day, to_day, repaired_at)
                  SELECT ?1, ?2, MAX(day) + 1, ?3 - 1, ?4
-                 FROM vault_pulls WHERE visitor_id = ?2 AND kind = 'daily'
+                 FROM vault_pulls WHERE visitor_id = ?2 AND kind = 'daily' AND day < ?3
                  HAVING MAX(day) IS NOT NULL AND MAX(day) + 1 <= ?3 - 1
                    AND (?3 - 1) - (MAX(day) + 1) < 10`,
               )
@@ -159,5 +168,37 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
       console.error(`${label}: dossier grant failed`);
     }
   }
+  if (!duplicate && repair !== undefined) await settleRepair(deps, label, repair, results);
   return Response.json({ received: true }, { headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * After a paid buy-back is recorded: if it restored nothing, the buyer paid
+ * for nothing and is owed a refund, so say so loudly. If it restored a streak
+ * the agent has already extended today, grant any milestone that reached
+ * (a later pull would grant it anyway; the Vault says it's earned now).
+ */
+async function settleRepair(
+  deps: WebhookDeps,
+  label: string,
+  repair: { sessionId: string; visitorId: string | null; at: number | undefined },
+  results: readonly D1Result[],
+): Promise<void> {
+  // results[1] is the order insert: 0 changes means another event for this
+  // session already recorded it, and settled it then.
+  if (results[1]?.meta.changes !== 1) return;
+  const restored = repair.at !== undefined && results[repair.at]?.meta.changes === 1;
+  if (!restored || repair.visitorId === null) {
+    console.error(`${label}: repair ${repair.sessionId} restored nothing, refund owed`);
+    return;
+  }
+  try {
+    const now = deps.nowSeconds();
+    const streak = await readStreak(deps.db, repair.visitorId, now);
+    if (streak.status === "safe") {
+      await grantAwards(deps.db, repair.visitorId, milestoneBadges(streak.days), now);
+    }
+  } catch {
+    console.error(`${label}: milestone grant failed`);
+  }
 }

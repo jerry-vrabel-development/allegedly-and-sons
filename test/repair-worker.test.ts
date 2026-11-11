@@ -61,7 +61,7 @@ function buyBack(headers: Record<string, string> = {}): Request {
 }
 
 /** Delivers a signed checkout.session.completed for a repair. */
-async function paid(session: Record<string, unknown> = {}, created = NOW) {
+async function paid(session: Record<string, unknown> = {}, created = NOW, d: Deps = deps()) {
   const event = {
     id: `evt_${String(Math.random()).slice(2)}`,
     type: "checkout.session.completed",
@@ -86,7 +86,7 @@ async function paid(session: Record<string, unknown> = {}, created = NOW) {
       headers: { "Stripe-Signature": await stripeSignatureHeader(payload, SECRET, NOW) },
       body: payload,
     }),
-    deps(),
+    d,
   );
 }
 
@@ -125,6 +125,26 @@ describe("the offer", () => {
     }
   });
 
+  it("says 'tonight' on the offer's last day", async () => {
+    await pulledOn(7, 6, 5, 4, 3); // died yesterday: the window closes tonight
+    const html = await page("/vault");
+    expect(html).toContain("The offer ends at midnight UTC tonight: 9 hours left.");
+    expect(html).not.toContain("midnight UTC tomorrow");
+  });
+
+  it("stays after today's pull, beside the new streak", async () => {
+    await pulledOn(6, 5, 4, 3, 2, 0); // missed yesterday, already pulled today
+    for (const path of ["/vault", "/dossier"]) {
+      const html = await page(path);
+      expect(html).toContain("<strong>Duty streak: 1 day.</strong>");
+      expect(html).toContain("<strong>Your 5-day streak is still dead.</strong>");
+      expect(html).toContain("Bring your 5-day streak back for $2.99.");
+      expect(html).toContain("Restore my streak for $2.99</button>");
+      expect(html).toContain("today's pull then counts as the next day");
+      expect(html).not.toContain("today's pull is still yours to make");
+    }
+  });
+
   it("is gone once the window closes, or without checkout configured", async () => {
     await pulledOn(6, 5, 4, 3, 2);
     const twoDaysOn = deps({ nowSeconds: () => NOW + 2 * DAY });
@@ -145,6 +165,14 @@ describe("POST /streak/repair", () => {
     expect(form.get("line_items[0][price_data][unit_amount]")).toBe("299");
     expect(form.get("client_reference_id")).toBe(A);
     expect(form.get("metadata[slug]")).toBe("streak-repair");
+    expect(form.get("payment_intent_data[description]")).toBe("Grease the Clerk (5-day streak)");
+  });
+
+  it("starts checkout for the dead streak even after today's pull", async () => {
+    await pulledOn(6, 5, 4, 3, 2, 0);
+    const response = await route(buyBack(), deps());
+    expect(response.headers.get("Location")).toBe(CHECKOUT_URL);
+    const form = new URLSearchParams(stripeCalls[0]?.body);
     expect(form.get("payment_intent_data[description]")).toBe("Grease the Clerk (5-day streak)");
   });
 
@@ -190,6 +218,76 @@ describe("the webhook", () => {
     expect(await readStreak(env.DB, A, NOW)).toMatchObject({ status: "due", days: 5 });
   });
 
+  it("restores the streak when the agent pulled today before paying", async () => {
+    await pulledOn(6, 5, 4, 3, 2, 0);
+    expect(await readStreak(env.DB, A, NOW)).toMatchObject({ status: "safe", days: 1 });
+    await paid();
+    const { results } = await env.DB.prepare("SELECT from_day, to_day FROM streak_repairs").all();
+    expect(results).toEqual([{ from_day: TODAY - 1, to_day: TODAY - 1 }]);
+    expect(await readStreak(env.DB, A, NOW)).toMatchObject({ status: "safe", days: 6, lost: 0 });
+  });
+
+  it("grants a milestone the restored streak reached with today's pull", async () => {
+    // Six days, a missed day, then today's pull: restored, today is day 7.
+    await pulledOn(7, 6, 5, 4, 3, 2, 0);
+    await paid();
+    expect(await readStreak(env.DB, A, NOW)).toMatchObject({ status: "safe", days: 7 });
+    const { results } = await env.DB.prepare("SELECT award FROM awards ORDER BY award").all<{
+      award: string;
+    }>();
+    expect(results.map((row) => row.award)).toEqual([
+      "first-contact",
+      "streak-made",
+      "streak-regular",
+    ]);
+    expect(await page("/vault")).toContain("<strong>Day 7: you're Made.</strong>");
+  });
+
+  it("keeps the repair when the milestone grant fails, and says so in the log", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    await pulledOn(7, 6, 5, 4, 3, 2, 0);
+    // The webhook's own batch succeeds; every read or write after it fails.
+    let batches = 0;
+    const db = new Proxy(env.DB, {
+      get(target, prop, receiver) {
+        if (prop === "batch") {
+          return (statements: D1PreparedStatement[]) => {
+            batches += 1;
+            return batches === 1
+              ? target.batch(statements)
+              : Promise.reject(new Error("D1 hiccup"));
+          };
+        }
+        const value: unknown = Reflect.get(target, prop, receiver);
+        return typeof value === "function"
+          ? (value as (...a: unknown[]) => unknown).bind(target)
+          : value;
+      },
+    });
+    expect((await paid({}, NOW, deps({ db }))).status).toBe(200);
+    expect(await readStreak(env.DB, A, NOW)).toMatchObject({ status: "safe", days: 7 });
+    expect(error).toHaveBeenCalledWith(expect.stringMatching(/: milestone grant failed$/));
+  });
+
+  it("logs a paid buy-back that restored nothing as a refund owed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    await pulledOn(1, 0); // alive: there is nothing to restore
+    await paid({ id: "cs_test_nothing" });
+    expect(error).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^webhook checkout\.session\.completed evt_\d+: repair cs_test_nothing restored nothing, refund owed$/,
+      ),
+    );
+    // Redelivered, it isn't reported twice, and a repair that worked isn't reported at all.
+    error.mockClear();
+    await env.DB.prepare("DELETE FROM vault_pulls").run();
+    await pulledOn(6, 5, 4, 3, 2);
+    await paid({ id: "cs_test_fine" });
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it("never awards Acquirer or a card for a buy-back", async () => {
     await pulledOn(6, 5, 4, 3, 2);
     await paid();
@@ -198,6 +296,7 @@ describe("the webhook", () => {
   });
 
   it("keeps the order but bridges nothing when there's no gap, no file, or too long a gap", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     await pulledOn(0);
     await paid({ id: "cs_test_no_gap" });
     await paid({ id: "cs_test_no_file", client_reference_id: null });
@@ -228,13 +327,45 @@ describe("GET /streak/restored", () => {
   }
   const ID = "?session_id=cs_test_repair";
 
-  it("says what Stripe confirms, and nothing more", async () => {
-    const paidPage = await page(
+  it("says the streak is restored only once the repair is on file", async () => {
+    await pulledOn(6, 5, 4, 3, 2);
+    await paid();
+    const restored = await page(
       `/streak/restored${ID}`,
       lookup({ status: "complete", payment_status: "paid" }),
     );
-    expect(paidPage).toContain("<h1>The clerk has been greased</h1>");
-    expect(paidPage).toContain("today's pull is still yours to make before midnight UTC");
+    expect(restored).toContain("<h1>The clerk has been greased</h1>");
+    expect(restored).toContain("Your streak is restored.");
+    expect(restored).toContain("that pull is still yours to make before midnight UTC");
+  });
+
+  it("says the streak is on its way while the webhook hasn't landed", async () => {
+    const pending = await page(
+      `/streak/restored${ID}`,
+      lookup({ status: "complete", payment_status: "paid" }),
+    );
+    expect(pending).toContain("<h1>The clerk has been paid</h1>");
+    expect(pending).toContain("Payment confirmed");
+    expect(pending).not.toContain("Your streak is restored.");
+    expect(pending).toContain('href="mailto:bureau@allegedlyandsons.com"');
+  });
+
+  it("says a refund is owed when the payment landed and restored nothing", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await pulledOn(1, 0); // alive: nothing to restore
+    await paid();
+    const owed = await page(
+      `/streak/restored${ID}`,
+      lookup({ status: "complete", payment_status: "paid" }),
+    );
+    expect(owed).toContain("<h1>Paid, but nothing was restored</h1>");
+    expect(owed).toContain("you are owed a refund");
+    expect(owed).toContain('href="mailto:bureau@allegedlyandsons.com"');
+    expect(owed).toContain("cs_test_repair");
+    expect(owed).not.toContain("Your streak is restored.");
+  });
+
+  it("says what Stripe confirms about an unpaid session, and nothing more", async () => {
     expect(
       await page(`/streak/restored${ID}`, lookup({ status: "complete", payment_status: "unpaid" })),
     ).toContain("<h1>Payment processing</h1>");
