@@ -23,6 +23,8 @@ import {
   HOME_PATH,
   REPAIR_PATH,
   REPAIR_RETURN_PATH,
+  ROBOTS_PATH,
+  SITEMAP_PATH,
   THANKS_PATH,
   VAULT_PATH,
   VAULT_PULL_PATH,
@@ -48,10 +50,12 @@ import {
   webhookSecretFrom,
 } from "./env";
 import { page, PageResponse, TEXT } from "./http";
+import { httpsRedirect } from "./https";
 import { isBureauPath, pageRule } from "./page-rules";
 import { disclaimerPage, homePage, itemPage, notFoundPage } from "./pages";
 import { repairCheckout, repairReturn } from "./repair-routes";
 import { withSecurityHeaders } from "./security-headers";
+import { robotsResponse, sitemapResponse } from "./seo";
 import { broadcast, shareRedirect, storyRead } from "./shop-routes";
 import { dossierGet, vaultGet, vaultPull } from "./vault-routes";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
@@ -73,8 +77,11 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   // Sound by the same rule as the Vault's reel: the visitor's group, or ?fx=.
   const sound = rule.sound && effectsOn(deps.visitorId, url.searchParams.get("fx"));
   const banner = rule.banner ? onAirBanner(deps.nowSeconds(), url.pathname) : undefined;
-  if (banner === undefined && !sound) return response;
-  return response.withChrome({ banner, sound });
+  return response.withChrome({
+    banner,
+    sound,
+    preview: { origin: url.origin, pathname: url.pathname },
+  });
 }
 
 async function routeRequest(request: Request, deps: Deps): Promise<Response> {
@@ -127,6 +134,10 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
       return vaultGet(url, deps);
     case BROADCAST_PATH:
       return broadcast(deps);
+    case ROBOTS_PATH:
+      return robotsResponse(origin);
+    case SITEMAP_PATH:
+      return sitemapResponse(origin);
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   }
@@ -154,6 +165,10 @@ type WorkerEnv = Omit<Env, "EMAIL"> & { readonly EMAIL?: SendEmail } & Secrets &
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+    const insecure = httpsRedirect(new URL(request.url), request.headers);
+    if (insecure) {
+      return insecure;
+    }
     const visitorId = visitorIdFor(request);
     const response = await route(request, {
       sendEmail: emailSender(env.EMAIL),

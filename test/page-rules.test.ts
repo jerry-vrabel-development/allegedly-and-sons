@@ -88,3 +88,55 @@ describe("the layout's chrome", () => {
     expect(value.replace(banner.value, "")).toBe(page.value);
   });
 });
+
+describe("the layout's link-preview tags", () => {
+  const preview = { origin: "https://allegedly.example", pathname: "/broadcast" };
+  const open = layout({ title: "T", description: 'It\'s "D" & more', body: html`<p>hi</p>` });
+  const shut = layout({ title: "T", description: "D", body: html`<p>hi</p>`, noindex: true });
+  const item = layout({
+    title: "T",
+    description: "D",
+    body: html`<p>hi</p>`,
+    canonical: "https://allegedly.example/items/x",
+  });
+  const none = { banner: undefined, sound: false };
+
+  it("are absent from a page as its function returns it, and without a preview", () => {
+    expect(open.value).not.toContain("og:");
+    expect(open.withChrome(none).value).not.toContain("og:");
+    expect(open.withChrome(none).value).not.toContain("twitter:");
+  });
+
+  it("carry the page's own title and description, over the shop's one card", () => {
+    const { value } = open.withChrome({ ...none, preview });
+    expect(value).toContain('<meta property="og:title" content="T · Allegedly &amp; Sons" />');
+    expect(value).toContain('<meta property="og:site_name" content="Allegedly &amp; Sons" />');
+    expect(value).toContain('<meta property="og:type" content="website" />');
+    expect(value).toContain(
+      '<meta property="og:image" content="https://allegedly.example/assets/share-card.jpg" />',
+    );
+    expect(value).toContain('<meta property="og:image:width" content="1200" />');
+    expect(value).toContain('<meta property="og:image:height" content="630" />');
+    expect(value).toContain('<meta property="og:image:alt" content="Allegedly &amp; Sons,');
+    expect(value).toContain('<meta name="twitter:card" content="summary_large_image" />');
+  });
+
+  it("escape the description, so a quote or an ampersand can't break out of the tag", () => {
+    const { value } = open.withChrome({ ...none, preview });
+    expect(value).toContain('content="It&#39;s &quot;D&quot; &amp; more"');
+    expect(value).not.toContain('content="It\'s "D"');
+  });
+
+  it("point og:url at the page's address, or at its canonical one when it has one", () => {
+    expect(open.withChrome({ ...none, preview }).value).toContain(
+      '<meta property="og:url" content="https://allegedly.example/broadcast" />',
+    );
+    expect(item.withChrome({ ...none, preview }).value).toContain(
+      '<meta property="og:url" content="https://allegedly.example/items/x" />',
+    );
+  });
+
+  it("are never put on a page kept out of search results", () => {
+    expect(shut.withChrome({ ...none, preview }).value).not.toContain("og:");
+  });
+});

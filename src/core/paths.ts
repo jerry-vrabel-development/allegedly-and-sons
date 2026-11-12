@@ -72,6 +72,21 @@ export const WEBHOOK_PATH = "/webhooks/stripe";
 export const BUREAU_PATH = "/bureau";
 export const LEDGER_PATH = "/bureau/ledger";
 
+/**
+ * Where paths with a slug or a sub-path begin, for the places that can only name
+ * a start (robots.txt). A test checks the real paths still begin with these.
+ */
+export const CHECKOUT_PREFIX = "/checkout/";
+export const SHARE_PREFIX = "/share/";
+export const STREAK_PREFIX = "/streak/";
+
+/** What search engines read first, and the list of pages they may index. */
+export const ROBOTS_PATH = "/robots.txt";
+export const SITEMAP_PATH = "/sitemap.xml";
+
+/** The picture link previews show. */
+export const SHARE_CARD_PATH = "/assets/share-card.jpg";
+
 export const STYLESHEET_PATH = "/assets/site.css";
 
 /** Our own scripts (see worker/scripts.ts for what each one is). */

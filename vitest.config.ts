@@ -25,6 +25,7 @@ export default defineConfig(async () => {
         exclude: [
           "src/worker-configuration.d.ts",
           "src/worker/client-scripts.generated.ts",
+          "src/worker/share-card.generated.ts",
           "src/client/entries/**",
         ],
         reporter: ["text", "html", "json-summary"],

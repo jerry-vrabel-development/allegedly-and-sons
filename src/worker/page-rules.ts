@@ -35,8 +35,8 @@ export interface PageRule {
   readonly sound: boolean;
 }
 
-/** Responses that never run script: assets, the private ledger, the health check. */
-const NO_SCRIPT = /^\/(?:assets\/|bureau|healthz)/;
+/** Responses that never run script: assets, the private ledger, the health check, robots.txt and the sitemap. */
+const NO_SCRIPT = /^\/(?:assets\/|bureau|healthz|robots\.txt$|sitemap\.xml$)/;
 
 /** The first rule whose `matches` is true decides. */
 const RULES: readonly (PageRule & { readonly matches: (pathname: string) => boolean })[] = [

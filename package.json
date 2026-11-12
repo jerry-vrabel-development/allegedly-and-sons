@@ -13,6 +13,7 @@
     "cf-typegen": "wrangler types src/worker-configuration.d.ts",
     "build:client": "node scripts/build-client.js",
     "build:client:check": "node scripts/build-client.js --check",
+    "build:share-card": "node scripts/build-share-card.js",
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/client && tsc --noEmit -p test && tsc --noEmit -p e2e",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
