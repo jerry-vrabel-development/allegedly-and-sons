@@ -86,6 +86,12 @@ describe("GET /broadcast", () => {
     expect(html).toContain("Nobody's moved on it yet this segment.");
     expect(html).toContain(`>Acquire it for ${special}</a`);
     expect(html).toContain(`“${segment.item.pitch[0]}”`);
+    // The host is on the page as a still drawing, with a credit; a pose only
+    // arrives with the effects script.
+    expect(html).toContain('<figure class="host-stage" data-host>');
+    expect(html).toContain("<figcaption>Sketch by The Bureau.</figcaption>");
+    expect(html).not.toContain("data-pose");
+    expect(html).not.toMatch(/\sstyle="/);
     expect(html).toContain("<strong>3:00 PM:</strong>");
     expect(html).toContain("<strong>11:00 PM, the Midnight Auction:</strong>");
     expect(html).toContain('<script src="/assets/countdown.js" defer></script>');

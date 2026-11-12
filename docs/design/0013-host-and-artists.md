@@ -1,7 +1,7 @@
 # 0013 — The Broadcast's host, and art by human artists
 
-- **Status:** Draft (the host's direction is decided and a first sketch is
-  approved; no code yet; the artists' partnership is planning only)
+- **Status:** The host is built (a still drawing for everyone, with motion
+  for the effects group); the artists' partnership is planning only
 - **Date:** 2026-11-11
 - **Author:** Jerry Vrabel
 
@@ -56,6 +56,11 @@ pitchman at once, and who is, allegedly, a perfectly ordinary human being.
   scripts and the sounds.
 - **Pitching** starts with the existing "Tune in" button. **Sold** fires when
   a segment ends.
+- **Motion is part of the effects test** ([0011](0011-sound-scheme.md)). The
+  drawing is on the page for everyone; only the effects group's script gives
+  him a pose, so the plain group sees him still.
+- **One file:** `src/worker/host-art.ts` holds the drawing, the artist's
+  credit, the names of the moving parts and the styles that move them.
 - **Reduced motion:** he holds still and only changes pose.
 - **Never the only way to know something.** The host's lines stay as text on
   the page, ON AIR is written in words, and the drawing has a short

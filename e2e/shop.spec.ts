@@ -388,6 +388,31 @@ test("tuning in to the Broadcast says so and lights the host's lines", async ({ 
   await expectNoAxeViolations(page);
 });
 
+test("the Broadcast's host waits, pitches when you tune in, and reveals himself at the end", async ({
+  page,
+}) => {
+  await page.goto("/broadcast?fx=on");
+  const host = page.locator("[data-host]");
+  await expect(host.getByRole("img", { name: "The Broadcast's host" })).toBeVisible();
+  await expect(host).toHaveAttribute("data-pose", "waiting");
+  await expect(host.locator(".host-antennae")).toHaveCSS("opacity", "0");
+  await page.getByRole("button", { name: "Tune in" }).click();
+  await expect(host).toHaveAttribute("data-pose", "pitching");
+  // The countdown fires this when the segment's clock reaches zero.
+  await page.evaluate(() => document.dispatchEvent(new Event("bureau:segment-end")));
+  await expect(host).toHaveAttribute("data-pose", "sold");
+  await expect(host.locator(".host-antennae")).toHaveCSS("opacity", "1");
+});
+
+test("the plain group sees the host as a still drawing", async ({ page }) => {
+  await page.goto("/broadcast?fx=off");
+  const host = page.locator("[data-host]");
+  await expect(host.getByRole("img", { name: "The Broadcast's host" })).toBeVisible();
+  await expect(host).not.toHaveAttribute("data-pose", /./);
+  await expect(page.getByText("Sketch by The Bureau.")).toBeVisible();
+  await expectNoAxeViolations(page);
+});
+
 test("a link with a sound still gets there", async ({ page }) => {
   await page.goto("/items/alien-paperclip?fx=on");
   await page.getByRole("link", { name: "Acquire this exhibit" }).click();
