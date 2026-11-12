@@ -233,6 +233,7 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md) (built; the test is running)
 - [0012 — Browser scripts as real TypeScript](docs/design/0012-client-scripts.md) (built)
 - [0013 — The Broadcast's host, and art by human artists](docs/design/0013-host-and-artists.md) (the host is built; the partnership is planning)
+- [0014 — The front page as the show](docs/design/0014-front-page-show.md) (decided; nothing built yet)
 
 ## Branch flow
 
