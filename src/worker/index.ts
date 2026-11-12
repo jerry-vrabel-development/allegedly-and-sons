@@ -48,6 +48,7 @@ import {
   webhookSecretFrom,
 } from "./env";
 import { page, PageResponse, TEXT } from "./http";
+import { httpsRedirect } from "./https";
 import { isBureauPath, pageRule } from "./page-rules";
 import { disclaimerPage, homePage, itemPage, notFoundPage } from "./pages";
 import { repairCheckout, repairReturn } from "./repair-routes";
@@ -154,6 +155,10 @@ type WorkerEnv = Omit<Env, "EMAIL"> & { readonly EMAIL?: SendEmail } & Secrets &
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+    const insecure = httpsRedirect(new URL(request.url));
+    if (insecure) {
+      return insecure;
+    }
     const visitorId = visitorIdFor(request);
     const response = await route(request, {
       sendEmail: emailSender(env.EMAIL),
