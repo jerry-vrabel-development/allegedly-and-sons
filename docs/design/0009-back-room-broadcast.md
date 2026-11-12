@@ -59,6 +59,8 @@ loop reloads. Without JavaScript, the server's words stay.
   lore characters, a "next broadcast" countdown.
 - **The host on screen:** his character and animation are in
   [0013](0013-host-and-artists.md).
+- **The front page as the show:** the stage, callers and ticker are in
+  [0014](0014-front-page-show.md).
 - **PR 3 — money and triggers:** "3 easy payments" (Klarna or Affirm through
   Stripe's checkout, enabled in the Stripe dashboard; no third-party script
   on our pages), and "We're live" Dispatch emails once registration opens.
