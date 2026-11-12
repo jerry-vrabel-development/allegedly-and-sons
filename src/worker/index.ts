@@ -23,6 +23,8 @@ import {
   HOME_PATH,
   REPAIR_PATH,
   REPAIR_RETURN_PATH,
+  ROBOTS_PATH,
+  SITEMAP_PATH,
   THANKS_PATH,
   VAULT_PATH,
   VAULT_PULL_PATH,
@@ -53,6 +55,7 @@ import { isBureauPath, pageRule } from "./page-rules";
 import { disclaimerPage, homePage, itemPage, notFoundPage } from "./pages";
 import { repairCheckout, repairReturn } from "./repair-routes";
 import { withSecurityHeaders } from "./security-headers";
+import { robotsResponse, sitemapResponse } from "./seo";
 import { broadcast, shareRedirect, storyRead } from "./shop-routes";
 import { dossierGet, vaultGet, vaultPull } from "./vault-routes";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
@@ -128,6 +131,10 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
       return vaultGet(url, deps);
     case BROADCAST_PATH:
       return broadcast(deps);
+    case ROBOTS_PATH:
+      return robotsResponse(origin);
+    case SITEMAP_PATH:
+      return sitemapResponse(origin);
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   }
