@@ -91,6 +91,18 @@ export function nextLine(lit: number, count: number): number {
   return (lit + 1) % count;
 }
 
+/** What the Broadcast's host is doing (design note 0013). */
+export type HostPose = "waiting" | "pitching" | "sold";
+
+/**
+ * The host's pose: he waits, pitches once the visitor tunes in, and when the
+ * segment ends he gives himself away, for everyone watching.
+ */
+export function hostPose(show: { readonly tuned: boolean; readonly ended: boolean }): HostPose {
+  if (show.ended) return "sold";
+  return show.tuned ? "pitching" : "waiting";
+}
+
 /** What the stamp says. A non-breaking hyphen keeps "AS-0001" on one line. */
 export function stampText(certificate: string): string {
   return `Stamped: Bureau Certificate No. ${certificate.replace("-", "‑")}. Authenticity: Allegedly.`;

@@ -480,6 +480,10 @@ export const SOUND_JS = `"use strict";
   function nextLine(lit, count) {
     return (lit + 1) % count;
   }
+  function hostPose(show) {
+    if (show.ended) return "sold";
+    return show.tuned ? "pitching" : "waiting";
+  }
   function stampText(certificate) {
     return \`Stamped: Bureau Certificate No. \${certificate.replace("-", "‑")}. Authenticity: Allegedly.\`;
   }
@@ -739,6 +743,12 @@ export const SOUND_JS = `"use strict";
     const heading = show?.querySelector("h1") ?? null;
     if (show !== null && heading !== null) {
       let tuned = false;
+      let ended = false;
+      const host = show.querySelector("[data-host]");
+      const pose = () => {
+        host?.setAttribute("data-pose", hostPose({ tuned, ended }));
+      };
+      pose();
       const tune = button("Tune in");
       tune.classList.add("tune-in");
       tune.setAttribute("aria-pressed", "false");
@@ -755,6 +765,7 @@ export const SOUND_JS = `"use strict";
       tune.addEventListener("click", () => {
         if (tuned) return;
         tuned = true;
+        pose();
         tune.textContent = "Tuned in";
         tune.setAttribute("aria-pressed", "true");
         play("static");
@@ -765,6 +776,8 @@ export const SOUND_JS = `"use strict";
       });
       heading.after(tune);
       document.addEventListener(SEGMENT_END_EVENT, () => {
+        ended = true;
+        pose();
         if (tuned) play("stinger");
       });
     }

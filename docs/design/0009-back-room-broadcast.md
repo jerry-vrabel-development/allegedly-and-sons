@@ -57,6 +57,8 @@ loop reloads. Without JavaScript, the server's words stay.
 
 - **PR 2 — the show:** host audio and stingers, "callers on the line" with
   lore characters, a "next broadcast" countdown.
+- **The host on screen:** his character and animation are in
+  [0013](0013-host-and-artists.md).
 - **PR 3 — money and triggers:** "3 easy payments" (Klarna or Affirm through
   Stripe's checkout, enabled in the Stripe dashboard; no third-party script
   on our pages), and "We're live" Dispatch emails once registration opens.

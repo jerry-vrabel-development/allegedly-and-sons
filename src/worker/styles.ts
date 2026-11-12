@@ -6,6 +6,8 @@
  * underlined and the call to action is labeled in words, so nothing relies on
  * color alone.
  */
+import { HOST_CSS } from "./host-art";
+
 export const SITE_CSS = `:root {
   color-scheme: light dark;
   --bg: #fbf7ef;
@@ -272,7 +274,7 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
   .hero { grid-template-columns: 1.2fr 1fr; padding: 1.75rem; }
   .exhibit { grid-template-columns: 1.15fr 1fr; gap: 2rem; }
 }
-@media (prefers-reduced-motion: reduce) {
+${HOST_CSS}@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 `;

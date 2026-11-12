@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { REEL_RARITIES } from "../src/client/reel";
 import {
   HOST_LINE_MS,
+  hostPose,
   LEGACY_MUTE_KEY,
   LINK_DELAY_MS,
   SOUND_MUTE_KEY,
@@ -190,6 +191,16 @@ describe("the Broadcast's host lines", () => {
     expect(nextLine(0, 3)).toBe(1);
     expect(nextLine(2, 3)).toBe(0);
     expect(HOST_LINE_MS).toBeGreaterThanOrEqual(3000);
+  });
+});
+
+describe("the Broadcast host's pose", () => {
+  it("waits, pitches once you tune in, and reveals himself when the segment ends", () => {
+    expect(hostPose({ tuned: false, ended: false })).toBe("waiting");
+    expect(hostPose({ tuned: true, ended: false })).toBe("pitching");
+    expect(hostPose({ tuned: true, ended: true })).toBe("sold");
+    // The segment ends for everyone watching, tuned in or not.
+    expect(hostPose({ tuned: false, ended: true })).toBe("sold");
   });
 });
 

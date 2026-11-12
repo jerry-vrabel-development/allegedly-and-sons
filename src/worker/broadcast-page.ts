@@ -21,6 +21,7 @@ import {
 import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { describeWait } from "../core/vault";
+import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
 import { itemPath, layout, type Page } from "./pages";
 import {
@@ -60,6 +61,10 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
   const price = formatPrice(specialPriceCents(item, segment.kind));
   // prettier-ignore
   const regular = html`<span class="regular">(regularly ${formatPrice(item.priceCents)}, ${discount(segment)})</span>`;
+
+  // data-host lets the effects script give him a pose; without it he's a still drawing.
+  // prettier-ignore
+  const hostFigure = html`<figure class="host-stage" data-host>${hostArt()}<figcaption>Sketch by ${HOST_ARTIST}.</figcaption></figure>`;
 
   return layout({
     title: "The Back-Room Broadcast",
@@ -108,7 +113,10 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
 
       <section class="prose patter" aria-labelledby="host-heading">
         <h2 id="host-heading">The host</h2>
-        ${item.pitch.map((line) => html`<p>“${line}”</p>`)}
+        <div class="host-row">
+          ${hostFigure}
+          <div class="host-lines">${item.pitch.map((line) => html`<p>“${line}”</p>`)}</div>
+        </div>
       </section>
 
       <section class="prose" aria-labelledby="schedule-heading">
