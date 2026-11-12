@@ -15,6 +15,7 @@
  *   event stamps.
  * - The Broadcast's "Tune in" (PR 2): radio static and the station stinger,
  *   the host's lines lit one at a time, and a stinger when the segment ends.
+ *   It also gives the host's drawing its pose (note 0013).
  * - "Stamp your certificate" on /thanks (PR 2): the vault door slams, a
  *   fanfare plays, and the certificate is stamped, in words.
  * - Exposes window.BureauSound.play(name) for the Vault's reel.
@@ -27,6 +28,7 @@
 import { CARD_EVENT, SEGMENT_END_EVENT } from "../../core/dom-events";
 import {
   HOST_LINE_MS,
+  hostPose,
   LINK_DELAY_MS,
   isPlainClick,
   linkWaits,
@@ -199,6 +201,13 @@ function start(): void {
   const heading = show?.querySelector("h1") ?? null;
   if (show !== null && heading !== null) {
     let tuned = false;
+    let ended = false;
+    // The host (note 0013) is drawn still; giving him a pose starts his motion.
+    const host = show.querySelector("[data-host]");
+    const pose = (): void => {
+      host?.setAttribute("data-pose", hostPose({ tuned, ended }));
+    };
+    pose();
     const tune = button("Tune in");
     tune.classList.add("tune-in");
     tune.setAttribute("aria-pressed", "false");
@@ -215,6 +224,7 @@ function start(): void {
     tune.addEventListener("click", () => {
       if (tuned) return;
       tuned = true;
+      pose();
       tune.textContent = "Tuned in";
       tune.setAttribute("aria-pressed", "true");
       play("static");
@@ -225,6 +235,8 @@ function start(): void {
     });
     heading.after(tune);
     document.addEventListener(SEGMENT_END_EVENT, () => {
+      ended = true;
+      pose();
       if (tuned) play("stinger");
     });
   }
