@@ -155,7 +155,7 @@ type WorkerEnv = Omit<Env, "EMAIL"> & { readonly EMAIL?: SendEmail } & Secrets &
 
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
-    const insecure = httpsRedirect(new URL(request.url));
+    const insecure = httpsRedirect(new URL(request.url), request.headers);
     if (insecure) {
       return insecure;
     }
