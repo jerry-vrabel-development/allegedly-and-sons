@@ -38,9 +38,11 @@ function firstItem(): Item {
 }
 
 const ORIGIN = "https://allegedly.example";
+/** 12:30pm Chicago on 2026-11-09, in the noon segment. */
+const NOW = Date.parse("2026-11-09T18:30:00Z") / 1000;
 
 const pages = {
-  home: squish(homePage()),
+  home: squish(homePage(NOW, 0)),
   item: squish(itemPage(firstItem(), ORIGIN)),
   disclaimer: squish(disclaimerPage()),
   notFound: squish(notFoundPage()),
@@ -82,7 +84,8 @@ describe("every page", () => {
       });
 
       it("uses no inline styles or scripts (the CSP would block them)", () => {
-        expect(page).not.toMatch(/<style|style="/);
+        // An inline style attribute, not an SVG presentation attribute like font-style.
+        expect(page).not.toMatch(/<style|\sstyle="/);
         // Any script must be an external file; an inline one would be blocked.
         expect(page).not.toMatch(/<script(?![^>]*\ssrc=)/);
       });
@@ -105,7 +108,8 @@ describe("checkout page", () => {
 
   it("is the only page besides item pages with any script", () => {
     for (const [name, page] of Object.entries(pages)) {
-      if (name === "item") continue;
+      // The item page loads the story script; the front page, the countdown.
+      if (name === "item" || name === "home") continue;
       expect(page.includes("<script"), name).toBe(false);
     }
   });
@@ -278,13 +282,18 @@ describe("item page details", () => {
   });
 });
 
-describe("home page hero", () => {
-  it("features the first item with a call to action", () => {
-    const item = firstItem();
-    expect(pages.home).toContain("Now on display");
-    expect(pages.home).toContain(item.hook);
-    expect(pages.home).toContain(
-      `<a class="button" href="/items/${item.slug}">View the exhibit</a>`,
+describe("home page", () => {
+  it("leads with the stage and folds the collection under it", () => {
+    expect(pages.home).toContain('<section class="stage" aria-label="On air now">');
+    expect(pages.home).toContain("The rest of the lineup");
+    expect(pages.home).not.toContain("Now on display");
+    expect(pages.home).not.toContain("View the exhibit");
+  });
+
+  it("keeps one h1, the shop's name, ahead of the stage", () => {
+    expect(count(pages.home, /<h1>/g)).toBe(1);
+    expect(pages.home.indexOf("<h1>Allegedly &amp; Sons</h1>")).toBeLessThan(
+      pages.home.indexOf('class="stage"'),
     );
   });
 });

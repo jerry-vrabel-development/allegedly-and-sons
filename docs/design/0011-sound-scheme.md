@@ -104,6 +104,14 @@ This changes the "fx" side of the A/B test on its second day. Results from
 before the change are a sliver of the test; the Ledger's comparison is read
 as "the bigger sound" from here on.
 
+## Changes during the test
+
+- 2026-11-12: the front page became the stage (note 0014): the host and the
+  on-air item sit at the top, and the ON AIR banner no longer shows there.
+  Both groups see it; only the "fx" group gets sound. The front page is the
+  busiest entry, so comparisons that span this date should be read as
+  before and after.
+
 ## What would change our mind
 
 - The groups show no difference in reads, shares or buyers → keep sound,
