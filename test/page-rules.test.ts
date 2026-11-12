@@ -5,6 +5,10 @@ import { isBureauPath, pageRule } from "../src/worker/page-rules";
 import { layout, Page } from "../src/worker/pages";
 
 describe("pageRule", () => {
+  it("gives the front page its stage: our scripts and sound, and no banner (note 0014)", () => {
+    expect(pageRule("/")).toMatchObject({ policy: "shop", banner: false, sound: true });
+  });
+
   it("gives the embedded checkout page Stripe's policy and nothing of ours beside it", () => {
     expect(pageRule("/checkout/alien-paperclip")).toMatchObject({
       policy: "checkout",
@@ -44,7 +48,7 @@ describe("pageRule", () => {
   });
 
   it("gives every other shop page our own scripts, the banner and sound", () => {
-    for (const path of ["/", "/disclaimer", "/dossier", "/dispatch", "/checkout/a/session"]) {
+    for (const path of ["/disclaimer", "/dossier", "/dispatch", "/checkout/a/session"]) {
       expect(pageRule(path), path).toMatchObject({ policy: "shop", banner: true, sound: true });
     }
   });

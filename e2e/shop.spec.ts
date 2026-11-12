@@ -99,12 +99,22 @@ test("the skip link moves focus to the main content", async ({ page, browserName
   await expect(page.locator("main")).toBeFocused();
 });
 
-test("home page leads to the featured exhibit", async ({ page }) => {
+test("the front page's stage leads to the exhibit on air", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Allegedly & Sons");
-  await page.getByRole("link", { name: "View the exhibit" }).click();
-  await expect(page).toHaveURL(/\/items\/alien-paperclip$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("The Alien Paperclip");
+  const name = page.locator(".stage .name a");
+  const shown = (await name.textContent()) ?? "";
+  await name.click();
+  await expect(page).toHaveURL(/\/items\/[a-z0-9-]+$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(shown);
+});
+
+test("the front page's stage keeps the Acquire button on the first screen", async ({ page }) => {
+  await page.goto("/");
+  const acquire = page.getByRole("link", { name: /^Acquire it for \$/ });
+  await expect(acquire).toBeInViewport({ ratio: 1 });
+  // The same price the checkout will charge, with its real clock beside it.
+  await expect(page.locator(".stage .countdown .clock")).toHaveText(/^\d+:\d\d:\d\d$/);
 });
 
 test.describe("item page", () => {
@@ -463,7 +473,7 @@ test("an email's link shows a button and never acts on its own", async ({ page }
 });
 
 test("the ON AIR banner leads to the broadcast, where the clock ticks", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/disclaimer");
   await page.getByRole("link", { name: "Watch the broadcast" }).click();
   await expect(
     page.getByRole("heading", { name: "The Back-Room Broadcast", level: 1 }),
