@@ -13,6 +13,7 @@ export default defineConfig(
     "test-results/",
     "src/worker-configuration.d.ts",
     "src/worker/client-scripts.generated.ts",
+    "src/worker/share-card.generated.ts",
   ]),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,

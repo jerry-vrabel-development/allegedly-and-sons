@@ -84,6 +84,9 @@ export const STREAK_PREFIX = "/streak/";
 export const ROBOTS_PATH = "/robots.txt";
 export const SITEMAP_PATH = "/sitemap.xml";
 
+/** The picture link previews show. */
+export const SHARE_CARD_PATH = "/assets/share-card.jpg";
+
 export const STYLESHEET_PATH = "/assets/site.css";
 
 /** Our own scripts (see worker/scripts.ts for what each one is). */

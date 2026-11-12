@@ -77,8 +77,11 @@ export async function route(request: Request, deps: Deps): Promise<Response> {
   // Sound by the same rule as the Vault's reel: the visitor's group, or ?fx=.
   const sound = rule.sound && effectsOn(deps.visitorId, url.searchParams.get("fx"));
   const banner = rule.banner ? onAirBanner(deps.nowSeconds(), url.pathname) : undefined;
-  if (banner === undefined && !sound) return response;
-  return response.withChrome({ banner, sound });
+  return response.withChrome({
+    banner,
+    sound,
+    preview: { origin: url.origin, pathname: url.pathname },
+  });
 }
 
 async function routeRequest(request: Request, deps: Deps): Promise<Response> {
