@@ -1,10 +1,11 @@
-import { AVAILABLE_ITEMS, CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
+import { CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
 import { chicagoTime, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
 import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/checkout-page";
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { html, SafeHtml } from "./html";
+import { stageBand } from "./stage";
 import {
   MERCHANDISE_TERMS,
   METHODS_TERMS,
@@ -16,6 +17,7 @@ import {
 import {
   BROADCAST_PATH,
   CHECKOUT_SCRIPT_PATH,
+  COUNTDOWN_SCRIPT_PATH,
   DISCLAIMER_PATH,
   DOSSIER_PATH,
   HOME_PATH,
@@ -227,23 +229,14 @@ function acquireBlock(item: Item, offer: Offer): SafeHtml {
     </p>`;
 }
 
-export function homePage(): Page {
-  const [featured] = AVAILABLE_ITEMS;
-  const hero = html`<section class="hero" aria-labelledby="featured-heading">
-    <figure class="art">${art(featured, featured.artAlt, true)}</figure>
-    <div class="hero-copy">
-      <p class="kicker">Now on display · Exhibit ${featured.exhibit}</p>
-      <h2 id="featured-heading">${featured.name}</h2>
-      <p class="hook">${featured.hook}</p>
-      <p class="price">${formatPrice(featured.priceCents)}</p>
-      <p><a class="button" href="${itemPath(featured)}">View the exhibit</a></p>
-    </div>
-  </section>`;
-
+export function homePage(nowSeconds: number, soldThisSegment: number): Page {
   return layout({
     title: SITE_NAME,
+    // Fixed on purpose: the item on air changes every three hours, and it
+    // shows in the page body only (note 0014).
     description:
       "Rare objects with extraordinary, completely unverifiable histories, recovered by The Bureau of Improbable Acquisitions.",
+    scripts: [COUNTDOWN_SCRIPT_PATH],
     body: html` <div class="intro">
         <p class="kicker">Purveyors of Rare Objects</p>
         <h1>${SITE_NAME}</h1>
@@ -251,9 +244,9 @@ export function homePage(): Page {
           Recovered from crash sites, lost civilizations and the backs of very old drawers.
         </p>
       </div>
-      ${hero}
+      ${stageBand(nowSeconds, soldThisSegment)}
       <section aria-labelledby="collection-heading">
-        <h2 id="collection-heading">The Collection</h2>
+        <h2 id="collection-heading">The rest of the lineup</h2>
         <ul class="items">
           ${CATALOG.map((item) => card(item))}
         </ul>

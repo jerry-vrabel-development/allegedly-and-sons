@@ -11,7 +11,7 @@ import { recordShareClicked, recordStoryRead } from "./analytics";
 import { broadcastPage } from "./broadcast-page";
 import type { Deps } from "./deps";
 import { page } from "./http";
-import { notFoundPage } from "./pages";
+import { homePage, notFoundPage } from "./pages";
 
 /**
  * A share button: GET /share/<slug>/<network>. Mints a ref code, records the
@@ -69,13 +69,24 @@ export async function storyRead(request: Request, deps: Deps): Promise<Response>
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 }
 
-/** The broadcast page, with the real count of orders in this segment. */
-export async function broadcast(deps: Deps): Promise<Response> {
-  const now = deps.nowSeconds();
+/** The real count of orders placed in the segment that is on air at `now`. */
+async function soldThisSegment(deps: Deps, now: number): Promise<number> {
   const { results } = await deps.db
     .prepare("SELECT COUNT(*) AS sold FROM orders WHERE segment = ?")
     .bind(segmentAt(now).id)
     .all<{ sold: number }>();
   const [row] = results as [{ sold: number }];
-  return page(broadcastPage(now, row.sold));
+  return row.sold;
+}
+
+/** The broadcast page, with the real count of orders in this segment. */
+export async function broadcast(deps: Deps): Promise<Response> {
+  const now = deps.nowSeconds();
+  return page(broadcastPage(now, await soldThisSegment(deps, now)));
+}
+
+/** The front page: the stage shows what is on air now, with the same real count. */
+export async function home(deps: Deps): Promise<Response> {
+  const now = deps.nowSeconds();
+  return page(homePage(now, await soldThisSegment(deps, now)));
 }

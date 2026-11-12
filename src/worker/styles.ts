@@ -7,6 +7,7 @@
  * color alone.
  */
 import { HOST_CSS } from "./host-art";
+import { STAGE_CSS } from "./stage";
 
 export const SITE_CSS = `:root {
   color-scheme: light dark;
@@ -84,10 +85,8 @@ h2.small { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.08em; m
 /* Art */
 figure.art { margin: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); background: #151a23; }
 
-/* Home hero */
+/* Home intro */
 .intro { margin-bottom: 1.5rem; }
-.hero { display: grid; gap: 1.5rem; align-items: center; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1.25rem; }
-.hero h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0.25rem 0; }
 
 /* Item page */
 .exhibit { display: grid; gap: 1.5rem; align-items: start; }
@@ -271,10 +270,9 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
   .buybox .hook { margin-top: 1rem; }
 }
 @media (min-width: 52rem) {
-  .hero { grid-template-columns: 1.2fr 1fr; padding: 1.75rem; }
   .exhibit { grid-template-columns: 1.15fr 1fr; gap: 2rem; }
 }
-${HOST_CSS}@media (prefers-reduced-motion: reduce) {
+${HOST_CSS}${STAGE_CSS}@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 `;
