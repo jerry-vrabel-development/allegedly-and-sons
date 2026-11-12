@@ -135,11 +135,84 @@ describe("GET /broadcast", () => {
   });
 });
 
+describe("GET / (the front page's stage, note 0014)", () => {
+  const segment = segmentAt(NOON);
+  const special = formatPrice(specialPriceCents(segment.item, "rolling"));
+
+  it("puts the host on a stage with the item on air as an inset and a lower-third bar", async () => {
+    const { response, html } = await get("/");
+    expect(response.status).toBe(200);
+    expect(html).toContain('<section class="stage" aria-label="On air now">');
+    expect(html).toContain('<figure class="host-stage">');
+    expect(html).toContain(`“${segment.item.pitch[0]}”`);
+    expect(html).toContain(`<a class="inset" href="/items/${segment.item.slug}"`);
+    expect(html).toContain(`Exhibit ${segment.item.exhibit}`);
+    expect(html).toContain(`<a href="/items/${segment.item.slug}">${segment.item.name}</a></h2>`);
+    expect(html).toContain(special);
+    expect(html).toContain(`(regularly ${formatPrice(segment.item.priceCents)}, 15% off)`);
+  });
+
+  it("keeps every number true: the real end time, a clock, the real tally", async () => {
+    const { html } = await get("/");
+    expect(html).toContain("<strong>Ends at 3:00 PM Chicago time:</strong>");
+    expect(html).toContain(`data-seconds-left="${String(segment.endsAt - NOON)}"`);
+    expect(html).toContain("Nobody's moved on it yet this segment.");
+    await orderIn(segment.id, segment.item.slug, 29665);
+    await orderIn(segment.id, segment.item.slug, 29665);
+    await orderIn("1999-01-01.0", segment.item.slug, 29665);
+    await orderIn(null, segment.item.slug, 34900);
+    expect((await get("/")).html).toContain("<strong>2</strong> acquired this segment.");
+  });
+
+  it("sells the on-air item at the price checkout will charge, with the terms beside it", async () => {
+    const { html } = await get("/");
+    expect(html).toMatch(
+      new RegExp(
+        `<a class="button" href="/checkout/${segment.item.slug}" rel="nofollow" data-sound="kachunk"\\s*>Acquire it for \\${special}</a\\s*>`,
+      ),
+    );
+    expect(html).toContain("The price holds once checkout starts");
+    expect(html).toContain('<a href="/disclaimer#terms-heading">Terms of sale</a>');
+  });
+
+  it("shows the Midnight Auction's deeper cut during the auction", async () => {
+    const auction = segmentAt(AUCTION);
+    const { html } = await get("/", deps(AUCTION));
+    expect(html).toContain("The Midnight Auction");
+    expect(html).toContain(formatPrice(specialPriceCents(auction.item, "auction")));
+    expect(html).toContain("30% off");
+  });
+
+  it("carries no ON AIR banner (the stage is the set) and loads the countdown", async () => {
+    const { html } = await get("/");
+    expect(html).not.toContain("on-air-banner");
+    expect(html).toContain(`<script src="${COUNTDOWN_SCRIPT_PATH}" defer></script>`);
+  });
+
+  it("keeps the title and description fixed, so the rotation never reaches a search result", async () => {
+    const a = (await get("/", deps(NOON))).html;
+    const b = (await get("/", deps(AUCTION))).html;
+    const pick = (page: string, pattern: RegExp) => pattern.exec(page)?.[0];
+    expect(pick(a, /<title>[^<]*<\/title>/)).toBe(pick(b, /<title>[^<]*<\/title>/));
+    expect(pick(a, /<meta name="description" content="[^"]*" \/>/)).toBe(
+      pick(b, /<meta name="description" content="[^"]*" \/>/),
+    );
+  });
+
+  it("folds the whole collection under the stage as the rest of the lineup", async () => {
+    const { html } = await get("/");
+    const lineup = html.slice(html.indexOf("The rest of the lineup"));
+    for (const item of CATALOG) {
+      expect(lineup).toContain(`href="/items/${item.slug}"`);
+    }
+  });
+});
+
 describe("the ON AIR banner", () => {
   const segment = segmentAt(NOON);
 
   it("runs across the shop's pages", async () => {
-    for (const path of ["/", "/items/alien-paperclip", "/dossier", "/vault", "/disclaimer"]) {
+    for (const path of ["/items/alien-paperclip", "/dossier", "/vault", "/disclaimer"]) {
       const { html } = await get(path);
       expect(html).toContain('<p class="on-air-banner"> <strong>On air:</strong>');
       expect(html).toContain(
