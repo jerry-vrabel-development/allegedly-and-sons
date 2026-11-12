@@ -11,18 +11,16 @@
 
 import {
   chicagoTime,
-  DISCOUNT_PERCENT,
   nextAuction,
   nextSegment,
   segmentAt,
   specialPriceCents,
-  type Segment,
 } from "../core/broadcast";
 import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
-import { describeWait } from "../core/vault";
 import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
+import { countdown, discount, segmentName, tallyText } from "./on-air";
 import { itemPath, layout, type Page } from "./pages";
 import {
   BROADCAST_PATH,
@@ -31,26 +29,6 @@ import {
   artPath,
   itemPathFor,
 } from "../core/paths";
-
-function segmentName(segment: Segment): string {
-  return segment.kind === "auction" ? "The Midnight Auction" : "Rolling segment";
-}
-
-/** "15% off". */
-function discount(segment: Segment): string {
-  return `${String(DISCOUNT_PERCENT[segment.kind])}% off`;
-}
-
-/** The live countdown: words for everyone; the script turns it into a ticking clock. */
-function countdown(segment: Segment, nowSeconds: number): SafeHtml {
-  const secondsLeft = String(segment.endsAt - nowSeconds);
-  // prettier-ignore
-  const clock = html`<span class="clock" data-seconds-left="${secondsLeft}">${describeWait(segment.endsAt - nowSeconds)}</span>`;
-  return html`<p class="countdown">
-    <strong>Ends at ${chicagoTime(segment.endsAt)} Chicago time:</strong>
-    ${clock} left.
-  </p>`;
-}
 
 export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page {
   const segment = segmentAt(nowSeconds);
@@ -92,13 +70,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
             <dd class="price">${price} ${regular}</dd>
           </dl>
           ${countdown(segment, nowSeconds)}
-          <p class="tally">
-            ${
-              soldThisSegment === 0
-                ? html`Nobody's moved on it yet this segment.`
-                : html`<strong>${String(soldThisSegment)}</strong> acquired this segment.`
-            }
-          </p>
+          <p class="tally">${tallyText(soldThisSegment)}</p>
           <p class="acquire">
             <a class="button" href="${checkoutPath(item)}" rel="nofollow" data-sound="kachunk"
               >Acquire it for ${price}</a

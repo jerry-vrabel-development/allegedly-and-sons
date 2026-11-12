@@ -52,11 +52,11 @@ import {
 import { page, PageResponse, TEXT } from "./http";
 import { httpsRedirect } from "./https";
 import { isBureauPath, pageRule } from "./page-rules";
-import { disclaimerPage, homePage, itemPage, notFoundPage } from "./pages";
+import { disclaimerPage, itemPage, notFoundPage } from "./pages";
 import { repairCheckout, repairReturn } from "./repair-routes";
 import { withSecurityHeaders } from "./security-headers";
 import { robotsResponse, sitemapResponse } from "./seo";
-import { broadcast, shareRedirect, storyRead } from "./shop-routes";
+import { broadcast, home, shareRedirect, storyRead } from "./shop-routes";
 import { dossierGet, vaultGet, vaultPull } from "./vault-routes";
 import { visitorIdFor, withVisitorCookie } from "./visitor";
 import { stripeWebhook } from "./webhook";
@@ -113,7 +113,7 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
 
   switch (pathname) {
     case HOME_PATH:
-      return page(homePage());
+      return home(deps);
     case DISCLAIMER_PATH:
       return page(disclaimerPage());
     case THANKS_PATH:
