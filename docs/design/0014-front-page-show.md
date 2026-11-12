@@ -1,6 +1,6 @@
 # 0014 — The front page as the show
 
-- **Status:** Decided; step 1 (the stage band) is built
+- **Status:** Decided; nothing built yet
 - **Date:** 2026-11-12
 - **Author:** Jerry Vrabel
 
@@ -88,12 +88,9 @@ break, so they are repeated here:
 
 Small PRs, each one shippable:
 
-1. **The stage band (built):** the host, the item on air as an inset, and the
+1. **The stage band:** the host, the item on air as an inset, and the
    lower-third bar with its price, clock, tally and Acquire button, above
-   the existing grid, with the banner dropped from the page. The host on
-   the front page is still a drawing; his motion comes with the callers.
-   Measured: the Acquire button is on the first screen at 1280x720, on a
-   Pixel 7 and on a 390x664 phone (the tagline hides on phones to make room).
+   the existing grid, with the banner dropped from the page.
 2. **Callers:** a few lore characters with lines per on-air item.
 3. **The ticker.**
 4. **More characters.** Each new sales character is a new seat for a writer

@@ -14,7 +14,6 @@ import {
   BROADCAST_PATH,
   BUREAU_PATH,
   DISPATCH_PATH,
-  HOME_PATH,
   REPAIR_RETURN_PATH,
   THANKS_PATH,
   VAULT_PATH,
@@ -55,9 +54,6 @@ const RULES: readonly (PageRule & { readonly matches: (pathname: string) => bool
   { matches: (path) => path === VAULT_PATH, policy: "ownOrigin", banner: true, sound: true },
   // The Broadcast is the thing the banner points at, so it doesn't carry one.
   { matches: (path) => path === BROADCAST_PATH, policy: "ownOrigin", banner: false, sound: true },
-  // The front page's stage is the Broadcast's set, so like /broadcast it is the
-  // thing the banner points at and carries no banner (note 0014).
-  { matches: (path) => path === HOME_PATH, policy: "shop", banner: false, sound: true },
   // No path (a caller forgot it) fails safe, like everything that runs no script.
   {
     matches: (path) => path === "" || NO_SCRIPT.test(path),
