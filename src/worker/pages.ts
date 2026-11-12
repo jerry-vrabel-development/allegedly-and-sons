@@ -26,9 +26,14 @@ import {
   VAULT_PATH,
   artPath,
   itemPathFor,
+  SHARE_CARD_PATH,
 } from "../core/paths";
 
 export const SITE_NAME = "Allegedly & Sons";
+
+/** What the link-preview card shows, for people who can't see it. */
+const SHARE_CARD_ALT =
+  "Allegedly & Sons, Purveyors of Rare Objects, beside the Back-Room Broadcast's host, a grinning salesman with a microphone.";
 
 interface PageOptions {
   readonly title: string;
@@ -57,6 +62,12 @@ export interface Chrome {
    * before any page script that uses it (deferred scripts run in order).
    */
   readonly sound: boolean;
+  /**
+   * Where the page was served, so its link-preview tags can carry full
+   * addresses (Open Graph needs them). Only pages open to search engines get
+   * the tags; without this, none do.
+   */
+  readonly preview?: { readonly origin: string; readonly pathname: string };
 }
 
 const NO_CHROME: Chrome = { banner: undefined, sound: false };
@@ -75,6 +86,27 @@ export class Page extends SafeHtml {
   }
 }
 
+/**
+ * What link previews (Facebook, X, Bluesky, LinkedIn, messaging apps) show: the
+ * page's own title and description, over the shop's one card.
+ */
+function sharePreview(
+  { title, description, address }: { title: string; description: string; address: string },
+  imageAddress: string,
+): SafeHtml {
+  return html`<meta property="og:site_name" content="${SITE_NAME}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${address}" />
+    <meta property="og:image" content="${imageAddress}" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="${SHARE_CARD_ALT}" />
+    <meta name="twitter:card" content="summary_large_image" />`;
+}
+
 /** The shared page shell: landmarks, skip link, header nav and footer. */
 export function layout(options: PageOptions): Page {
   return new Page((chrome) => shell(options, chrome));
@@ -82,11 +114,22 @@ export function layout(options: PageOptions): Page {
 
 function shell(
   { title, description, body, noindex = false, canonical, scripts = [] }: PageOptions,
-  { banner, sound }: Chrome,
+  { banner, sound, preview }: Chrome,
 ): SafeHtml {
   // prettier-ignore
   const soundScript = sound ? html`<script src="${SOUND_SCRIPT_PATH}" defer></script>` : html``;
   const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} · ${SITE_NAME}`;
+  const previewTags =
+    noindex || preview === undefined
+      ? html``
+      : sharePreview(
+          {
+            title: fullTitle,
+            description,
+            address: canonical ?? `${preview.origin}${preview.pathname}`,
+          },
+          `${preview.origin}${SHARE_CARD_PATH}`,
+        );
   return html`<!doctype html>
     <html lang="en">
       <head>
@@ -97,6 +140,7 @@ function shell(
         <meta name="description" content="${description}" />
         ${noindex ? html`<meta name="robots" content="noindex" />` : html``}
         ${canonical === undefined ? html`` : html`<link rel="canonical" href="${canonical}" />`}
+        ${previewTags}
         <link rel="stylesheet" href="${STYLESHEET_PATH}" />
         ${soundScript} ${scripts.map((src) => html`<script src="${src}" defer></script>`)}
       </head>
