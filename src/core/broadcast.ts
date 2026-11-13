@@ -23,6 +23,9 @@ export const ROLLING_START_HOURS = [0, 3, 6, 9, 12, 15, 18, 21] as const;
 /** The Midnight Auction runs from this Chicago hour to midnight. */
 export const AUCTION_START_HOUR = 23;
 
+/** Segments in a Chicago day: the rolling ones and the Midnight Auction. */
+const SEGMENTS_PER_DAY = ROLLING_START_HOURS.length + 1;
+
 /** Percent off the regular price. */
 export const DISCOUNT_PERCENT = { rolling: 15, auction: 30 } as const;
 
@@ -32,6 +35,16 @@ export interface Segment {
   readonly kind: SegmentKind;
   /** Stable id, e.g. "2026-11-09.21" or "2026-11-09.auction" (Chicago date). */
   readonly id: string;
+  /**
+   * Its place in the run of all segments: one more than the segment before
+   * it, across midnight too. The open line's callers turn on it (note 0014).
+   */
+  readonly turn: number;
+  /**
+   * How many times this item has been on air before, with today's lineup.
+   * The item's own callers take turns on it.
+   */
+  readonly airing: number;
   readonly item: Item;
   /** Unix seconds. */
   readonly startsAt: number;
@@ -104,16 +117,47 @@ function pad(n: number): string {
 }
 
 /**
- * The item a slot features: slots rotate through the items for sale (never
- * an acquisition-pending one, note 0010), and each day starts one item
+ * Which of the items for sale a slot features: slots rotate through them
+ * (never an acquisition-pending one, note 0010), and each day starts one item
  * further along, so the lineup (and the Midnight Auction's item) changes from
  * day to day whatever the catalog's size.
  */
+function itemIndexForSlot(dayNumber: number, slot: number): number {
+  return (dayNumber + slot) % AVAILABLE_ITEMS.length;
+}
+
+/** The item a slot features. */
 function itemForSlot(dayNumber: number, slot: number): Item {
-  const turn = (dayNumber + slot) % AVAILABLE_ITEMS.length;
+  const turn = itemIndexForSlot(dayNumber, slot);
   // Rotate so the slot's item comes first (there's always one for sale).
   const [item] = [...AVAILABLE_ITEMS.slice(turn), ...AVAILABLE_ITEMS] as [Item, ...Item[]];
   return item;
+}
+
+/** How many of a day's slots before `beforeSlot` feature the item at `itemIndex`. */
+function airingsInDay(dayNumber: number, itemIndex: number, beforeSlot: number): number {
+  let count = 0;
+  for (let slot = 0; slot < beforeSlot; slot += 1) {
+    if (itemIndexForSlot(dayNumber, slot) === itemIndex) count += 1;
+  }
+  return count;
+}
+
+/**
+ * How many times a slot's item has been on air before that slot. Over as
+ * many days as there are items for sale, every item gets each slot once, so
+ * whole rounds are counted at once and only the days since the last round
+ * are walked.
+ */
+function airingsBefore(dayNumber: number, slot: number): number {
+  const itemIndex = itemIndexForSlot(dayNumber, slot);
+  const roundLength = AVAILABLE_ITEMS.length;
+  const roundStart = dayNumber - (dayNumber % roundLength);
+  let count = Math.floor(dayNumber / roundLength) * SEGMENTS_PER_DAY;
+  for (let day = roundStart; day < dayNumber; day += 1) {
+    count += airingsInDay(day, itemIndex, SEGMENTS_PER_DAY);
+  }
+  return count + airingsInDay(dayNumber, itemIndex, slot);
 }
 
 /** What's on air at a moment. There's always something. */
@@ -127,6 +171,8 @@ export function segmentAt(nowSeconds: number): Segment {
     return {
       kind: "auction",
       id: `${date}.auction`,
+      turn: dayNumber * SEGMENTS_PER_DAY + ROLLING_START_HOURS.length,
+      airing: airingsBefore(dayNumber, ROLLING_START_HOURS.length),
       item: itemForSlot(dayNumber, ROLLING_START_HOURS.length),
       startsAt: at(AUCTION_START_HOUR),
       endsAt: at(24),
@@ -137,6 +183,8 @@ export function segmentAt(nowSeconds: number): Segment {
   return {
     kind: "rolling",
     id: `${date}.${String(start)}`,
+    turn: dayNumber * SEGMENTS_PER_DAY + slot,
+    airing: airingsBefore(dayNumber, slot),
     item: itemForSlot(dayNumber, slot),
     startsAt: at(start),
     endsAt: at(Math.min(start + 3, AUCTION_START_HOUR)),

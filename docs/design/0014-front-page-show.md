@@ -1,6 +1,6 @@
 # 0014 — The front page as the show
 
-- **Status:** Decided; step 1 (the stage band) is built
+- **Status:** Decided; steps 1 (the stage band) and 2 (callers) are built
 - **Date:** 2026-11-12
 - **Author:** Jerry Vrabel
 
@@ -94,18 +94,61 @@ Small PRs, each one shippable:
    the front page is still a drawing; his motion comes with the callers.
    Measured: the Acquire button is on the first screen at 1280x720, on a
    Pixel 7 and on a 390x664 phone (the tagline hides on phones to make room).
-2. **Callers:** a few lore characters with lines per on-air item.
+2. **Callers (built):** see "Callers on the line" below. The host's motion
+   on the front page did not come with them; it is its own small PR next.
 3. **The ticker.**
 4. **More characters.** Each new sales character is a new seat for a writer
    and an artist (0013): the Archivist (a dry clerk who undersells what the
    host oversells), the Appraiser (for the Vault), the Courier (for the
    Dispatch).
 
+## Callers on the line (decided 2026-11-13, built)
+
+- **Callers are not the cast.** The cast is the show's own people: the host,
+  and the characters still to come (0013). A caller is a stranger who rings in
+  once. So there are many of them, and none recurs as a character.
+- **144 to start,** all house lines credited to "The Bureau": four for every
+  exhibit (80), and 64 on the open line, who would ring about anything.
+  Callers for an exhibit that is still acquisition pending wait until it goes
+  on sale, so with three exhibits for sale, 76 of the 144 can be heard today.
+- **Three per segment:** one about the exhibit on air, then two from the open
+  line, each answered by the host.
+- **Who is on the line depends only on the segment.** Everyone sees the same
+  callers for the same segment, the front page and `/broadcast` agree, and
+  nothing is random. The open line moves on by two each segment, so nobody on
+  it rings twice until all 64 have (32 segments, about three and a half
+  days). An exhibit's own callers take turns from one airing to its next.
+  With only three exhibits for sale, each airs three times a day, so its four
+  callers come round in under two days; that eases as exhibits go on sale and
+  as callers are added.
+- **Where:** under the stage on the front page, above the rest of the lineup,
+  and on `/broadcast` after the host. On a wide screen they sit three across
+  under the stage, not beside it as first planned: beside it would shrink the
+  stage and the buy bar that step 1 measured.
+- **Marked as lore, in words.** The block is headed "Callers on the line" and
+  says "From the Bureau's switchboard. Every caller is a character, not a
+  customer," with a dashed "Lore" tag as a second cue. No numbers appear in
+  it, so nothing in it can be taken for the real tally.
+- **The lines a caller keeps,** checked by tests over every caller: nobody
+  has bought, ordered, received or reviewed anything; no prices or money; an
+  absurd name and a place that isn't a real one.
+- **Words only, for both effects groups.** No caller art yet (each is a
+  future seat for an artist), and no sound or motion, so the effects test
+  (0011) is not disturbed.
+
+### Adding callers
+
+Add them to `src/core/caller-lines.ts`: under the exhibit's slug in
+`EXHIBIT_CALLERS`, or in `OPEN_LINE_CALLERS`. Every exhibit needs at least
+one caller of its own; the tests hold the count, so update it there when the
+switchboard grows. The rules for who gets on air are in
+`src/core/callers.ts` and need no change.
+
 ## Open questions
 
 - Whether `/broadcast` stays, folds into the front page, or redirects.
-- How many callers, and who writes them. They are lore, so the writers'
-  partnership in [0002](0002-writers.md) applies.
+- Who writes callers after the house's first 144. They are lore, so the
+  writers' partnership in [0002](0002-writers.md) applies.
 - How the front page is cached. It changes every three hours, and must
   never show a segment that has already ended.
 - How big the inset can be. The picture sells these objects, and a small one

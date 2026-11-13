@@ -34,6 +34,9 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
   one exhibit is always "on air" at a special price, in rolling three-hour
   segments and a nightly Midnight Auction on Chicago's clock. The price is
   locked when checkout starts, and each order records the segment that sold it.
+  Three one-off callers ring in each segment, from a switchboard of 144, and
+  the host answers them ([0014](docs/design/0014-front-page-show.md)). They
+  are marked as lore: characters, never customers.
 
 **Agents, the Vault and streaks** ([0003](docs/design/0003-gamification.md))
 
@@ -233,7 +236,7 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0011 — Sound for the whole shop](docs/design/0011-sound-scheme.md) (built; the test is running)
 - [0012 — Browser scripts as real TypeScript](docs/design/0012-client-scripts.md) (built)
 - [0013 — The Broadcast's host, and art by human artists](docs/design/0013-host-and-artists.md) (the host is built; the partnership is planning)
-- [0014 — The front page as the show](docs/design/0014-front-page-show.md) (decided; the stage band is built)
+- [0014 — The front page as the show](docs/design/0014-front-page-show.md) (decided; the stage band and callers are built)
 - [0015 — One of each, per run](docs/design/0015-one-per-run.md) (proposed)
 
 ## Branch flow
