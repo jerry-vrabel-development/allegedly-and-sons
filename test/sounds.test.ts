@@ -2,17 +2,21 @@ import { describe, expect, it } from "vitest";
 import { REEL_RARITIES } from "../src/client/reel";
 import {
   HOST_LINE_MS,
+  HOST_STILL_KEY,
   hostPose,
   LEGACY_MUTE_KEY,
   LINK_DELAY_MS,
   SOUND_MUTE_KEY,
   isPlainClick,
   linkWaits,
+  motionLabel,
   nextLine,
   readMuted,
+  readStill,
   stampText,
   toggleLabel,
   writeMuted,
+  writeStill,
 } from "../src/client/sound-rules";
 import { SOUNDS, SOUND_NAMES, isSoundName, soundLength } from "../src/client/sounds";
 
@@ -196,11 +200,55 @@ describe("the Broadcast's host lines", () => {
 
 describe("the Broadcast host's pose", () => {
   it("waits, pitches once you tune in, and reveals himself when the segment ends", () => {
-    expect(hostPose({ tuned: false, ended: false })).toBe("waiting");
-    expect(hostPose({ tuned: true, ended: false })).toBe("pitching");
-    expect(hostPose({ tuned: true, ended: true })).toBe("sold");
+    expect(hostPose({ tuned: false, ended: false, still: false })).toBe("waiting");
+    expect(hostPose({ tuned: true, ended: false, still: false })).toBe("pitching");
+    expect(hostPose({ tuned: true, ended: true, still: false })).toBe("sold");
     // The segment ends for everyone watching, tuned in or not.
-    expect(hostPose({ tuned: false, ended: true })).toBe("sold");
+    expect(hostPose({ tuned: false, ended: true, still: false })).toBe("sold");
+  });
+
+  it("has no pose at all once he's told to hold still, whatever the show is doing", () => {
+    for (const tuned of [false, true]) {
+      for (const ended of [false, true]) {
+        expect(hostPose({ tuned, ended, still: true })).toBeUndefined();
+      }
+    }
+  });
+});
+
+describe("the motion setting (the host holds still)", () => {
+  it("lets him move until someone turns motion off", () => {
+    expect(readStill(store().get)).toBe(false);
+    expect(readStill(store({ [HOST_STILL_KEY]: "0" }).get)).toBe(false);
+    expect(readStill(store({ [HOST_STILL_KEY]: "1" }).get)).toBe(true);
+  });
+
+  it("is its own setting: muting the sound doesn't stop him, and stopping him doesn't mute", () => {
+    expect(readStill(store({ [SOUND_MUTE_KEY]: "1" }).get)).toBe(false);
+    expect(readMuted(store({ [HOST_STILL_KEY]: "1" }).get)).toBe(false);
+  });
+
+  it("saves one thing, under its own key", () => {
+    const saved = store();
+    writeStill(saved.get, true);
+    writeStill(saved.get, false);
+    expect(saved.written).toEqual([
+      [HOST_STILL_KEY, "1"],
+      [HOST_STILL_KEY, "0"],
+    ]);
+    expect(readStill(saved.get)).toBe(false);
+  });
+
+  it("works for the page even when storage is blocked", () => {
+    expect(readStill(blocked)).toBe(false);
+    expect(() => {
+      writeStill(blocked, true);
+    }).not.toThrow();
+  });
+
+  it("says its state in words, and to assistive technology", () => {
+    expect(motionLabel(false)).toEqual({ text: "Motion: on", pressed: "true" });
+    expect(motionLabel(true)).toEqual({ text: "Motion: off", pressed: "false" });
   });
 });
 

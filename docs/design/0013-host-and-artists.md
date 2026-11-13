@@ -62,6 +62,19 @@ pitchman at once, and who is, allegedly, a perfectly ordinary human being.
 - **One file:** `src/worker/host-art.ts` holds the drawing, the artist's
   credit, the names of the moving parts and the styles that move them.
 - **Reduced motion:** he holds still and only changes pose.
+- **On the front page's stage too (2026-11-13).** The effects group's script
+  gives him a pose wherever he is drawn. On the stage he waits, and gives
+  himself away when the segment ends. He pitches only on `/broadcast`, where
+  "Tune in" is.
+- **"Motion: on / off" (2026-11-13).** His waiting motion starts on its own
+  and never stops, beside other content, so the page needs a way to stop it
+  (WCAG 2.2.2, Pause, Stop, Hide). Pages with the host get a "Motion" toggle
+  in the site header beside "Sound", said in words with `aria-pressed`. Off
+  means off: he is the still drawing again, and the end of a segment doesn't
+  move him. It is remembered in the browser under its own key, apart from the
+  sound setting. Under reduced motion nothing moves, so the toggle isn't
+  shown. This also covers `/broadcast`, which had the same motion and no
+  toggle.
 - **Never the only way to know something.** The host's lines stay as text on
   the page, ON AIR is written in words, and the drawing has a short
   description for screen readers.

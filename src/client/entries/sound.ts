@@ -7,15 +7,19 @@
  *   audio only after a click on the page, so sounds follow clicks, never page
  *   loads.
  * - Puts one "Sound: on / off" toggle in the site header, said in words,
- *   remembered in the browser (the only thing it stores). On by default; the
- *   Vault's old setting carries over.
+ *   remembered in the browser. On by default; the Vault's old setting carries
+ *   over.
+ * - Gives the host's drawing its pose (note 0013) wherever he is: on the
+ *   front page's stage and on the Broadcast. His motion starts on its own and
+ *   goes on, so those pages also get a "Motion: on / off" toggle beside the
+ *   sound one, remembered the same way (the two settings are all it stores).
  * - Plays the page's sounds: an element with data-sound="<name>" plays on
  *   click (a link waits LINK_DELAY_MS so it's heard; a modified click never
  *   waits), a case file creaks open, and the story script's "bureau:card"
  *   event stamps.
  * - The Broadcast's "Tune in" (PR 2): radio static and the station stinger,
  *   the host's lines lit one at a time, and a stinger when the segment ends.
- *   It also gives the host's drawing its pose (note 0013).
+ *   Tuning in is what makes the host pitch.
  * - "Stamp your certificate" on /thanks (PR 2): the vault door slams, a
  *   fanfare plays, and the certificate is stamped, in words.
  * - Exposes window.BureauSound.play(name) for the Vault's reel.
@@ -32,11 +36,14 @@ import {
   LINK_DELAY_MS,
   isPlainClick,
   linkWaits,
+  motionLabel,
   nextLine,
   readMuted,
+  readStill,
   stampText,
   toggleLabel,
   writeMuted,
+  writeStill,
 } from "../sound-rules";
 import { SOUNDS, isSoundName, type Noise, type Tone } from "../sounds";
 
@@ -160,6 +167,51 @@ function start(): void {
     nav.append(item);
   }
 
+  const reduced =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // --- The host (note 0013), on the stage and on the Broadcast ----------------
+  // He is drawn still; giving him a pose starts his motion. It starts on its
+  // own and doesn't stop, so there is a toggle to hold him still (WCAG 2.2.2).
+  const host = document.querySelector("[data-host]");
+  let tuned = false;
+  let ended = false;
+  let still = readStill(store);
+  const pose = (): void => {
+    const now = hostPose({ tuned, ended, still });
+    if (now === undefined) host?.removeAttribute("data-pose");
+    else host?.setAttribute("data-pose", now);
+  };
+  if (host !== null) {
+    pose();
+    document.addEventListener(SEGMENT_END_EVENT, () => {
+      ended = true;
+      pose();
+    });
+    // With reduced motion nothing moves, so there is nothing to turn off.
+    if (nav !== null && !reduced) {
+      const item = document.createElement("li");
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "sound-toggle";
+      const label = (): void => {
+        const { text, pressed } = motionLabel(still);
+        toggle.textContent = text;
+        toggle.setAttribute("aria-pressed", pressed);
+      };
+      label();
+      toggle.addEventListener("click", () => {
+        still = !still;
+        writeStill(store, still);
+        label();
+        pose();
+      });
+      item.append(toggle);
+      nav.append(item);
+    }
+  }
+
   // --- The page's sounds ------------------------------------------------------
   document.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target.closest("[data-sound]") : null;
@@ -192,22 +244,10 @@ function start(): void {
     play("stamp");
   });
 
-  const reduced =
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   // --- The Broadcast: "Tune in" -----------------------------------------------
   const show = document.querySelector("[data-broadcast]");
   const heading = show?.querySelector("h1") ?? null;
   if (show !== null && heading !== null) {
-    let tuned = false;
-    let ended = false;
-    // The host (note 0013) is drawn still; giving him a pose starts his motion.
-    const host = show.querySelector("[data-host]");
-    const pose = (): void => {
-      host?.setAttribute("data-pose", hostPose({ tuned, ended }));
-    };
-    pose();
     const tune = button("Tune in");
     tune.classList.add("tune-in");
     tune.setAttribute("aria-pressed", "false");
@@ -235,8 +275,6 @@ function start(): void {
     });
     heading.after(tune);
     document.addEventListener(SEGMENT_END_EVENT, () => {
-      ended = true;
-      pose();
       if (tuned) play("stinger");
     });
   }

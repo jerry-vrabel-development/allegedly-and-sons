@@ -145,7 +145,7 @@ describe("GET / (the front page's stage, note 0014)", () => {
     const { response, html } = await get("/");
     expect(response.status).toBe(200);
     expect(html).toContain('<section class="stage" aria-label="On air now">');
-    expect(html).toContain('<figure class="host-stage">');
+    expect(html).toContain('<figure class="host-stage" data-host>');
     expect(html).toContain(`“${segment.item.pitch[0]}”`);
     expect(html).toContain(`<a class="inset" href="/items/${segment.item.slug}"`);
     expect(html).toContain(`Exhibit ${segment.item.exhibit}`);

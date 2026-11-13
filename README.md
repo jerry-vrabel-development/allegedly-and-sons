@@ -60,6 +60,8 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
 
 - Synthesized sound across the shop and an animated reel on the Vault lever,
   all first-party, with a Sound on/off button and reduced motion respected.
+  The Broadcast's host moves on the front page's stage and on `/broadcast`,
+  with a Motion on/off button to hold him still.
 - It runs as an experiment: half of visitors get sound and motion and half get
   the plain shop, split by visitor id, with a stopping rule written down in
   advance. The test is still running; there is no result yet.
