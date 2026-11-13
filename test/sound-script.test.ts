@@ -71,7 +71,8 @@ describe("the sound script", () => {
   });
 
   it("carries the sounds and nothing else: no catalog, nothing it doesn't use", () => {
-    expect(SOUND_JS.length).toBeLessThan(15_000);
+    // Raised from 15,000 when the host's Motion toggle and the ticker's crawl joined (notes 0013, 0014).
+    expect(SOUND_JS.length).toBeLessThan(16_000);
     for (const name of SOUND_NAMES) expect(SOUND_JS).toMatch(new RegExp(`\\b${name}: `));
     for (const item of CATALOG) expect(SOUND_JS).not.toContain(item.slug);
   });

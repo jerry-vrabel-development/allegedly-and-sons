@@ -18,6 +18,7 @@ import { artPath, itemPathFor, TERMS_PATH } from "../core/paths";
 import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
+import { tickerStrip } from "./ticker";
 
 /** The stage band: `soldThisSegment` is the real count of orders in this segment. */
 export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml {
@@ -65,6 +66,7 @@ export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml
           <p class="tally">${tallyText(soldThisSegment)}</p>
         </div>
       </div>
+      ${tickerStrip(nowSeconds)}
     </div>
   </section>`;
 }

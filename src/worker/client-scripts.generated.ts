@@ -733,11 +733,21 @@ export const SOUND_JS = `"use strict";
     let tuned = false;
     let ended = false;
     let still = readStill(store);
+    const ticker = document.querySelector("[data-ticker]");
+    const again = ticker?.querySelector("ul")?.cloneNode(true) ?? null;
+    if (again instanceof Element) again.setAttribute("aria-hidden", "true");
+    const roll = () => {
+      if (ticker === null || again === null || reduced) return;
+      ticker.toggleAttribute("data-rolling", !still);
+      if (still) ticker.removeChild(again);
+      else ticker.append(again);
+    };
     const pose = () => {
       const now = hostPose({ tuned, ended, still });
       if (now === void 0) host?.removeAttribute("data-pose");
       else host?.setAttribute("data-pose", now);
     };
+    if (ticker !== null && !still) roll();
     if (host !== null) {
       pose();
       document.addEventListener(SEGMENT_END_EVENT, () => {
@@ -760,6 +770,7 @@ export const SOUND_JS = `"use strict";
           writeStill(store, still);
           label();
           pose();
+          roll();
         });
         item.append(toggle);
         nav.append(item);

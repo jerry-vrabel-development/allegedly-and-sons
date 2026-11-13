@@ -472,6 +472,45 @@ for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
   });
 }
 
+test("the stage's ticker crawls for the effects group, and the Motion toggle stops it", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const ticker = page.getByRole("region", { name: /^The ticker:/ });
+  await expect(ticker).toHaveAttribute("data-rolling", "");
+  // While it crawls a second copy follows the first, hidden from assistive technology.
+  await expect(ticker.locator("ul")).toHaveCount(2);
+  await expect(ticker.locator('ul[aria-hidden="true"]')).toHaveCount(1);
+  await expect(ticker.getByRole("listitem").first()).toContainText(/^Fact This segment ends at/);
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Motion: off" }).click();
+  await expect(ticker).toHaveAttribute("data-rolling", "");
+  await expectNoAxeViolations(page);
+});
+
+test("the ticker is a still strip for the plain group and under reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/?fx=off");
+  const ticker = page.getByRole("region", { name: /^The ticker:/ });
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+  // Every line says which kind it is, in words.
+  for (const line of await ticker.getByRole("listitem").all()) {
+    await expect(line).toContainText(/^(Fact|Lore) /);
+  }
+  // It can be reached and scrolled by keyboard.
+  await ticker.focus();
+  await expect(ticker).toBeFocused();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?fx=on");
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+});
+
 test("the Motion toggle is only on pages with the host, and not under reduced motion", async ({
   page,
 }) => {
