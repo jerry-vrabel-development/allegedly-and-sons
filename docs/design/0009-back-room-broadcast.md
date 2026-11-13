@@ -55,8 +55,9 @@ loop reloads. Without JavaScript, the server's words stay.
 
 ## Next
 
-- **PR 2 — the show:** host audio and stingers, "callers on the line" with
-  lore characters, a "next broadcast" countdown.
+- **PR 2 — the show:** host audio and stingers, and a "next broadcast"
+  countdown. "Callers on the line" are built (2026-11-13), on this page and
+  the front page: see [0014](0014-front-page-show.md).
 - **The host on screen:** his character and animation are in
   [0013](0013-host-and-artists.md).
 - **The front page as the show:** the stage, callers and ticker are in

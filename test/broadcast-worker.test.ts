@@ -2,14 +2,16 @@ import { createExecutionContext } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { segmentAt, specialPriceCents } from "../src/core/broadcast";
+import { callersFor } from "../src/core/callers";
 import { CATALOG, formatPrice } from "../src/core/catalog";
+import { escapeHtml } from "../src/worker/html";
 import worker, { route, type Deps } from "../src/worker/index";
 import { readLedger } from "../src/worker/ledger";
 import { COUNTDOWN_JS } from "../src/worker/client-scripts.generated";
 import { VAULT_CSP } from "../src/worker/security-headers";
 import { stripeSignatureHeader } from "./stripe-test-signing";
 import { testEnv } from "./test-env";
-import { COUNTDOWN_SCRIPT_PATH, WEBHOOK_PATH } from "../src/core/paths";
+import { COUNTDOWN_SCRIPT_PATH, STYLESHEET_PATH, WEBHOOK_PATH } from "../src/core/paths";
 
 const BASE = "https://allegedly.example";
 const T = (iso: string) => Date.parse(iso) / 1000;
@@ -361,5 +363,55 @@ describe("D1 schema (migrations/0010_orders_segment.sql)", () => {
     await orderIn("2026-11-09.auction", "alien-paperclip", 1);
     await orderIn(null, "alien-paperclip", 1);
     await expect(orderIn("tuesday", "alien-paperclip", 1)).rejects.toThrow(/CHECK/);
+  });
+});
+
+describe("callers on the line (note 0014)", () => {
+  const segment = segmentAt(NOON);
+  const callers = callersFor(segment);
+
+  for (const path of ["/", "/broadcast"]) {
+    it(`puts the segment's three callers on ${path}, each answered by the host`, async () => {
+      const { html } = await get(path);
+      expect(html.match(/<li class="caller">/g)).toHaveLength(3);
+      for (const caller of callers) {
+        expect(html).toContain(
+          `<strong>${escapeHtml(caller.name)}</strong>, calling from ${escapeHtml(caller.from)}`,
+        );
+        expect(html).toContain(`<p class="caller-says">“${escapeHtml(caller.says)}”</p>`);
+        expect(html).toContain(`<strong>The host:</strong> “${escapeHtml(caller.answer)}”`);
+      }
+    });
+
+    it(`says on ${path}, in words, that callers are lore and not customers`, async () => {
+      const { html } = await get(path);
+      expect(html).toContain('<section class="callers" aria-labelledby="callers-heading">');
+      expect(html).toContain('<h2 id="callers-heading">Callers on the line</h2>');
+      expect(html).toContain('<span class="lore-tag">Lore</span> From the Bureau\'s switchboard.');
+      expect(html).toContain("Every caller is a character, not a customer.");
+      expect(html.match(/id="callers-heading"/g)).toHaveLength(1);
+    });
+  }
+
+  it("shows the same callers on both pages, and new ones next segment", async () => {
+    const list = (html: string) =>
+      html.slice(html.indexOf('<ul class="caller-list">')).split("</ul>")[0];
+    expect(list((await get("/")).html)).toBe(list((await get("/broadcast")).html));
+    const later = deps(segment.endsAt);
+    expect(list((await get("/", later)).html)).not.toBe(list((await get("/")).html));
+  });
+
+  it("comes after the stage's buy button and before the rest of the lineup", async () => {
+    const { html } = await get("/");
+    const at = (text: string) => html.indexOf(text);
+    expect(at("Acquire it for")).toBeGreaterThan(-1);
+    expect(at("Acquire it for")).toBeLessThan(at('class="callers"'));
+    expect(at('class="callers"')).toBeLessThan(at("The rest of the lineup"));
+  });
+
+  it("is in the stylesheet, with a dashed tag as the second cue for lore", async () => {
+    const css = await (await route(new Request(`${BASE}${STYLESHEET_PATH}`), deps())).text();
+    expect(css).toContain(".lore-tag {");
+    expect(css).toMatch(/\.lore-tag \{[^}]*border: 2px dashed/);
   });
 });

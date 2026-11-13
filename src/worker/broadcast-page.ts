@@ -18,6 +18,7 @@ import {
 } from "../core/broadcast";
 import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
+import { callersBlock } from "./callers";
 import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
@@ -90,6 +91,8 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
           <div class="host-lines">${item.pitch.map((line) => html`<p>“${line}”</p>`)}</div>
         </div>
       </section>
+
+      ${callersBlock(segment, "callers-heading")}
 
       <section class="prose" aria-labelledby="schedule-heading">
         <h2 id="schedule-heading">Coming up</h2>

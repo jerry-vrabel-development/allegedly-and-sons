@@ -117,6 +117,22 @@ test("the front page's stage keeps the Acquire button on the first screen", asyn
   await expect(page.locator(".stage .countdown .clock")).toHaveText(/^\d+:\d\d:\d\d$/);
 });
 
+test("the front page has three callers on the line under the stage, marked as lore", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const callers = page.getByRole("region", { name: "Callers on the line" });
+  await expect(callers.getByRole("listitem")).toHaveCount(3);
+  await expect(callers.getByText("Every caller is a character, not a customer.")).toBeVisible();
+  for (const caller of await callers.getByRole("listitem").all()) {
+    await expect(caller.getByText("The host:")).toBeVisible();
+  }
+  // Under the stage, above the rest of the lineup: buying comes first.
+  const top = async (selector: string) => (await page.locator(selector).boundingBox())?.y ?? 0;
+  expect(await top(".stage")).toBeLessThan(await top(".callers"));
+  expect(await top(".callers")).toBeLessThan(await top("#collection-heading"));
+});
+
 test.describe("item page", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/items/alien-paperclip");
