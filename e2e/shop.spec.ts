@@ -430,6 +430,109 @@ test("the Broadcast's host waits, pitches when you tune in, and reveals himself 
   await expect(host.locator(".host-antennae")).toHaveCSS("opacity", "1");
 });
 
+test("the front page's host waits on the stage and reveals himself when the segment ends", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const host = page.locator(".stage [data-host]");
+  await expect(host.getByRole("img", { name: "The Broadcast's host" })).toBeVisible();
+  await expect(host).toHaveAttribute("data-pose", "waiting");
+  await expect(host.locator(".host-antennae")).toHaveCSS("opacity", "0");
+  // There's no "Tune in" on the front page: he pitches only on /broadcast.
+  await expect(page.getByRole("button", { name: "Tune in" })).toHaveCount(0);
+  await page.evaluate(() => document.dispatchEvent(new Event("bureau:segment-end")));
+  await expect(host).toHaveAttribute("data-pose", "sold");
+  await expect(host.locator(".host-antennae")).toHaveCSS("opacity", "1");
+});
+
+for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
+  test(`the Motion toggle on ${path} holds the host still, and remembers`, async ({ page }) => {
+    await page.goto(path);
+    const host = page.locator("[data-host]");
+    await expect(host).toHaveAttribute("data-pose", "waiting");
+    const toggle = page.getByRole("button", { name: "Motion: on" });
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await toggle.click();
+    await expect(page.getByRole("button", { name: "Motion: off" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await expect(host).not.toHaveAttribute("data-pose", /./);
+    // Still means still: the end of the segment doesn't move him either.
+    await page.evaluate(() => document.dispatchEvent(new Event("bureau:segment-end")));
+    await expect(host).not.toHaveAttribute("data-pose", /./);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Motion: off" })).toBeVisible();
+    await expect(page.locator("[data-host]")).not.toHaveAttribute("data-pose", /./);
+    // Sound is its own setting, and so is turning motion back on.
+    await expect(page.getByRole("button", { name: "Sound: on" })).toBeVisible();
+    await page.getByRole("button", { name: "Motion: off" }).click();
+    await expect(page.locator("[data-host]")).toHaveAttribute("data-pose", "waiting");
+    await expectNoAxeViolations(page);
+  });
+}
+
+test("the stage's ticker crawls for the effects group, and the Motion toggle stops it", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const ticker = page.getByRole("region", { name: /^The ticker:/ });
+  await expect(ticker).toHaveAttribute("data-rolling", "");
+  // While it crawls a second copy follows the first, hidden from assistive technology.
+  await expect(ticker.locator("ul")).toHaveCount(2);
+  await expect(ticker.locator('ul[aria-hidden="true"]')).toHaveCount(1);
+  await expect(ticker.getByRole("listitem").first()).toContainText(/^Fact This segment ends at/);
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Motion: off" }).click();
+  await expect(ticker).toHaveAttribute("data-rolling", "");
+  await expectNoAxeViolations(page);
+});
+
+test("the ticker is a still strip for the plain group and under reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/?fx=off");
+  const ticker = page.getByRole("region", { name: /^The ticker:/ });
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+  // Every line says which kind it is, in words.
+  for (const line of await ticker.getByRole("listitem").all()) {
+    await expect(line).toContainText(/^(Fact|Lore) /);
+  }
+  // It can be reached and scrolled by keyboard.
+  await ticker.focus();
+  await expect(ticker).toBeFocused();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?fx=on");
+  await expect(ticker).not.toHaveAttribute("data-rolling", "");
+  await expect(ticker.locator("ul")).toHaveCount(1);
+});
+
+test("the Motion toggle is only on pages with the host, and not under reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/dossier?fx=on");
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?fx=on");
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
+});
+
+test("the plain group sees the front page's host as a still drawing, with no toggles", async ({
+  page,
+}) => {
+  await page.goto("/?fx=off");
+  const host = page.locator(".stage [data-host]");
+  await expect(host.getByRole("img", { name: "The Broadcast's host" })).toBeVisible();
+  await expect(host).not.toHaveAttribute("data-pose", /./);
+  await expect(page.getByRole("button", { name: /^(Sound|Motion):/ })).toHaveCount(0);
+});
+
 test("the plain group sees the host as a still drawing", async ({ page }) => {
   await page.goto("/broadcast?fx=off");
   const host = page.locator("[data-host]");

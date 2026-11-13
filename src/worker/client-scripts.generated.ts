@@ -451,6 +451,7 @@ export const SOUND_JS = `"use strict";
 
   // src/client/sound-rules.ts
   var SOUND_MUTE_KEY = "bureau-sound-muted";
+  var HOST_STILL_KEY = "bureau-host-still";
   var LEGACY_MUTE_KEY = "bureau-vault-muted";
   var LINK_DELAY_MS = 180;
   var HOST_LINE_MS = 4e3;
@@ -468,6 +469,22 @@ export const SOUND_JS = `"use strict";
     } catch {
     }
   }
+  function readStill(store) {
+    try {
+      return store().getItem(HOST_STILL_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+  function writeStill(store, still) {
+    try {
+      store().setItem(HOST_STILL_KEY, still ? "1" : "0");
+    } catch {
+    }
+  }
+  function motionLabel(still) {
+    return still ? { text: "Motion: off", pressed: "false" } : { text: "Motion: on", pressed: "true" };
+  }
   function toggleLabel(muted) {
     return muted ? { text: "Sound: off", pressed: "false" } : { text: "Sound: on", pressed: "true" };
   }
@@ -481,6 +498,7 @@ export const SOUND_JS = `"use strict";
     return (lit + 1) % count;
   }
   function hostPose(show) {
+    if (show.still) return void 0;
     if (show.ended) return "sold";
     return show.tuned ? "pitching" : "waiting";
   }
@@ -710,6 +728,54 @@ export const SOUND_JS = `"use strict";
       item.append(toggle);
       nav.append(item);
     }
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const host = document.querySelector("[data-host]");
+    let tuned = false;
+    let ended = false;
+    let still = readStill(store);
+    const ticker = document.querySelector("[data-ticker]");
+    const again = ticker?.querySelector("ul")?.cloneNode(true) ?? null;
+    if (again instanceof Element) again.setAttribute("aria-hidden", "true");
+    const roll = () => {
+      if (ticker === null || again === null || reduced) return;
+      ticker.toggleAttribute("data-rolling", !still);
+      if (still) ticker.removeChild(again);
+      else ticker.append(again);
+    };
+    const pose = () => {
+      const now = hostPose({ tuned, ended, still });
+      if (now === void 0) host?.removeAttribute("data-pose");
+      else host?.setAttribute("data-pose", now);
+    };
+    if (ticker !== null && !still) roll();
+    if (host !== null) {
+      pose();
+      document.addEventListener(SEGMENT_END_EVENT, () => {
+        ended = true;
+        pose();
+      });
+      if (nav !== null && !reduced) {
+        const item = document.createElement("li");
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "sound-toggle";
+        const label = () => {
+          const { text, pressed } = motionLabel(still);
+          toggle.textContent = text;
+          toggle.setAttribute("aria-pressed", pressed);
+        };
+        label();
+        toggle.addEventListener("click", () => {
+          still = !still;
+          writeStill(store, still);
+          label();
+          pose();
+          roll();
+        });
+        item.append(toggle);
+        nav.append(item);
+      }
+    }
     document.addEventListener("click", (event) => {
       const target = event.target instanceof Element ? event.target.closest("[data-sound]") : null;
       if (target === null) return;
@@ -738,17 +804,9 @@ export const SOUND_JS = `"use strict";
     document.addEventListener(CARD_EVENT, () => {
       play("stamp");
     });
-    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const show = document.querySelector("[data-broadcast]");
     const heading = show?.querySelector("h1") ?? null;
     if (show !== null && heading !== null) {
-      let tuned = false;
-      let ended = false;
-      const host = show.querySelector("[data-host]");
-      const pose = () => {
-        host?.setAttribute("data-pose", hostPose({ tuned, ended }));
-      };
-      pose();
       const tune = button("Tune in");
       tune.classList.add("tune-in");
       tune.setAttribute("aria-pressed", "false");
@@ -776,8 +834,6 @@ export const SOUND_JS = `"use strict";
       });
       heading.after(tune);
       document.addEventListener(SEGMENT_END_EVENT, () => {
-        ended = true;
-        pose();
         if (tuned) play("stinger");
       });
     }

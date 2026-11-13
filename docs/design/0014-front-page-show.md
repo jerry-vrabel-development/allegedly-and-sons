@@ -1,6 +1,6 @@
 # 0014 — The front page as the show
 
-- **Status:** Decided; steps 1 (the stage band) and 2 (callers) are built
+- **Status:** Decided; steps 1 (the stage band), 2 (callers) and 3 (the ticker) are built, and the host moves on the stage
 - **Date:** 2026-11-12
 - **Author:** Jerry Vrabel
 
@@ -90,13 +90,16 @@ Small PRs, each one shippable:
 
 1. **The stage band (built):** the host, the item on air as an inset, and the
    lower-third bar with its price, clock, tally and Acquire button, above
-   the existing grid, with the banner dropped from the page. The host on
-   the front page is still a drawing; his motion comes with the callers.
+   the existing grid, with the banner dropped from the page. The host was
+   a still drawing at this step.
    Measured: the Acquire button is on the first screen at 1280x720, on a
    Pixel 7 and on a 390x664 phone (the tagline hides on phones to make room).
 2. **Callers (built):** see "Callers on the line" below. The host's motion
-   on the front page did not come with them; it is its own small PR next.
-3. **The ticker.**
+   on the front page followed as its own small PR (built 2026-11-13): for
+   the effects group he waits on the stage and reveals himself when the
+   segment ends, with a "Motion: on / off" toggle in the header
+   ([0013](0013-host-and-artists.md)).
+3. **The ticker (built):** see "The ticker" below.
 4. **More characters.** Each new sales character is a new seat for a writer
    and an artist (0013): the Archivist (a dry clerk who undersells what the
    host oversells), the Appraiser (for the Vault), the Courier (for the
@@ -144,6 +147,34 @@ one caller of its own; the tests hold the count, so update it there when the
 switchboard grows. The rules for who gets on air are in
 `src/core/callers.ts` and need no change.
 
+## The ticker (decided 2026-11-13, built)
+
+- **A thin strip along the bottom of the stage,** under the lower-third bar,
+  so it never pushes the buy button down. Front page only.
+- **FACT lines are worked out, never written:** when this segment ends,
+  what is on air next, the next Midnight Auction (unless it is what's next)
+  and how many exhibits there are and how many are for sale.
+- **LORE lines are the Bureau's wire:** 40 house bulletins to start, credited
+  to "The Bureau", in `src/core/wire-lines.ts`. Three run each segment,
+  chosen by the segment, so everyone sees the same ticker and nothing is
+  random. The wire moves on by three a segment and comes round in about a
+  day and a half.
+- **The two kinds never mix.** Facts and lore take turns, and every line
+  starts with its kind in words: "Fact" on a solid tag, "Lore" on a dashed
+  one (the same dashed tag the callers carry). Never color alone.
+- **Every numeral on the ticker is a fact.** The wire has no numerals at
+  all, and a test holds that, so a number there is always true. The wire
+  also never sounds like activity in the shop: no buying, selling, stock,
+  viewers, prices or deadlines.
+- **Still for everyone, crawling for the effects group.** The strip is a
+  plain list that scrolls sideways and can be reached by keyboard. The
+  effects group's script makes it crawl; it pauses under the pointer or
+  keyboard focus, the header's "Motion" toggle stops it (0013), and it never
+  starts under reduced motion. Every line is always in the page as text.
+
+To add bulletins, add them to `src/core/wire-lines.ts`; the tests hold the
+count, so update it there.
+
 ## Open questions
 
 - Whether `/broadcast` stays, folds into the front page, or redirects.
@@ -156,6 +187,4 @@ switchboard grows. The rules for who gets on air are in
   further right.
 - Giving the host a wider curtain backdrop, so his drawing's own edge doesn't
   show on a wide stage.
-- How the ticker marks its two kinds of lines so no one confuses lore with
-  fact.
 - The host's name, and the names of the characters after him.

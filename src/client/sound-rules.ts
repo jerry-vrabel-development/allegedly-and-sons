@@ -1,11 +1,14 @@
 /**
  * The sound script's rules (design note 0011), apart from the page and from
- * Web Audio: the mute setting, when a link waits for its sound, the wording.
- * Pure, so it's unit tested without a browser.
+ * Web Audio: the mute and motion settings, when a link waits for its sound,
+ * the wording. Pure, so it's unit tested without a browser.
  */
 
-/** The browser-local key for the shop-wide mute setting: the one thing stored. */
+/** The browser-local key for the shop-wide mute setting: one of the two things stored. */
 export const SOUND_MUTE_KEY = "bureau-sound-muted";
+
+/** The browser-local key for "the host holds still" (note 0013): the other thing stored. */
+export const HOST_STILL_KEY = "bureau-host-still";
 
 /** The Vault's setting before note 0011, read so nobody's choice is lost. Never written. */
 export const LEGACY_MUTE_KEY = "bureau-vault-muted";
@@ -42,6 +45,34 @@ export function writeMuted(store: () => MuteStore, muted: boolean): void {
   } catch {
     // Not remembered; the toggle still works for this page.
   }
+}
+
+/** Whether the host has been told to hold still. He moves until someone says so. */
+export function readStill(store: () => MuteStore): boolean {
+  try {
+    return store().getItem(HOST_STILL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Remembers it. If storage is blocked it just isn't remembered. */
+export function writeStill(store: () => MuteStore, still: boolean): void {
+  try {
+    store().setItem(HOST_STILL_KEY, still ? "1" : "0");
+  } catch {
+    // Not remembered; the toggle still works for this page.
+  }
+}
+
+/** The motion toggle's state, in words and for aria-pressed. */
+export function motionLabel(still: boolean): {
+  readonly text: string;
+  readonly pressed: "true" | "false";
+} {
+  return still
+    ? { text: "Motion: off", pressed: "false" }
+    : { text: "Motion: on", pressed: "true" };
 }
 
 /** The toggle's state, in words and for aria-pressed. */
@@ -96,9 +127,15 @@ export type HostPose = "waiting" | "pitching" | "sold";
 
 /**
  * The host's pose: he waits, pitches once the visitor tunes in, and when the
- * segment ends he gives himself away, for everyone watching.
+ * segment ends he gives himself away, for everyone watching. Told to hold
+ * still, he has no pose at all and is the still drawing again.
  */
-export function hostPose(show: { readonly tuned: boolean; readonly ended: boolean }): HostPose {
+export function hostPose(show: {
+  readonly tuned: boolean;
+  readonly ended: boolean;
+  readonly still: boolean;
+}): HostPose | undefined {
+  if (show.still) return undefined;
   if (show.ended) return "sold";
   return show.tuned ? "pitching" : "waiting";
 }

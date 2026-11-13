@@ -43,8 +43,9 @@ machine dopamine, and animation and sound for conversion (note 0003, revised
 - **Accessible floor:** every sound is under 3 seconds and has its text on
   screen; the result is announced (role="status"); the dialog is a native
   `<dialog>` with focus on "Collect"; a "Sound: on/off" toggle is
-  remembered in the browser (the only thing stored); reduced motion skips
-  the spin and flash.
+  remembered in the browser (the only thing stored, until the host's
+  "Motion: on/off" joined it in [0013](0013-host-and-artists.md)); reduced
+  motion skips the spin and flash.
 - **No script, no problem:** without JavaScript, `fetch` or `<dialog>`, the
   lever is the same plain form as before. A lost answer reloads the Vault
   instead of posting again, so a pull is never doubled.

@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { segmentAt, specialPriceCents } from "../src/core/broadcast";
 import { callersFor } from "../src/core/callers";
+import { tickerLines } from "../src/core/ticker";
 import { CATALOG, formatPrice } from "../src/core/catalog";
 import { escapeHtml } from "../src/worker/html";
 import worker, { route, type Deps } from "../src/worker/index";
@@ -145,7 +146,7 @@ describe("GET / (the front page's stage, note 0014)", () => {
     const { response, html } = await get("/");
     expect(response.status).toBe(200);
     expect(html).toContain('<section class="stage" aria-label="On air now">');
-    expect(html).toContain('<figure class="host-stage">');
+    expect(html).toContain('<figure class="host-stage" data-host>');
     expect(html).toContain(`“${segment.item.pitch[0]}”`);
     expect(html).toContain(`<a class="inset" href="/items/${segment.item.slug}"`);
     expect(html).toContain(`Exhibit ${segment.item.exhibit}`);
@@ -413,5 +414,39 @@ describe("callers on the line (note 0014)", () => {
     const css = await (await route(new Request(`${BASE}${STYLESHEET_PATH}`), deps())).text();
     expect(css).toContain(".lore-tag {");
     expect(css).toMatch(/\.lore-tag \{[^}]*border: 2px dashed/);
+  });
+});
+
+describe("the stage's ticker (note 0014)", () => {
+  it("runs along the bottom of the stage, every line tagged Fact or Lore in words", async () => {
+    const { html } = await get("/");
+    expect(html).toContain('<div class="ticker" data-ticker role="region"');
+    expect(html).toContain('tabindex="0"');
+    const strip = html.slice(html.indexOf('class="ticker"')).split("</ul>")[0] ?? "";
+    const lines = tickerLines(NOON);
+    expect(strip.match(/<li>/g)).toHaveLength(lines.length);
+    for (const line of lines) {
+      const tag = line.kind === "fact" ? "Fact" : "Lore";
+      expect(strip).toContain(
+        `<li><span class="tick-tag tick-${line.kind}">${tag}</span> ${escapeHtml(line.text)}</li>`,
+      );
+    }
+    // Inside the stage, after the buy bar: it never pushes the button down.
+    expect(html.indexOf("Acquire it for")).toBeLessThan(html.indexOf('class="ticker"'));
+    expect(html.indexOf('class="ticker"')).toBeLessThan(html.indexOf('class="callers"'));
+  });
+
+  it("changes with the segment, and stays off /broadcast", async () => {
+    const strip = (html: string) => html.slice(html.indexOf('class="ticker"')).split("</ul>")[0];
+    const later = deps(segmentAt(NOON).endsAt);
+    expect(strip((await get("/", later)).html)).not.toBe(strip((await get("/")).html));
+    expect((await get("/broadcast")).html).not.toContain('class="ticker"');
+  });
+
+  it("is styled so the two kinds differ by shape as well as by word", async () => {
+    const css = await (await route(new Request(`${BASE}${STYLESHEET_PATH}`), deps())).text();
+    expect(css).toMatch(/\.tick-fact \{[^}]*border: 2px solid/);
+    expect(css).toMatch(/\.tick-lore \{[^}]*border: 2px dashed/);
+    expect(css).toContain(".ticker[data-rolling] .ticker-lines { animation: ticker-crawl");
   });
 });

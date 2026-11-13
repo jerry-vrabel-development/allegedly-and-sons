@@ -7,7 +7,7 @@ import { CARD_EVENT, SEGMENT_END_EVENT } from "../src/core/dom-events";
 import { COUNTDOWN_JS, SOUND_JS, STORY_JS } from "../src/worker/client-scripts.generated";
 import { itemPage, thanksPage } from "../src/worker/pages";
 import { STRICT_CSP } from "../src/worker/security-headers";
-import { LEGACY_MUTE_KEY, SOUND_MUTE_KEY } from "../src/client/sound-rules";
+import { HOST_STILL_KEY, LEGACY_MUTE_KEY, SOUND_MUTE_KEY } from "../src/client/sound-rules";
 import { SOUND_NAMES } from "../src/client/sounds";
 import { CASE_CLOSED_ID } from "../src/core/story";
 import { testEnv } from "./test-env";
@@ -56,21 +56,23 @@ describe("the sound script", () => {
   // The rules and the recipes are unit tested (sounds.test.ts) and the toggle,
   // links and "Tune in" are watched in real browsers (e2e); these check the
   // bundle itself.
-  it("does nothing risky: no eval, no innerHTML, no other hosts, one stored setting", () => {
+  it("does nothing risky: no eval, no innerHTML, no other hosts, two stored settings", () => {
     expect(SOUND_JS).not.toMatch(
       /eval\(|new Function|innerHTML|outerHTML|document\.write|sessionStorage|https?:\/\//,
     );
     expect(SOUND_JS).not.toMatch(/^\s*(import|export)\s/m);
-    // Storage is reached for in one place, and only these two keys are named.
+    // Storage is reached for in one place, and only these three keys are named:
+    // the sound setting (and its old name, read only) and the motion setting.
     expect(SOUND_JS.match(/localStorage/g)).toHaveLength(1);
     expect(SOUND_JS.match(/"bureau-[a-z-]+"/g)?.sort()).toEqual(
-      [JSON.stringify(SOUND_MUTE_KEY), JSON.stringify(LEGACY_MUTE_KEY)].sort(),
+      [SOUND_MUTE_KEY, LEGACY_MUTE_KEY, HOST_STILL_KEY].map((key) => JSON.stringify(key)).sort(),
     );
-    expect(SOUND_JS.match(/\.setItem\(/g)).toHaveLength(1);
+    expect(SOUND_JS.match(/\.setItem\(/g)).toHaveLength(2);
   });
 
   it("carries the sounds and nothing else: no catalog, nothing it doesn't use", () => {
-    expect(SOUND_JS.length).toBeLessThan(15_000);
+    // Raised from 15,000 when the host's Motion toggle and the ticker's crawl joined (notes 0013, 0014).
+    expect(SOUND_JS.length).toBeLessThan(16_000);
     for (const name of SOUND_NAMES) expect(SOUND_JS).toMatch(new RegExp(`\\b${name}: `));
     for (const item of CATALOG) expect(SOUND_JS).not.toContain(item.slug);
   });

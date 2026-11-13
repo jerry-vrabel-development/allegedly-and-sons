@@ -112,6 +112,17 @@ as "the bigger sound" from here on.
   busiest entry, so comparisons that span this date should be read as
   before and after.
 
+- 2026-11-13: callers joined the front page and `/broadcast` (note 0014).
+  They are words only and the same for both groups.
+- 2026-11-13: the host on the front page's stage now moves for the "fx"
+  group (note 0013): he waits, and reveals himself when the segment ends.
+  The plain group still sees the drawing. Pages with the host also gained a
+  "Motion: on / off" toggle for the "fx" group. The front page is the busiest
+  entry, so this widens what the "fx" side means from this date.
+
+- 2026-11-13: the stage gained a ticker (note 0014). Both groups see the
+  same lines; for the "fx" group it crawls, and "Motion: off" stops it.
+
 ## What would change our mind
 
 - The groups show no difference in reads, shares or buyers → keep sound,
