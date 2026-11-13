@@ -74,7 +74,8 @@ pitchman at once, and who is, allegedly, a perfectly ordinary human being.
   move him. It is remembered in the browser under its own key, apart from the
   sound setting. Under reduced motion nothing moves, so the toggle isn't
   shown. This also covers `/broadcast`, which had the same motion and no
-  toggle.
+  toggle. The same toggle stops the stage's ticker
+  ([0014](0014-front-page-show.md)).
 - **Never the only way to know something.** The host's lines stay as text on
   the page, ON AIR is written in words, and the drawing has a short
   description for screen readers.

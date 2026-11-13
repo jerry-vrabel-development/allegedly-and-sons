@@ -13,6 +13,8 @@
  *   front page's stage and on the Broadcast. His motion starts on its own and
  *   goes on, so those pages also get a "Motion: on / off" toggle beside the
  *   sound one, remembered the same way (the two settings are all it stores).
+ * - Makes the stage's ticker crawl (note 0014). The same "Motion" toggle
+ *   stops it, and it never starts under reduced motion.
  * - Plays the page's sounds: an element with data-sound="<name>" plays on
  *   click (a link waits LINK_DELAY_MS so it's heard; a modified click never
  *   waits), a case file creaks open, and the story script's "bureau:card"
@@ -178,11 +180,24 @@ function start(): void {
   let tuned = false;
   let ended = false;
   let still = readStill(store);
+  // The stage's ticker (note 0014) is a still strip; rolling makes it crawl.
+  // A second copy of its lines, hidden from assistive technology, follows the
+  // first so the crawl has no gap. The same toggle stops it.
+  const ticker = document.querySelector("[data-ticker]");
+  const again = ticker?.querySelector("ul")?.cloneNode(true) ?? null;
+  if (again instanceof Element) again.setAttribute("aria-hidden", "true");
+  const roll = (): void => {
+    if (ticker === null || again === null || reduced) return;
+    ticker.toggleAttribute("data-rolling", !still);
+    if (still) ticker.removeChild(again);
+    else ticker.append(again);
+  };
   const pose = (): void => {
     const now = hostPose({ tuned, ended, still });
     if (now === undefined) host?.removeAttribute("data-pose");
     else host?.setAttribute("data-pose", now);
   };
+  if (ticker !== null && !still) roll();
   if (host !== null) {
     pose();
     document.addEventListener(SEGMENT_END_EVENT, () => {
@@ -206,6 +221,7 @@ function start(): void {
         writeStill(store, still);
         label();
         pose();
+        roll();
       });
       item.append(toggle);
       nav.append(item);

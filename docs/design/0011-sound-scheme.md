@@ -120,6 +120,9 @@ as "the bigger sound" from here on.
   "Motion: on / off" toggle for the "fx" group. The front page is the busiest
   entry, so this widens what the "fx" side means from this date.
 
+- 2026-11-13: the stage gained a ticker (note 0014). Both groups see the
+  same lines; for the "fx" group it crawls, and "Motion: off" stops it.
+
 ## What would change our mind
 
 - The groups show no difference in reads, shares or buyers → keep sound,
