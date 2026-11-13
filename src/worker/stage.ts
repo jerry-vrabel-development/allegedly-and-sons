@@ -6,7 +6,9 @@
  *
  * It reuses what /broadcast shows (on-air.ts) so the two never disagree, and
  * keeps the same lines (note 0009): every number is true, nothing is invented.
- * The host is a still drawing here; his motion arrives with the effects group.
+ * The host is drawn still; the effects group's script gives him a pose, as on
+ * /broadcast (note 0013). Here he waits, and gives himself away when the
+ * segment ends. He pitches only on /broadcast, where there is a "Tune in".
  */
 
 import { segmentAt, specialPriceCents } from "../core/broadcast";
@@ -24,8 +26,9 @@ export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml
   const [pitch] = item.pitch;
   const price = formatPrice(specialPriceCents(item, segment.kind));
   const href = itemPathFor(item.slug);
+  // data-host lets the effects script give him a pose; without it he's a still drawing.
   // prettier-ignore
-  const hostFigure = html`<figure class="host-stage">${hostArt()}<figcaption>Sketch by ${HOST_ARTIST}.</figcaption></figure>`;
+  const hostFigure = html`<figure class="host-stage" data-host>${hostArt()}<figcaption>Sketch by ${HOST_ARTIST}.</figcaption></figure>`;
 
   return html`<section class="stage" aria-label="On air now">
     <div class="screen">

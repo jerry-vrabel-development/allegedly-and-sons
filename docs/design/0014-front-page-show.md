@@ -1,6 +1,6 @@
 # 0014 — The front page as the show
 
-- **Status:** Decided; steps 1 (the stage band) and 2 (callers) are built
+- **Status:** Decided; steps 1 (the stage band) and 2 (callers) are built, and the host moves on the stage
 - **Date:** 2026-11-12
 - **Author:** Jerry Vrabel
 
@@ -90,12 +90,15 @@ Small PRs, each one shippable:
 
 1. **The stage band (built):** the host, the item on air as an inset, and the
    lower-third bar with its price, clock, tally and Acquire button, above
-   the existing grid, with the banner dropped from the page. The host on
-   the front page is still a drawing; his motion comes with the callers.
+   the existing grid, with the banner dropped from the page. The host was
+   a still drawing at this step.
    Measured: the Acquire button is on the first screen at 1280x720, on a
    Pixel 7 and on a 390x664 phone (the tagline hides on phones to make room).
 2. **Callers (built):** see "Callers on the line" below. The host's motion
-   on the front page did not come with them; it is its own small PR next.
+   on the front page followed as its own small PR (built 2026-11-13): for
+   the effects group he waits on the stage and reveals himself when the
+   segment ends, with a "Motion: on / off" toggle in the header
+   ([0013](0013-host-and-artists.md)).
 3. **The ticker.**
 4. **More characters.** Each new sales character is a new seat for a writer
    and an artist (0013): the Archivist (a dry clerk who undersells what the
