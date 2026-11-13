@@ -1,9 +1,10 @@
 import { CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
-import { chicagoTime, type Offer } from "../core/broadcast";
+import { chicagoTime, segmentAt, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
 import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/checkout-page";
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
+import { callersBlock } from "./callers";
 import { html, SafeHtml } from "./html";
 import { stageBand } from "./stage";
 import {
@@ -245,6 +246,7 @@ export function homePage(nowSeconds: number, soldThisSegment: number): Page {
         </p>
       </div>
       ${stageBand(nowSeconds, soldThisSegment)}
+      ${callersBlock(segmentAt(nowSeconds), "callers-heading")}
       <section aria-labelledby="collection-heading">
         <h2 id="collection-heading">The rest of the lineup</h2>
         <ul class="items">
