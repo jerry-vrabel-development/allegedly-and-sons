@@ -523,6 +523,61 @@ test("the Motion toggle is only on pages with the host, and not under reduced mo
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
 });
 
+test("the Archivist sits on the front page's stage and works while the host is moving", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const archivist = page.locator(".stage .archivist-stage");
+  await expect(archivist.getByRole("img", { name: "The Archivist" })).toBeVisible();
+  await expect(page.locator(".stage [data-host]")).toHaveAttribute("data-pose", "waiting");
+  await expect(archivist.locator(".archivist-stamp")).not.toHaveCSS("animation-name", "none");
+  // Held still with the Motion toggle, he stops with the host.
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
+  await expect(archivist.locator(".archivist-page")).toHaveCSS("animation-name", "none");
+  await expectNoAxeViolations(page);
+});
+
+test("the plain group sees the Archivist as a still drawing", async ({ page }) => {
+  await page.goto("/?fx=off");
+  const archivist = page.locator(".stage .archivist-stage");
+  await expect(archivist.getByRole("img", { name: "The Archivist" })).toBeVisible();
+  await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
+});
+
+test("Trixie stands on a wide stage and moves while the host does", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto("/?fx=on");
+  const trixie = page.locator(".stage .trixie-stage");
+  await expect(trixie.getByRole("img", { name: /Trixie Parallax/ })).toBeVisible();
+  await expect(trixie.locator(".trixie-arm")).not.toHaveCSS("animation-name", "none");
+  // She stays clear of the Archivist and the exhibit inset.
+  const [her, archivist, inset] = await Promise.all([
+    trixie.boundingBox(),
+    page.locator(".stage .archivist-stage").boundingBox(),
+    page.locator(".stage .inset").boundingBox(),
+  ]);
+  expect(her && archivist && her.x + her.width).toBeLessThanOrEqual(archivist?.x ?? 0);
+  expect(her && inset && inset.x + inset.width).toBeLessThanOrEqual(her?.x ?? 0);
+  // Held still with the Motion toggle, she stops with the host.
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(trixie.locator(".trixie-arm")).toHaveCSS("animation-name", "none");
+  await expect(trixie.locator(".trixie-plumage")).toHaveCSS("animation-name", "none");
+  await expectNoAxeViolations(page);
+});
+
+test("Trixie gives way on a narrow stage, and is a still drawing for the plain group", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/?fx=off");
+  await expect(page.locator(".stage .trixie-stage")).toBeHidden();
+  await page.setViewportSize({ width: 1100, height: 800 });
+  const trixie = page.locator(".stage .trixie-stage");
+  await expect(trixie.getByRole("img", { name: /Trixie Parallax/ })).toBeVisible();
+  await expect(trixie.locator(".trixie-arm")).toHaveCSS("animation-name", "none");
+});
+
 test("the plain group sees the front page's host as a still drawing, with no toggles", async ({
   page,
 }) => {

@@ -242,6 +242,8 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0013 — The Broadcast's host, and art by human artists](docs/design/0013-host-and-artists.md) (the host is built; the partnership is planning)
 - [0014 — The front page as the show](docs/design/0014-front-page-show.md) (decided; the stage band, callers and ticker are built)
 - [0015 — One of each, per run](docs/design/0015-one-per-run.md) (proposed)
+- [0016 — The cast](docs/design/0016-the-cast.md) (draft; briefs in words, only the host is built)
+- [0017 — How writers and artists submit work](docs/design/0017-submissions.md) (proposed; nothing is open)
 
 ## Branch flow
 
