@@ -39,7 +39,8 @@ submissions ([0017](0017-submissions.md)).
 
 ## The cast
 
-Names marked "proposed" are suggestions, not decisions.
+Names are decided: Guy Normal, Trixie Parallax, Ibid and Loupe. The Courier
+has none, and Gerald is Gerald.
 
 ### The host
 
@@ -47,7 +48,7 @@ Built; see 0013. A game-show host, used-car salesman and black-market
 pitchman at once, and, allegedly, a perfectly ordinary human being.
 
 - **Job in the act:** oversells everything.
-- **Name:** none yet. Proposed: Guy Normal, Chip Bonafide or Lance Plausible.
+- **Name:** Guy Normal.
 
 ### The Showgirl, the host's assistant
 
@@ -55,20 +56,26 @@ pitchman at once, and, allegedly, a perfectly ordinary human being.
   and turns it to the light as if it were a crown, whatever it is.
 - **From:** a dimension where applause is the currency and display is the
   language.
-- **What she is:** a plumed being. The feathers of her headdress and train
-  are her own, and she has more arms than the gesture needs, all of them
-  graceful.
-- **How she talks:** rarely, and in few words. Her smile never moves. Her
-  plumage says what she thinks: it flares for an exhibit she rates and droops
-  for one she doesn't, and it is never wrong.
-- **Her joke:** she is the sharpest person on the stage and she runs the
-  show. The host takes the credit and she lets him.
+- **What she is:** a glamorous plumed being. The feathers of her headdress
+  and train are her own, she has more arms than the gesture needs, all of
+  them graceful, and she knows exactly how good she looks.
+- **Her type:** the bubbly, flirty, delightfully dim showgirl. She calls
+  everyone "hon", flirts with the host, the camera and the exhibit alike,
+  mangles the long words, loses track of what the thing is mid-presentation
+  and is thrilled by all of it. Her sparkle never dims.
+- **How she talks:** brightly and cheerfully wrong. "It's a, like,
+  authenticated, um, antique?" Her plumage still says what she really thinks:
+  it flares for an exhibit she rates and droops for one she doesn't.
+- **Her joke:** the audience loves her more than the host, and the host
+  can't work out why. Her wild guesses keep turning out to be nearly right,
+  which the Archivist finds unbearable.
 - **Parts that move:** plumage (flare, droop), the presenting arms, a slow
-  turn of the exhibit, one raised brow.
+  turn of the exhibit, a wink, a hair toss.
 - **Where she appears:** the stage, beside the inset; exhibit pages.
-- **Never:** decoration. The glamour is her costume and her competence is
-  the joke. She is not drawn or written to be leered at.
-- **Name:** proposed: Trixie Parallax, Marvella or Glint.
+- **Never:** explicit. She is glamorous and flirtatious in costume, plumes
+  and attitude, with no nudity, and the joke is on the exhibits and the host,
+  never on her. She never speaks for prices, terms or the tally.
+- **Name:** Trixie Parallax.
 
 ### The Archivist
 
@@ -89,7 +96,7 @@ pitchman at once, and, allegedly, a perfectly ordinary human being.
 - **Never:** the voice of the page's real facts. He is a lore character who
   happens to be accurate; the ticker's Fact lines and the Fine Print's
   "Plainly" lines stay the page's own.
-- **Name:** proposed: Ibid.
+- **Name:** Ibid.
 
 ### The Appraiser
 
@@ -106,7 +113,7 @@ pitchman at once, and, allegedly, a perfectly ordinary human being.
 - **Where it appears:** the Vault and Vault cards.
 - **Never:** a real appraiser, museum or valuation (0003). It never states a
   price or a value in money, and it never comments on the Vault's posted odds.
-- **Name:** proposed: Loupe.
+- **Name:** Loupe.
 
 ### The Courier
 
@@ -168,7 +175,6 @@ From 0013, so a partner's version can replace a house sketch:
 
 ## Open questions
 
-- Names, for the host and everyone marked "proposed".
 - Whether the Showgirl is the right title for the page, or only the trope
   she plays. "The host's assistant" is the alternative.
 - Whether the cast speaks on the stage (a line each per segment, like the
