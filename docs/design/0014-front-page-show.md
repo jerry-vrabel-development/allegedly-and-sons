@@ -103,7 +103,8 @@ Small PRs, each one shippable:
 4. **More characters.** Each new sales character is a new seat for a writer
    and an artist (0013): the Archivist (a dry clerk who undersells what the
    host oversells), the Appraiser (for the Vault), the Courier (for the
-   Dispatch).
+   Dispatch). The cast sheet, with the host's assistant and Gerald added, is
+   [0016](0016-the-cast.md).
 
 ## Callers on the line (decided 2026-11-13, built)
 
