@@ -155,6 +155,17 @@ describe("GET / (the front page's stage, note 0014)", () => {
     expect(html).toContain(`(regularly ${formatPrice(segment.item.priceCents)}, 15% off)`);
   });
 
+  it("seats the Archivist on the far side of the set from the host, drawn and credited (note 0016)", async () => {
+    const { html } = await get("/");
+    const host = html.indexOf('<figure class="host-stage" data-host>');
+    const archivist = html.indexOf('<figure class="archivist-stage">');
+    expect(archivist).toBeGreaterThan(host);
+    expect(html).toContain('aria-labelledby="archivist-title archivist-desc"');
+    expect(html).toContain("<figcaption>Sketch by The Bureau.</figcaption></figure>");
+    // He doesn't carry a pose of his own: the host's decides when he moves.
+    expect(html).not.toContain('archivist-stage" data-');
+  });
+
   it("keeps every number true: the real end time, a clock, the real tally", async () => {
     const { html } = await get("/");
     expect(html).toContain("<strong>Ends at 3:00 PM Chicago time:</strong>");
