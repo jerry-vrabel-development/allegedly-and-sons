@@ -11,6 +11,7 @@ import { HOST_CSS } from "./host-art";
 import { CALLERS_CSS } from "./callers";
 import { STAGE_CSS } from "./stage";
 import { TICKER_CSS } from "./ticker";
+import { TRIXIE_CSS } from "./trixie-art";
 
 export const SITE_CSS = `:root {
   color-scheme: light dark;
@@ -275,7 +276,7 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
 @media (min-width: 52rem) {
   .exhibit { grid-template-columns: 1.15fr 1fr; gap: 2rem; }
 }
-${HOST_CSS}${ARCHIVIST_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
+${HOST_CSS}${ARCHIVIST_CSS}${TRIXIE_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 `;

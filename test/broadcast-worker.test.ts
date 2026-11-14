@@ -166,6 +166,15 @@ describe("GET / (the front page's stage, note 0014)", () => {
     expect(html).not.toContain('archivist-stage" data-');
   });
 
+  it("seats Trixie between the inset and the Archivist, drawn and credited (note 0016)", async () => {
+    const { html } = await get("/");
+    const archivist = html.indexOf('<figure class="archivist-stage">');
+    const trixie = html.indexOf('<figure class="trixie-stage">');
+    expect(trixie).toBeGreaterThan(archivist);
+    expect(html).toContain('aria-labelledby="trixie-title trixie-desc"');
+    expect(html).toContain("<figcaption>Sketch by The Bureau.</figcaption></figure>");
+  });
+
   it("keeps every number true: the real end time, a clock, the real tally", async () => {
     const { html } = await get("/");
     expect(html).toContain("<strong>Ends at 3:00 PM Chicago time:</strong>");
