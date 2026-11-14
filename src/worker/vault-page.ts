@@ -22,6 +22,7 @@ import { layout, type Page } from "./pages";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
+import { LOUPE_ARTIST, loupeArt } from "./loupe-art";
 import {
   COUNTDOWN_SCRIPT_PATH,
   DOSSIER_PATH,
@@ -105,6 +106,11 @@ export function vaultPage(
   repairOpen: boolean,
   effects: boolean,
 ): Page {
+  // Loupe, the Appraiser (note 0016), is the page's one data-host: the sound
+  // script poses it and adds the Motion toggle, as for the host on the stage.
+  // prettier-ignore
+  const loupeFigure = html`<figure class="loupe-figure" data-host>${loupeArt()}<figcaption>Sketch by ${LOUPE_ARTIST}.</figcaption></figure>`;
+
   return layout({
     title: "The Vault",
     description: "One free pull a day. Vault cards are never for sale.",
@@ -115,6 +121,7 @@ export function vaultPage(
         class="prose vault"
         data-reel="${JSON.stringify(VAULT_CARDS.map((card) => card.name))}"
       >
+        ${loupeFigure}
         <h1>The Vault</h1>
         <p class="tagline">Some relics are never for sale. They are only ever found.</p>
         <p>

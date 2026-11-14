@@ -242,6 +242,16 @@ describe("POST /vault/pull", () => {
 });
 
 describe("GET /vault", () => {
+  it("seats Loupe, the Appraiser, as the page's one drawn host, credited and priceless (note 0016)", async () => {
+    const html = await vaultHtml(A);
+    expect(html.match(/data-host/g)).toHaveLength(1);
+    expect(html).toContain('<figure class="loupe-figure" data-host>');
+    expect(html).toContain('aria-labelledby="loupe-title loupe-desc"');
+    expect(html).toContain(
+      "<figcaption>Sketch by The Bureau.</figcaption></figure> <h1>The Vault</h1>",
+    );
+  });
+
   it("offers a new agent their free pull, the posted odds, and sealed cards", async () => {
     const html = await vaultHtml(A);
     expect(html).toContain("<h1>The Vault</h1>");
