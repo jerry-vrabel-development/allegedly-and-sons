@@ -15,6 +15,7 @@ import { segmentAt, specialPriceCents } from "../core/broadcast";
 import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { artPath, itemPathFor, TERMS_PATH } from "../core/paths";
+import { ARCHIVIST_ARTIST, archivistArt } from "./archivist-art";
 import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
@@ -31,10 +32,14 @@ export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml
   // prettier-ignore
   const hostFigure = html`<figure class="host-stage" data-host>${hostArt()}<figcaption>Sketch by ${HOST_ARTIST}.</figcaption></figure>`;
 
+  // The Archivist is only seen for now, on the far side of the set from the host (note 0016).
+  // prettier-ignore
+  const archivistFigure = html`<figure class="archivist-stage">${archivistArt()}<figcaption>Sketch by ${ARCHIVIST_ARTIST}.</figcaption></figure>`;
+
   return html`<section class="stage" aria-label="On air now">
     <div class="screen">
       <div class="set">
-        ${hostFigure}
+        ${hostFigure} ${archivistFigure}
         <p class="says">“${pitch}”</p>
         <a class="inset" href="${href}" tabindex="-1" aria-hidden="true">
           <img src="${artPath(item.slug)}" alt="" width="800" height="600" decoding="async" />

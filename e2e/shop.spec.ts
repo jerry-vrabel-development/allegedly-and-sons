@@ -523,6 +523,28 @@ test("the Motion toggle is only on pages with the host, and not under reduced mo
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
 });
 
+test("the Archivist sits on the front page's stage and works while the host is moving", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const archivist = page.locator(".stage .archivist-stage");
+  await expect(archivist.getByRole("img", { name: "The Archivist" })).toBeVisible();
+  await expect(page.locator(".stage [data-host]")).toHaveAttribute("data-pose", "waiting");
+  await expect(archivist.locator(".archivist-stamp")).not.toHaveCSS("animation-name", "none");
+  // Held still with the Motion toggle, he stops with the host.
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
+  await expect(archivist.locator(".archivist-page")).toHaveCSS("animation-name", "none");
+  await expectNoAxeViolations(page);
+});
+
+test("the plain group sees the Archivist as a still drawing", async ({ page }) => {
+  await page.goto("/?fx=off");
+  const archivist = page.locator(".stage .archivist-stage");
+  await expect(archivist.getByRole("img", { name: "The Archivist" })).toBeVisible();
+  await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
+});
+
 test("the plain group sees the front page's host as a still drawing, with no toggles", async ({
   page,
 }) => {
