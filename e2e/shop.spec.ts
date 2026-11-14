@@ -578,6 +578,62 @@ test("Trixie gives way on a narrow stage, and is a still drawing for the plain g
   await expect(trixie.locator(".trixie-arm")).toHaveCSS("animation-name", "none");
 });
 
+for (const width of [900, 1100, 1440]) {
+  test(`Nickel perches above Trixie at ${String(width)}px, clear of everyone, and moves with the host`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?fx=on");
+    const nickel = page.locator(".stage .nickel-stage");
+    await expect(nickel.getByRole("img", { name: /Nickel/ })).toBeVisible();
+    await expect(nickel.locator(".nickel-bell")).not.toHaveCSS("animation-name", "none");
+    // Five figures and the speech bubble, and none of them touches another.
+    const boxes = await Promise.all(
+      [
+        ".says",
+        ".stage .inset",
+        ".nickel-stage",
+        ".trixie-stage",
+        ".archivist-stage",
+        ".host-stage",
+      ].map(async (selector) => ({
+        selector,
+        box: await page.locator(selector).first().boundingBox(),
+      })),
+    );
+    for (const [index, a] of boxes.entries()) {
+      for (const b of boxes.slice(index + 1)) {
+        if (a.box === null || b.box === null)
+          throw new Error(`${a.selector} or ${b.selector} is not laid out`);
+        const apart =
+          a.box.x + a.box.width <= b.box.x + 1 ||
+          b.box.x + b.box.width <= a.box.x + 1 ||
+          a.box.y + a.box.height <= b.box.y + 1 ||
+          b.box.y + b.box.height <= a.box.y + 1;
+        expect(apart, `${a.selector} and ${b.selector} overlap`).toBe(true);
+      }
+    }
+    // Held still with the Motion toggle, he stops with the host.
+    await page.getByRole("button", { name: "Motion: on" }).click();
+    for (const part of [".nickel-bell", ".nickel-tape", ".nickel-arm-l", ".nickel-drawer"]) {
+      await expect(nickel.locator(part)).toHaveCSS("animation-name", "none");
+    }
+    await expectNoAxeViolations(page);
+  });
+}
+
+test("Nickel gives way on a narrow stage, and is a still drawing for the plain group", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/?fx=off");
+  await expect(page.locator(".stage .nickel-stage")).toBeHidden();
+  await page.setViewportSize({ width: 1100, height: 800 });
+  const nickel = page.locator(".stage .nickel-stage");
+  await expect(nickel.getByRole("img", { name: /Nickel/ })).toBeVisible();
+  await expect(nickel.locator(".nickel-bell")).toHaveCSS("animation-name", "none");
+});
+
 test("the plain group sees the front page's host as a still drawing, with no toggles", async ({
   page,
 }) => {
