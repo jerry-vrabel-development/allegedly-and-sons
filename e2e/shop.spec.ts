@@ -659,6 +659,67 @@ test("a link with a sound still gets there", async ({ page }) => {
   await expect(page).toHaveURL(/\/checkout\/alien-paperclip$/);
 });
 
+for (const width of [1100, 390]) {
+  test(`Loupe hangs over the Vault at ${String(width)}px, clear of the words, and moves with the host`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/vault?fx=on");
+    const loupe = page.locator(".loupe-figure");
+    await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
+    await expect(loupe.locator(".loupe-lens")).not.toHaveCSS("animation-name", "none");
+    // The words wrap around the figure: no line of text in the intro touches it.
+    const touching = await page.evaluate(() => {
+      const fig = document.querySelector(".loupe-figure")?.getBoundingClientRect();
+      if (fig === undefined) return ["no figure"];
+      const hits: string[] = [];
+      for (const node of document.querySelectorAll(".prose.vault > h1, .prose.vault > p")) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const line of range.getClientRects()) {
+          if (
+            line.width > 0 &&
+            line.left < fig.right - 1 &&
+            line.right > fig.left + 1 &&
+            line.top < fig.bottom - 1 &&
+            line.bottom > fig.top + 1
+          ) {
+            hits.push(node.tagName);
+          }
+        }
+      }
+      return hits;
+    });
+    expect(touching, "text runs under Loupe").toEqual([]);
+    // No sideways scroll, even on a phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    // Held still with the Motion toggle, every part stops.
+    await page.getByRole("button", { name: "Motion: on" }).click();
+    for (const part of [
+      ".loupe-bob",
+      ".loupe-lens",
+      ".loupe-pupil",
+      ".loupe-hand-l",
+      ".loupe-gem",
+    ]) {
+      await expect(loupe.locator(part)).toHaveCSS("animation-name", "none");
+    }
+    await expectNoAxeViolations(page);
+  });
+}
+
+test("Loupe is a still drawing for the plain group, with no Motion toggle to hold", async ({
+  page,
+}) => {
+  await page.goto("/vault?fx=off");
+  const loupe = page.locator(".loupe-figure");
+  await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
+  await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
+  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+});
+
 test("the plain group gets the plain lever", async ({ page }) => {
   await page.goto("/vault?fx=off");
   await expect(page.getByRole("button", { name: "Pull the lever" })).toBeVisible();
