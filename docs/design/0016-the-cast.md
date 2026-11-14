@@ -39,7 +39,7 @@ submissions ([0017](0017-submissions.md)).
 
 ## The cast
 
-Names are decided: Guy Normal, Trixie Parallax, Ibid and Loupe. The Courier
+Names are decided: Guy Normal, Trixie Parallax, Ibid, Loupe and Nickel. The Courier
 has none, and Gerald is Gerald.
 
 ### The host
@@ -132,6 +132,30 @@ pitchman at once, and, allegedly, a perfectly ordinary human being.
   plainly in the Fine Print; the Courier is only its flavor.
 - **Name:** none. Asking is discouraged.
 
+### Nickel
+
+- **Job in the act:** the wisecracking sidekick. He cracks jokes, narrates the
+  ticker and cannot let a silence go by.
+- **From:** a dimension of nothing but transactions, where every sentence
+  closes a sale.
+- **What he is:** a brass cash-register robot with spindly arms, a bell on his
+  head and a drawer in his belly that bangs open on a punchline. His mouth
+  is a slot, and the joke comes out on a strip of ticker tape.
+- **How he talks:** constantly, in puns and patter. "That one's on the house.
+  Everything else is on the Bureau." He laughs at his own jokes first, and
+  the bell rings for him.
+- **His joke:** he is the only one who truly understands what things cost,
+  and he cannot keep it to himself, so everyone else has stopped asking him.
+- **Parts that move:** the bell, the tape feeding out, the drawer slamming
+  open, the arms flung wide at a punchline.
+- **Where he appears:** the stage's ticker, where his tape is the Lore lines,
+  and the stage beside the Archivist.
+- **Never:** the voice of the page's facts. He tells the Lore; the Fact lines
+  and the Fine Print's "Plainly" lines stay the page's own. He never states
+  a real price, and he is not modelled on any existing character: the
+  cash-register body, the tape and the bell are his own.
+- **Name:** Nickel.
+
 ### Gerald
 
 Already in the shop's copy: certificates are "witnessed by Gerald, the
@@ -178,7 +202,8 @@ From 0013, so a partner's version can replace a house sketch:
 - Whether the Showgirl is the right title for the page, or only the trope
   she plays. "The host's assistant" is the alternative.
 - Whether the cast speaks on the stage (a line each per segment, like the
-  callers) or is only seen.
+  callers) or is only seen. Nickel is the natural first voice: his tape
+  would carry the ticker's Lore lines.
 - Whether more cast is wanted: a bandleader, an announcer, security at the
   back door.
 - How cast work earns for partners. It is not a product, so it falls under
