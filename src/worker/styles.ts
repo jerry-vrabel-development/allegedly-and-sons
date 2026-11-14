@@ -8,6 +8,7 @@
  */
 import { ARCHIVIST_CSS } from "./archivist-art";
 import { HOST_CSS } from "./host-art";
+import { NICKEL_CSS } from "./nickel-art";
 import { CALLERS_CSS } from "./callers";
 import { STAGE_CSS } from "./stage";
 import { TICKER_CSS } from "./ticker";
@@ -276,7 +277,7 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
 @media (min-width: 52rem) {
   .exhibit { grid-template-columns: 1.15fr 1fr; gap: 2rem; }
 }
-${HOST_CSS}${ARCHIVIST_CSS}${TRIXIE_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
+${HOST_CSS}${ARCHIVIST_CSS}${TRIXIE_CSS}${NICKEL_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 `;
