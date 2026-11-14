@@ -175,6 +175,15 @@ describe("GET / (the front page's stage, note 0014)", () => {
     expect(html).toContain("<figcaption>Sketch by The Bureau.</figcaption></figure>");
   });
 
+  it("perches Nickel above Trixie, drawn and credited, with no price or digit in his words (note 0016)", async () => {
+    const { html } = await get("/");
+    const trixie = html.indexOf('<figure class="trixie-stage">');
+    const nickel = html.indexOf('<figure class="nickel-stage">');
+    expect(nickel).toBeGreaterThan(trixie);
+    expect(html).toContain('aria-labelledby="nickel-title nickel-desc"');
+    expect(html).toContain("<figcaption>Sketch by The Bureau.</figcaption></figure>");
+  });
+
   it("keeps every number true: the real end time, a clock, the real tally", async () => {
     const { html } = await get("/");
     expect(html).toContain("<strong>Ends at 3:00 PM Chicago time:</strong>");

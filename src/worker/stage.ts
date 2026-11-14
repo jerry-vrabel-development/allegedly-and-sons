@@ -18,6 +18,7 @@ import { artPath, itemPathFor, TERMS_PATH } from "../core/paths";
 import { ARCHIVIST_ARTIST, archivistArt } from "./archivist-art";
 import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
+import { NICKEL_ARTIST, nickelArt } from "./nickel-art";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
 import { tickerStrip } from "./ticker";
 import { TRIXIE_ARTIST, trixieArt } from "./trixie-art";
@@ -41,10 +42,14 @@ export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml
   // prettier-ignore
   const trixieFigure = html`<figure class="trixie-stage">${trixieArt()}<figcaption>Sketch by ${TRIXIE_ARTIST}.</figcaption></figure>`;
 
+  // Nickel, the register robot, perches above Trixie (note 0016).
+  // prettier-ignore
+  const nickelFigure = html`<figure class="nickel-stage">${nickelArt()}<figcaption>Sketch by ${NICKEL_ARTIST}.</figcaption></figure>`;
+
   return html`<section class="stage" aria-label="On air now">
     <div class="screen">
       <div class="set">
-        ${hostFigure} ${archivistFigure} ${trixieFigure}
+        ${hostFigure} ${archivistFigure} ${trixieFigure} ${nickelFigure}
         <p class="says">“${pitch}”</p>
         <a class="inset" href="${href}" tabindex="-1" aria-hidden="true">
           <img src="${artPath(item.slug)}" alt="" width="800" height="600" decoding="async" />
