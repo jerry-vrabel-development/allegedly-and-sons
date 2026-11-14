@@ -87,7 +87,8 @@ pitchman at once, and who is, allegedly, a perfectly ordinary human being.
 1. **House art (now):** the host and the first characters are AI-assisted
    sketches, credited to "The Bureau." No artist features.
 2. **Artists' partnership (a later version release, alongside the
-   writers'):** submissions, credit, bio pages and a way to earn.
+   writers'):** submissions, credit, bio pages and a way to earn. How work
+   is submitted is proposed in [0017](0017-submissions.md).
 
 ## What to build now so phase 2 is easy
 
@@ -199,4 +200,5 @@ it is built.
   hosted on our own storage), and who prepares it for animation.
 - Can a later artist redraw an existing exhibit or character? If so, what
   happens to the first artist's credit and share?
-- The host's name.
+- The host's name. The cast sheet ([0016](0016-the-cast.md)) proposes some,
+  and holds the briefs for the characters after him.

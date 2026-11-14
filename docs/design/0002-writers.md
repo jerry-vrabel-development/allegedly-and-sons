@@ -65,6 +65,9 @@ and partners are dealt with fairly and plainly.
 
 ## Submissions
 
+The process is proposed in [0017](0017-submissions.md): by email and reviewed
+by hand first, a form later.
+
 - A submission form and a review step. Nothing goes live without approval.
 - Submissions are stored privately; contact details never appear in logs or
   analytics.
