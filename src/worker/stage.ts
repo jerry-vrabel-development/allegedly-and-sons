@@ -20,6 +20,7 @@ import { HOST_ARTIST, hostArt } from "./host-art";
 import { html, type SafeHtml } from "./html";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
 import { tickerStrip } from "./ticker";
+import { TRIXIE_ARTIST, trixieArt } from "./trixie-art";
 
 /** The stage band: `soldThisSegment` is the real count of orders in this segment. */
 export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml {
@@ -36,10 +37,14 @@ export function stageBand(nowSeconds: number, soldThisSegment: number): SafeHtml
   // prettier-ignore
   const archivistFigure = html`<figure class="archivist-stage">${archivistArt()}<figcaption>Sketch by ${ARCHIVIST_ARTIST}.</figcaption></figure>`;
 
+  // Trixie, the host's assistant, stands between the inset and the Archivist (note 0016).
+  // prettier-ignore
+  const trixieFigure = html`<figure class="trixie-stage">${trixieArt()}<figcaption>Sketch by ${TRIXIE_ARTIST}.</figcaption></figure>`;
+
   return html`<section class="stage" aria-label="On air now">
     <div class="screen">
       <div class="set">
-        ${hostFigure} ${archivistFigure}
+        ${hostFigure} ${archivistFigure} ${trixieFigure}
         <p class="says">“${pitch}”</p>
         <a class="inset" href="${href}" tabindex="-1" aria-hidden="true">
           <img src="${artPath(item.slug)}" alt="" width="800" height="600" decoding="async" />
