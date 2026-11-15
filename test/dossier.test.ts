@@ -16,6 +16,7 @@ import {
   wingCommendations,
   withWingAwards,
 } from "../src/core/dossier";
+import { FINDS, findAwardId } from "../src/core/finds";
 import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 
 const BASE: AnalyticsEvent = {
@@ -37,6 +38,7 @@ describe("awards", () => {
     for (const badge of BADGES) expect(isAward(badge.id)).toBe(true);
     for (const item of CATALOG) expect(isAward(cardId(item.slug))).toBe(true);
     for (const card of VAULT_CARDS) expect(isAward(vaultAwardId(card.id))).toBe(true);
+    for (const find of FINDS) expect(isAward(findAwardId(find.id))).toBe(true);
     for (const bogus of [
       "",
       "card:",
@@ -44,13 +46,20 @@ describe("awards", () => {
       "vault:",
       "vault:alien-paperclip",
       "card:the-moons-receipt",
+      "find:",
+      "find:loupe",
+      "find:Loose-Brick",
       "admin",
       "Case-Closed",
     ]) {
       expect(isAward(bogus)).toBe(false);
     }
     expect(TOTAL_AWARDS).toBe(
-      BADGES.length + wingCommendations().length + CATALOG.length + VAULT_CARDS.length,
+      BADGES.length +
+        wingCommendations().length +
+        CATALOG.length +
+        VAULT_CARDS.length +
+        FINDS.length,
     );
   });
 

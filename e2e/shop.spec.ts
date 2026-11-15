@@ -315,6 +315,31 @@ test("finishing a case file earns its card in your dossier", async ({ page, brow
   await expect(page.getByText(/Agent No\. \d{4}/)).toBeVisible();
 });
 
+test("finding a hidden contact by keyboard meets them in the Book of Contacts", async ({
+  page,
+}) => {
+  await page.goto("/vault");
+  const brick = page.getByRole("button", { name: "Press the loose brick" });
+  await brick.focus();
+  await expect(brick).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(page).toHaveURL(/\/find\/loose-brick$/);
+  await expect(page.getByRole("heading", { level: 1, name: "You found something" })).toBeVisible();
+  await expect(page.getByText("Contact: Loupe")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to the Vault" })).toHaveAttribute(
+    "href",
+    "/vault",
+  );
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("link", { name: "Book of Contacts" }).click();
+  await expect(page).toHaveURL(/\/dossier#contacts$/);
+  await expect(page.locator("#contacts li", { hasText: "Loupe" })).toContainText("(met)");
+  await expect(page.locator("#contacts li", { hasText: "Unmet contact" })).toHaveCount(5);
+  await expectNoAxeViolations(page);
+});
+
 test("pulling the lever spins the reel and lands on the card", async ({ page, browserName }) => {
   // The lever needs the Secure visitor cookie, which WebKit won't keep on
   // http://localhost. Pull rules are covered by test/vault-worker.test.ts.

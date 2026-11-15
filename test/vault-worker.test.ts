@@ -318,7 +318,9 @@ describe("GET /vault", () => {
       /\s+/g,
       " ",
     );
-    expect(fine).toContain("or pull the vault lever, we keep them and your pulls");
+    expect(fine).toContain(
+      "pull the vault lever or find one of the hidden contacts, we keep them and your pulls",
+    );
   });
 
   it("shows vault cards in the dossier", async () => {

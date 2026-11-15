@@ -231,6 +231,26 @@ export function ledgerPage(ledger: Ledger, email: string): Page {
           </tbody>
         </table>`,
       )}
+      ${scrollTable(
+        "The hunt",
+        html`<table>
+          <caption>
+            The hunt: do the hidden contacts get found?
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">Agents who found one</th>
+              <th scope="col" class="num">Finds</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">${String(ledger.finds.finders)}</td>
+              <td class="num">${String(ledger.finds.finds)}</td>
+            </tr>
+          </tbody>
+        </table>`,
+      )}
       <section class="prose" aria-labelledby="effects-test-heading">
         <h2 id="effects-test-heading">The effects test</h2>
         ${effectsTestStatus(ledger.effectsTest)} ${effectsDifferences(ledger.effects)}

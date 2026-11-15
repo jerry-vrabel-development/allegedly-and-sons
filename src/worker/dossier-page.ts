@@ -14,8 +14,10 @@ import {
   wingCommendations,
   withWingAwards,
 } from "../core/dossier";
+import { FINDS, findAwardId } from "../core/finds";
 import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
+import { dropForm } from "./find-drop";
 import { dispatchSection, type DispatchView } from "./dispatch-pages";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
@@ -120,6 +122,21 @@ export function dossierPage(
         </ul>
       </section>
 
+      <section class="prose" aria-labelledby="contacts-heading" id="contacts">
+        <h2 id="contacts-heading">Book of Contacts</h2>
+        <p>
+          The Bureau has no contacts. The host said so, firmly. Find them anyway: each one is hidden
+          somewhere in the shop, and each counts toward your rank.
+        </p>
+        <ul class="badges">
+          ${FINDS.map((find) =>
+            earned.has(findAwardId(find.id))
+              ? html`<li><strong>${find.contact}</strong> (met): ${find.role} ${find.reaction}</li>`
+              : html`<li><strong>Unmet contact</strong> (not yet found): ${find.hint}</li>`,
+          )}
+        </ul>
+      </section>
+
       <section class="prose" aria-labelledby="badges-heading">
         <h2 id="badges-heading">Commendations</h2>
         <ul class="badges">
@@ -140,6 +157,7 @@ export function dossierPage(
                 </li>`,
           )}
         </ul>
-      </section>`,
+      </section>
+      ${dropForm("misfiled-card")}`,
   });
 }
