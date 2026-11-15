@@ -16,8 +16,8 @@
  * - Makes the stage's ticker crawl (note 0014). The same "Motion" toggle
  *   stops it, and it never starts under reduced motion.
  * - Plays the page's sounds: an element with data-sound="<name>" plays on
- *   click (a link waits LINK_DELAY_MS so it's heard; a modified click never
- *   waits), a case file creaks open, and the story script's "bureau:card"
+ *   click (a link, or a form's submit button, waits LINK_DELAY_MS so it's
+ *   heard; a modified click never waits), a case file creaks open, and the story script's "bureau:card"
  *   event stamps.
  * - The Broadcast's "Tune in" (PR 2): radio static and the station stinger,
  *   the host's lines lit one at a time, and a stinger when the segment ends.
@@ -246,6 +246,14 @@ function start(): void {
       event.preventDefault();
       setTimeout(() => {
         window.location.assign(href);
+      }, LINK_DELAY_MS);
+    }
+    // A submit button waits the same beat, so a find's sparkle is heard before the page moves on.
+    const form = target instanceof HTMLButtonElement ? target.form : null;
+    if (form !== null && !muted && !event.defaultPrevented) {
+      event.preventDefault();
+      setTimeout(() => {
+        form.requestSubmit();
       }, LINK_DELAY_MS);
     }
   });
