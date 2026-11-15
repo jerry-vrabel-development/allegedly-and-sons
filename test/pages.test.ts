@@ -507,6 +507,20 @@ describe("buying", () => {
     }
   });
 
+  it("seats Gerald inside an exhibit's certificate box, as the page's one drawn host (note 0016)", () => {
+    const item = pages.item;
+    expect(count(item, /data-host/g)).toBe(1);
+    expect(item).toContain(
+      '<section class="certificate" aria-labelledby="certificate-heading"> <figure class="gerald-figure" data-host>',
+    );
+    expect(item).toContain(
+      '<figcaption>Sketch by The Bureau.</figcaption></figure> <h2 id="certificate-heading">Bureau Certificate</h2>',
+    );
+    // The thank-you page keeps the Courier as its one drawn host, so Gerald isn't there.
+    expect(squish(thanksPage({ kind: "paid", item: firstItem() }))).not.toContain("gerald-figure");
+    expect(pages.home).not.toContain("gerald-figure");
+  });
+
   it("seats the Courier on a paid thank-you only, as the page's one drawn host (note 0016)", () => {
     const item = firstItem();
     const paid = squish(thanksPage({ kind: "paid", item }));
