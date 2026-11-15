@@ -148,6 +148,12 @@ footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--mute
 .card.sealed { border-style: dashed; background: transparent; }
 .badges { padding-left: 1.25rem; }
 
+/* Hidden finds (note 0018): a small dashed button, labeled in words, never color alone */
+.drop { margin: 2rem 0 0.5rem; }
+.drop button { min-height: 2rem; font: inherit; font-size: 0.9rem; color: var(--muted); background: transparent; border: 1px dashed var(--muted); border-radius: 4px; padding: 0.25rem 0.75rem; cursor: pointer; }
+.drop button:hover { color: var(--text); border-style: solid; }
+.drop button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
 /* The vault: rarity and status are in words on every card, never color alone */
 .lever .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
 .lever .button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }

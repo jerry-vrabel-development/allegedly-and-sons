@@ -8,6 +8,7 @@
 
 import type { AnalyticsEvent } from "./analytics";
 import { CATALOG, findItem, fullWings, wingItems, type Wing, type WingId } from "./catalog";
+import { FINDS, isFindAward } from "./finds";
 import { findVaultCard, VAULT_CARDS } from "./vault";
 
 export interface Badge {
@@ -88,6 +89,7 @@ export function cardId(slug: string): string {
 export function isAward(id: string): boolean {
   if (BADGE_IDS.has(id)) return true;
   if (id.startsWith("vault:")) return findVaultCard(id.slice("vault:".length)) !== undefined;
+  if (id.startsWith("find:")) return isFindAward(id);
   return id.startsWith("card:") && findItem(id.slice("card:".length)) !== undefined;
 }
 
@@ -118,10 +120,10 @@ export function withWingAwards(stored: Iterable<string>): ReadonlySet<string> {
 
 /**
  * How many awards there are to earn in all: badges, wing commendations,
- * exhibit cards and vault cards.
+ * exhibit cards, vault cards and finds (note 0018).
  */
 export const TOTAL_AWARDS =
-  BADGES.length + wingCommendations().length + CATALOG.length + VAULT_CARDS.length;
+  BADGES.length + wingCommendations().length + CATALOG.length + VAULT_CARDS.length + FINDS.length;
 
 export interface Rank {
   readonly title: string;

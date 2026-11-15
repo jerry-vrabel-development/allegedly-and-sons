@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import { BADGES, cardId, TOTAL_AWARDS } from "../src/core/dossier";
+import { FINDS, findAwardId } from "../src/core/finds";
 import { VAULT_CARDS, vaultAwardId } from "../src/core/vault";
 import { recordEvent } from "../src/worker/analytics";
 import { grantAwards, readDossier } from "../src/worker/dossier";
@@ -175,6 +176,7 @@ describe("GET /dossier", () => {
         ...BADGES.map((badge) => badge.id),
         ...CATALOG.map((item) => cardId(item.slug)),
         ...VAULT_CARDS.map((card) => vaultAwardId(card.id)),
+        ...FINDS.map((find) => findAwardId(find.id)),
       ],
       NOW,
     );

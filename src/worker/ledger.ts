@@ -68,6 +68,14 @@ export interface VaultRow {
   readonly returners: number;
 }
 
+/** The hunt (note 0018): do the hidden contacts get found? */
+export interface FindsRow {
+  /** Agents who found at least one in the period. */
+  readonly finders: number;
+  /** Finds recorded in the period, all agents together. */
+  readonly finds: number;
+}
+
 export interface EffectsRow {
   readonly variant: "fx" | "plain";
   /** Visitors who viewed an exhibit, and of them: opened, finished, shared, bought (note 0011). */
@@ -85,6 +93,7 @@ export interface EffectsRow {
 export interface Ledger {
   readonly period: Period;
   readonly vault: VaultRow;
+  readonly finds: FindsRow;
   readonly dispatch: DispatchCounts;
   /** Duty streaks right now (not by period: a streak is about today). */
   readonly streaks: StreakSummary;
@@ -238,6 +247,13 @@ function ledgerQueries(db: D1Database, since: number, ownHost: string) {
          FROM vault_pulls WHERE pulled_at >= ?1`,
       )
       .bind(since),
+    /** The hunt: who found a hidden contact, and how many finds. One row. */
+    finds: db
+      .prepare(
+        `SELECT COUNT(DISTINCT visitor_id) AS finders, COUNT(*) AS finds
+         FROM awards WHERE award LIKE 'find:%' AND earned_at >= ?`,
+      )
+      .bind(since),
     /** Dispatch registrations and emails. One row. */
     dispatch: dispatchCountsQuery(db, since),
     /** Streak buy-backs. One row. */
@@ -327,6 +343,7 @@ export async function readLedger(
   const streaks = await readStreakSummary(db, nowSeconds);
 
   const vault = one(rows.vault);
+  const finds = one(rows.finds);
   const dispatch = one(rows.dispatch);
   const repairs = one(rows.repairs);
   const broadcast = one(rows.broadcast);
@@ -373,6 +390,7 @@ export async function readLedger(
       bonusPulls: num(vault["bonus_pulls"]),
       returners: num(vault["returners"]),
     },
+    finds: { finders: num(finds["finders"]), finds: num(finds["finds"]) },
     dispatch: {
       registered: num(dispatch["registered"]),
       unsubscribed: num(dispatch["unsubscribed"]),

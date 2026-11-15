@@ -328,7 +328,7 @@ describe("disclaimer page", () => {
     expect(TERMS_LAST_AMENDED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // Prettier may wrap the tags, so allow whitespace before each ">".
     expect(pages.disclaimer).toMatch(
-      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 10, 2026</time\\s*>`),
+      new RegExp(`<time datetime="${TERMS_LAST_AMENDED}"\\s*>November 15, 2026</time\\s*>`),
     );
     expect(pages.disclaimer).toContain(
       "Your order is governed by the terms posted when you placed it.",
@@ -420,7 +420,7 @@ describe("the Bureau's methods", () => {
     expect(text).toContain("lasts a year from your latest visit");
     expect(text).toContain("it’s deleted when you close your browser");
     expect(text).toContain(
-      "If you earn badges or cards, or pull the vault lever, we keep them and your pulls with the first cookie’s number",
+      "If you earn badges or cards, pull the vault lever or find one of the hidden contacts, we keep them and your pulls with the first cookie’s number",
     );
     expect(text).not.toContain("one cookie");
     expect(text).toContain("we pass the first one’s number to Stripe with your order");

@@ -77,16 +77,17 @@ standing in the fiction, and the shop is where the deals happen.
   label, reachable by keyboard and screen reader. Nothing relies on color,
   and the reaction is words first, with motion as a bonus that reduced motion
   turns off.
+- **Never on an exhibit page.** An exhibit page carries no form, so nothing on it
+  can touch the price. Drops live on the other pages.
 - **Placement is data, not a hunt for the code.** A short list of drops, each
   with a page and a contact, so adding one is a one-line change with a test.
 
 ### The Book of Contacts (the collection)
 
 A section of the existing Dossier, not a new page. One entry per contact
-(the seven cast members to start, the guest cast later). An unmet contact
+(six to start: every cast member but the host, who insists he has no contacts; the guest cast later). An unmet contact
 shows as a blank slot that says so in words ("Unmet. Somebody here knows
-something."). A met contact shows their portrait, their line and the finds
-that introduced them. Slots exist so the visitor can see what is missing.
+something."). A met contact shows their name, their job and what they said when found (a portrait can follow). Slots exist so the visitor can see what is missing.
 
 ### The Job Board (the anticipation)
 
