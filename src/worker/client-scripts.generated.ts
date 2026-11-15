@@ -794,6 +794,13 @@ export const SOUND_JS = `"use strict";
           window.location.assign(href);
         }, LINK_DELAY_MS);
       }
+      const form = target instanceof HTMLButtonElement ? target.form : null;
+      if (form !== null && !muted && !event.defaultPrevented) {
+        event.preventDefault();
+        setTimeout(() => {
+          form.requestSubmit();
+        }, LINK_DELAY_MS);
+      }
     });
     const story = document.querySelector("details[data-story]");
     if (story !== null) {

@@ -124,6 +124,17 @@ describe("GET /find/<id>", () => {
     expect(page).toContain('<meta name="robots" content="noindex"');
   });
 
+  it("draws the contact above the heading, as the page's one data-host", async () => {
+    for (const find of FINDS) {
+      await grantAwards(env.DB, A, [findAwardId(find.id)], NOW);
+      const page = await text(`/find/${find.id}`);
+      expect(page.match(/data-host/g), find.id).toHaveLength(1);
+      expect(page.indexOf('<div class="set">'), find.id).toBeGreaterThan(-1);
+      expect(page.indexOf('<div class="set">'), find.id).toBeLessThan(page.indexOf("<h1>"));
+      expect(page, find.id).toContain("Sketch by The Bureau.");
+    }
+  });
+
   it("is not found until you've found it, and for unknown finds", async () => {
     for (const [path, visitor] of [
       ["/find/loose-brick", A],

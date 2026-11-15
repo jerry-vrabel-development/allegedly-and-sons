@@ -153,6 +153,11 @@ footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--mute
 .drop button { min-height: 2rem; font: inherit; font-size: 0.9rem; color: var(--muted); background: transparent; border: 1px dashed var(--muted); border-radius: 4px; padding: 0.25rem 0.75rem; cursor: pointer; }
 .drop button:hover { color: var(--text); border-style: solid; }
 .drop button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* The found page: the contact's sketch, posed by the sound script like any host's */
+.prose.find { display: flow-root; }
+.find figure[data-host] { float: none; width: min(13rem, 70%); margin: 0 auto 1.25rem; }
+@media (min-width: 40rem) { .find figure[data-host] { float: right; margin: 0 0 1rem 1.5rem; width: 13rem; } }
+.find figure[data-host] figcaption { margin: 0; padding: 0.2rem 0 0; text-align: center; font-size: 0.75rem; font-style: normal; color: var(--muted); }
 
 /* The vault: rarity and status are in words on every card, never color alone */
 .lever .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }

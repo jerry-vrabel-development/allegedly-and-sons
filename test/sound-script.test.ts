@@ -70,6 +70,10 @@ describe("the sound script", () => {
     expect(SOUND_JS.match(/\.setItem\(/g)).toHaveLength(2);
   });
 
+  it("holds a submit button for a beat, so a find's sparkle is heard before the page moves on", () => {
+    expect(SOUND_JS).toContain("requestSubmit");
+  });
+
   it("carries the sounds and nothing else: no catalog, nothing it doesn't use", () => {
     // Raised from 15,000 when the host's Motion toggle and the ticker's crawl joined (notes 0013, 0014).
     expect(SOUND_JS.length).toBeLessThan(16_000);

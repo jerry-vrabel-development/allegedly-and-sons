@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { isSoundName } from "../src/client/sounds";
 import { dropForm } from "../src/worker/find-drop";
+import { findFigure } from "../src/worker/find-figure";
 import {
   FIND_PATH,
   FINDS,
@@ -76,7 +78,35 @@ describe("the hidden control", () => {
     expect(form).not.toContain("<script");
   });
 
+  it("sparkles when pressed, with a sound the shop really has", () => {
+    const form = dropForm("loose-brick").value;
+    expect(form).toContain('data-sound="sparkle"');
+    expect(isSoundName("sparkle")).toBe(true);
+  });
+
   it("refuses a find that doesn't exist, so a typo can't ship", () => {
     expect(() => dropForm("loupe")).toThrow('No find called "loupe".');
+  });
+});
+
+describe("the contact's sketch on the found page", () => {
+  it("draws every contact: described, credited, and the page's one data-host", () => {
+    for (const find of FINDS) {
+      const figure = findFigure(find.id).value;
+      expect(figure, find.id).toContain('<div class="set">');
+      expect(figure.match(/data-host/g), find.id).toHaveLength(1);
+      expect(figure, find.id).toContain('role="img"');
+      expect(figure, find.id).toContain("Sketch by The Bureau.");
+      expect(figure, find.id).not.toMatch(/<script|style=|href=/);
+    }
+  });
+
+  it("draws a different character for each find", () => {
+    const drawings = FINDS.map((find) => findFigure(find.id).value);
+    expect(new Set(drawings).size).toBe(FINDS.length);
+  });
+
+  it("refuses a find with no sketch, so a new find can't ship without one", () => {
+    expect(() => findFigure("loupe")).toThrow('No sketch for the find "loupe".');
   });
 });

@@ -345,6 +345,75 @@ test("finding a hidden contact by keyboard meets them in the Book of Contacts", 
   await expectNoAxeViolations(page);
 });
 
+for (const width of [1100, 390]) {
+  test(`Loupe turns up on his found page at ${String(width)}px, clear of the words, moving, and still when told`, async ({
+    page,
+    browserName,
+  }) => {
+    // The find needs the Secure visitor cookie, which WebKit drops on http://localhost.
+    test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+    await page.setViewportSize({ width, height: 900 });
+    // With sound on, the press waits a beat for its sparkle and then goes through.
+    await page.goto("/vault?fx=on");
+    await page.getByRole("button", { name: "Press the loose brick" }).click();
+    await expect(page).toHaveURL(/\/find\/loose-brick$/);
+
+    await page.goto("/find/loose-brick?fx=on");
+    const loupe = page.locator(".loupe-figure");
+    await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
+    await expect(loupe.locator(".loupe-lens")).not.toHaveCSS("animation-name", "none");
+    // The words wrap around the sketch: no line of text touches it.
+    const touching = await page.evaluate(() => {
+      const fig = document.querySelector(".find figure[data-host]")?.getBoundingClientRect();
+      if (fig === undefined) return ["no figure"];
+      const hits: string[] = [];
+      for (const node of document.querySelectorAll(".prose.find > h1, .prose.find > p")) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const line of range.getClientRects()) {
+          if (
+            line.width > 0 &&
+            line.left < fig.right - 1 &&
+            line.right > fig.left + 1 &&
+            line.top < fig.bottom - 1 &&
+            line.bottom > fig.top + 1
+          ) {
+            hits.push(node.tagName);
+          }
+        }
+      }
+      return hits;
+    });
+    expect(touching, "text runs under the sketch").toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.getByRole("button", { name: "Motion: on" }).click();
+    await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
+    await expectNoAxeViolations(page);
+
+    // The plain group gets the same sketch, drawn still, and no Motion toggle.
+    await page.goto("/find/loose-brick?fx=off");
+    await expect(page.locator(".loupe-figure").getByRole("img", { name: /Loupe/ })).toBeVisible();
+    await expect(page.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
+    await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
+  });
+}
+
+test("a stage character on a found page moves with the Motion toggle, like on the stage", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.goto("/?fx=on");
+  await page.getByRole("button", { name: "Pick up the fallen feather" }).click();
+  await expect(page).toHaveURL(/\/find\/fallen-feather$/);
+  await page.goto("/find/fallen-feather?fx=on");
+  await expect(page.locator(".trixie-sway")).not.toHaveCSS("animation-name", "none");
+  await page.getByRole("button", { name: "Motion: on" }).click();
+  await expect(page.locator(".trixie-sway")).toHaveCSS("animation-name", "none");
+});
+
 test("pulling the lever spins the reel and lands on the card", async ({ page, browserName }) => {
   // The lever needs the Secure visitor cookie, which WebKit won't keep on
   // http://localhost. Pull rules are covered by test/vault-worker.test.ts.
