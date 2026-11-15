@@ -20,6 +20,7 @@ import { formatPrice } from "../core/catalog";
 import { checkoutPath } from "../core/checkout";
 import { callersBlock } from "./callers";
 import { HOST_ARTIST, hostArt } from "./host-art";
+import { dropForm } from "./find-drop";
 import { html, type SafeHtml } from "./html";
 import { countdown, discount, segmentName, tallyText } from "./on-air";
 import { itemPath, layout, type Page } from "./pages";
@@ -115,6 +116,7 @@ export function broadcastPage(nowSeconds: number, soldThisSegment: number): Page
           from 11pm to midnight Chicago time with the deepest cut of the night.
         </p>
       </section>
+      ${dropForm("ticker-tape")}
     </div>`,
   });
 }

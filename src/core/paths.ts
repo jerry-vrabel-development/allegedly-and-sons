@@ -42,6 +42,9 @@ export const THANKS_PATH = "/thanks";
 
 export const DOSSIER_PATH = "/dossier";
 
+/** The Book of Contacts section of the dossier (note 0018). */
+export const DOSSIER_CONTACTS_PATH = "/dossier#contacts";
+
 /** The Dispatch section of the dossier. */
 export const DOSSIER_DISPATCH_PATH = "/dossier#dispatch";
 

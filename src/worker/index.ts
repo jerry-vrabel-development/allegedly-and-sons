@@ -7,6 +7,7 @@
 
 import { offerFor } from "../core/broadcast";
 import { findItem, ITEM_PATH } from "../core/catalog";
+import { FIND_PATH } from "../core/finds";
 import { CHECKOUT_PATH, CHECKOUT_SESSION_PATH } from "../core/checkout";
 import { effectsOn } from "../core/effects";
 import { landingFromRequest } from "../core/landing";
@@ -38,6 +39,7 @@ import { onAirBanner } from "./broadcast-page";
 import { bureau } from "./bureau-routes";
 import { checkout, embeddedCheckoutPage, embeddedSession, returnPage } from "./checkout-routes";
 import type { Deps, PublicVars, Secrets } from "./deps";
+import { findPress, findRead } from "./find-routes";
 import { dispatchRegister, linkLanding, unsubscribePost, useLink } from "./dispatch-routes";
 import { sentPage } from "./dispatch-pages";
 import {
@@ -95,6 +97,8 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
     if (postPath === DISPATCH_CONFIRM_PATH) return useLink(request, "confirm", deps);
     if (postPath === DISPATCH_RECOVER_PATH) return useLink(request, "recover", deps);
     if (postPath === DISPATCH_UNSUBSCRIBE_PATH) return unsubscribePost(request, deps);
+    const findId = FIND_PATH.exec(postPath)?.[1];
+    if (findId !== undefined) return findPress(request, findId, deps);
     const sessionSlug = CHECKOUT_SESSION_PATH.exec(postPath)?.[1];
     if (sessionSlug !== undefined) return embeddedSession(request, sessionSlug, deps);
     const slug = CHECKOUT_PATH.exec(postPath)?.[1];
@@ -141,6 +145,9 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
     case "/healthz":
       return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   }
+
+  const readId = FIND_PATH.exec(pathname)?.[1];
+  if (readId !== undefined) return findRead(readId, deps);
 
   const asset = assetResponse(pathname);
   if (asset !== undefined) return asset;

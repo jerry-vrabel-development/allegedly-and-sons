@@ -6,6 +6,7 @@ import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/ch
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { callersBlock } from "./callers";
 import { courierFigure } from "./courier-art";
+import { dropForm } from "./find-drop";
 import { geraldFigure } from "./gerald-art";
 import { html, SafeHtml } from "./html";
 import { stageBand } from "./stage";
@@ -247,7 +248,7 @@ export function homePage(nowSeconds: number, soldThisSegment: number): Page {
           Recovered from crash sites, lost civilizations and the backs of very old drawers.
         </p>
       </div>
-      ${stageBand(nowSeconds, soldThisSegment)}
+      ${stageBand(nowSeconds, soldThisSegment)} ${dropForm("fallen-feather")}
       ${callersBlock(segmentAt(nowSeconds), "callers-heading")}
       <section aria-labelledby="collection-heading">
         <h2 id="collection-heading">The rest of the lineup</h2>
@@ -469,7 +470,9 @@ export function disclaimerPage(email: string = ORDER_CONTACT_EMAIL): Page {
         <p>
           <strong>Plainly:</strong> the flavor text is atmosphere. The Plainly lines are the deal.
         </p>
+        ${dropForm("lost-stamp")}
       </section>
+      ${dropForm("parcel")}
       <p><a href="${HOME_PATH}">Back to the collection</a></p>
     </div>`,
   });

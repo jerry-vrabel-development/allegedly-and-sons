@@ -24,7 +24,7 @@ export const MAX_SHIP_DAYS = 30;
  * When the terms last changed (YYYY-MM-DD). Orders are governed by the terms
  * posted when they were placed, so bump this with every change to the terms.
  */
-export const TERMS_LAST_AMENDED = "2026-11-10";
+export const TERMS_LAST_AMENDED = "2026-11-15";
 
 /** A clause of The Fine Print: black-market flavor, then what it actually means. */
 export interface Term {
@@ -209,9 +209,9 @@ export const METHODS_TERMS: readonly Term[] = [
     number to Stripe with your order, so we can tell which visits led to a sale. We also note which
     item pages are viewed, whether you read their case files, which share buttons you press, the
     country your connection comes from, and the website that sent you. If you earn badges or cards,
-    or pull the vault lever, we keep them and your pulls with the first cookie’s number, along with
-    an agent number and a codename made from it. Our records don’t include your IP address, and we
-    don’t use third-party trackers or ad networks.`,
+    pull the vault lever or find one of the hidden contacts, we keep them and your pulls with the
+    first cookie’s number, along with an agent number and a codename made from it. Our records don’t
+    include your IP address, and we don’t use third-party trackers or ad networks.`,
   },
   {
     heading: "Correspondence",

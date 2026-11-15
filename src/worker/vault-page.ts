@@ -17,6 +17,7 @@ import {
   VAULT_CARDS,
   type VaultCard,
 } from "../core/vault";
+import { dropForm } from "./find-drop";
 import { html, type SafeHtml } from "./html";
 import { layout, type Page } from "./pages";
 import type { VaultState } from "./vault";
@@ -193,6 +194,7 @@ export function vaultPage(
           Your vault cards also count toward your rank in
           <a href="${DOSSIER_PATH}">your dossier</a>.
         </p>
-      </section>`,
+      </section>
+      ${dropForm("loose-brick")}`,
   });
 }
