@@ -198,6 +198,10 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 .sound-toggle { font: inherit; font-size: 0.95rem; background: transparent; color: var(--text); border: 2px solid var(--muted); border-radius: 6px; padding: 0.35rem 0.75rem; min-height: 44px; margin: 0.5rem 0 0; cursor: pointer; }
 .sound-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 header.site .sound-toggle { margin: 0; min-height: 44px; }
+/* The settings wheel (note 0019): a button in the header opens a small panel under it */
+header.site .wrap { position: relative; }
+.settings-panel { position: absolute; right: 1.25rem; top: calc(100% + 0.25rem); z-index: 5; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--surface); border: 2px solid var(--muted); border-radius: 8px; }
+.settings-panel .sound-toggle { width: 100%; text-align: left; white-space: nowrap; }
 /* Tune in and the certificate stamp (note 0011, PR 2): state in words, motion optional */
 button.button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
 button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }

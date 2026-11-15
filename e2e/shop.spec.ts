@@ -26,6 +26,18 @@ async function expectNoAxeViolations(page: Page): Promise<void> {
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 }
 
+/** The Sound and Motion toggles live in the header's Settings panel (note 0019): open it. */
+async function openSettings(page: Page): Promise<void> {
+  const gear = page.getByRole("button", { name: "Settings" });
+  if ((await gear.getAttribute("aria-expanded")) !== "true") await gear.click();
+}
+
+/** Press one of the Settings panel's toggles, opening the panel first. */
+async function pressSetting(page: Page, name: string): Promise<void> {
+  await openSettings(page);
+  await page.getByRole("button", { name }).click();
+}
+
 for (const { name, path } of PAGES) {
   test.describe(name, () => {
     test("has no WCAG 2.2 AA violations in light mode", async ({ page }) => {
@@ -388,7 +400,7 @@ for (const width of [1100, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
     await expectNoAxeViolations(page);
 
@@ -396,7 +408,7 @@ for (const width of [1100, 390]) {
     await page.goto("/find/loose-brick?fx=off");
     await expect(page.locator(".loupe-figure").getByRole("img", { name: /Loupe/ })).toBeVisible();
     await expect(page.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
-    await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
   });
 }
 
@@ -410,7 +422,7 @@ test("a stage character on a found page moves with the Motion toggle, like on th
   await expect(page).toHaveURL(/\/find\/fallen-feather$/);
   await page.goto("/find/fallen-feather?fx=on");
   await expect(page.locator(".trixie-sway")).not.toHaveCSS("animation-name", "none");
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(page.locator(".trixie-sway")).toHaveCSS("animation-name", "none");
 });
 
@@ -478,10 +490,11 @@ test("with reduced motion the reel skips the spin and the flash", async ({ page,
   ).toBe("none");
 });
 
-test("the sound toggle is in the header, says its state in words and is remembered", async ({
+test("the sound toggle is in the Settings panel, says its state in words and is remembered", async ({
   page,
 }) => {
   await page.goto("/?fx=on");
+  await openSettings(page);
   const toggle = page.getByRole("banner").getByRole("button", { name: "Sound: on" });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await toggle.click();
@@ -491,12 +504,64 @@ test("the sound toggle is in the header, says its state in words and is remember
   );
   // One setting for the whole shop: the Vault remembers it too.
   await page.goto("/vault?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: "Sound: off" })).toBeVisible();
+});
+
+test("the Settings button says so in words and opens a panel with the toggles", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const gear = page.getByRole("banner").getByRole("button", { name: "Settings" });
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  // Closed, the toggles are not on the page.
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toHaveCount(0);
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-expanded", "true");
+  const panel = page.locator("#settings-panel");
+  await expect(panel.getByRole("button", { name: "Sound: on" })).toBeVisible();
+  // Flipping a setting leaves the panel open, so both can be changed.
+  await panel.getByRole("button", { name: "Sound: on" }).click();
+  await expect(panel.getByRole("button", { name: "Sound: off" })).toBeVisible();
+  await expect(panel).toBeVisible();
+  // On a phone as on a desk, the panel is inside the screen and the page doesn't scroll sideways.
+  const box = await panel.boundingBox();
+  const width = page.viewportSize()?.width ?? 0;
+  expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((box?.x ?? width) + (box?.width ?? width)).toBeLessThanOrEqual(width);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoAxeViolations(page);
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  await expect(panel).toBeHidden();
+});
+
+test("the Settings panel works by keyboard, and closes with Escape or a click outside", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const gear = page.getByRole("banner").getByRole("button", { name: "Settings" });
+  await gear.focus();
+  await page.keyboard.press("Enter");
+  await expect(gear).toHaveAttribute("aria-expanded", "true");
+  // Tab goes from the button into the panel, in order.
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toBeFocused();
+  // Escape closes it and puts focus back where it started.
+  await page.keyboard.press("Escape");
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  await expect(gear).toBeFocused();
+  // A click anywhere outside closes it too.
+  await gear.click();
+  await expect(page.locator("#settings-panel")).toBeVisible();
+  await page.getByRole("main").click({ position: { x: 5, y: 5 } });
+  await expect(page.locator("#settings-panel")).toBeHidden();
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
 });
 
 test("the plain group gets no sound script and no toggle", async ({ page }) => {
   await page.goto("/?fx=off");
-  await expect(page.getByRole("button", { name: /^Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
   expect(await page.evaluate(() => "BureauSound" in window)).toBe(false);
 });
 
@@ -549,6 +614,7 @@ for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
     await page.goto(path);
     const host = page.locator("[data-host]");
     await expect(host).toHaveAttribute("data-pose", "waiting");
+    await openSettings(page);
     const toggle = page.getByRole("button", { name: "Motion: on" });
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await toggle.click();
@@ -561,11 +627,12 @@ for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
     await page.evaluate(() => document.dispatchEvent(new Event("bureau:segment-end")));
     await expect(host).not.toHaveAttribute("data-pose", /./);
     await page.reload();
+    await openSettings(page);
     await expect(page.getByRole("button", { name: "Motion: off" })).toBeVisible();
     await expect(page.locator("[data-host]")).not.toHaveAttribute("data-pose", /./);
     // Sound is its own setting, and so is turning motion back on.
     await expect(page.getByRole("button", { name: "Sound: on" })).toBeVisible();
-    await page.getByRole("button", { name: "Motion: off" }).click();
+    await pressSetting(page, "Motion: off");
     await expect(page.locator("[data-host]")).toHaveAttribute("data-pose", "waiting");
     await expectNoAxeViolations(page);
   });
@@ -581,11 +648,11 @@ test("the stage's ticker crawls for the effects group, and the Motion toggle sto
   await expect(ticker.locator("ul")).toHaveCount(2);
   await expect(ticker.locator('ul[aria-hidden="true"]')).toHaveCount(1);
   await expect(ticker.getByRole("listitem").first()).toContainText(/^Fact This segment ends at/);
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(ticker).not.toHaveAttribute("data-rolling", "");
   await expect(ticker.locator("ul")).toHaveCount(1);
   await expectNoAxeViolations(page);
-  await page.getByRole("button", { name: "Motion: off" }).click();
+  await pressSetting(page, "Motion: off");
   await expect(ticker).toHaveAttribute("data-rolling", "");
   await expectNoAxeViolations(page);
 });
@@ -614,10 +681,12 @@ test("the Motion toggle is only on pages with the host, and not under reduced mo
   page,
 }) => {
   await page.goto("/dossier?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
 });
@@ -631,7 +700,7 @@ test("the Archivist sits on the front page's stage and works while the host is m
   await expect(page.locator(".stage [data-host]")).toHaveAttribute("data-pose", "waiting");
   await expect(archivist.locator(".archivist-stamp")).not.toHaveCSS("animation-name", "none");
   // Held still with the Motion toggle, he stops with the host.
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
   await expect(archivist.locator(".archivist-page")).toHaveCSS("animation-name", "none");
   await expectNoAxeViolations(page);
@@ -659,7 +728,7 @@ test("Trixie stands on a wide stage and moves while the host does", async ({ pag
   expect(her && archivist && her.x + her.width).toBeLessThanOrEqual(archivist?.x ?? 0);
   expect(her && inset && inset.x + inset.width).toBeLessThanOrEqual(her?.x ?? 0);
   // Held still with the Motion toggle, she stops with the host.
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(trixie.locator(".trixie-arm")).toHaveCSS("animation-name", "none");
   await expect(trixie.locator(".trixie-plumage")).toHaveCSS("animation-name", "none");
   await expectNoAxeViolations(page);
@@ -713,7 +782,7 @@ for (const width of [900, 1100, 1440]) {
       }
     }
     // Held still with the Motion toggle, he stops with the host.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".nickel-bell", ".nickel-tape", ".nickel-arm-l", ".nickel-drawer"]) {
       await expect(nickel.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -795,7 +864,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [
       ".loupe-bob",
       ".loupe-lens",
@@ -845,7 +914,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".courier-rim", ".courier-satchel", ".courier-slip", ".courier-legs"]) {
       await expect(courier.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -860,7 +929,7 @@ test("the Courier is a still drawing for the plain group, with no Motion toggle 
   const courier = page.locator(".courier-figure");
   await expect(courier.getByRole("img", { name: "The Courier" })).toBeVisible();
   await expect(courier.locator(".courier-satchel")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 for (const width of [1100, 390]) {
@@ -921,7 +990,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".gerald-wobble", ".gerald-stamp", ".gerald-tie"]) {
       await expect(gerald.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -936,7 +1005,7 @@ test("Gerald is a still drawing for the plain group, with no Motion toggle to ho
   const gerald = page.locator(".certificate .gerald-figure");
   await expect(gerald.getByRole("img", { name: /Gerald/ })).toBeVisible();
   await expect(gerald.locator(".gerald-wobble")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("Loupe is a still drawing for the plain group, with no Motion toggle to hold", async ({
@@ -946,13 +1015,13 @@ test("Loupe is a still drawing for the plain group, with no Motion toggle to hol
   const loupe = page.locator(".loupe-figure");
   await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
   await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("the plain group gets the plain lever", async ({ page }) => {
   await page.goto("/vault?fx=off");
   await expect(page.getByRole("button", { name: "Pull the lever" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("without JavaScript the lever still works as a plain form", async ({
@@ -963,7 +1032,7 @@ test("without JavaScript the lever still works as a plain form", async ({
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto("/vault");
-  await expect(page.getByRole("button", { name: /Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
   await page.getByRole("button", { name: "Pull the lever" }).click();
   await expect(page).toHaveURL(/\/vault\?opened=1#latest-pull$/);
   await expect(page.getByRole("region", { name: "Your latest pull" })).toBeVisible();

@@ -707,27 +707,68 @@ export const SOUND_JS = `"use strict";
       }
     };
     window.BureauSound = { play, isMuted: () => muted };
-    const nav = document.querySelector("header.site nav ul");
-    if (nav !== null) {
-      const item = document.createElement("li");
+    const panel = document.createElement("div");
+    panel.id = "settings-panel";
+    panel.className = "settings-panel";
+    panel.setAttribute("role", "group");
+    panel.setAttribute("aria-label", "Settings");
+    panel.hidden = true;
+    const addSetting = (state, flip) => {
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "sound-toggle";
       const label = () => {
-        const { text, pressed } = toggleLabel(muted);
+        const { text, pressed } = state();
         toggle.textContent = text;
         toggle.setAttribute("aria-pressed", pressed);
       };
       label();
       toggle.addEventListener("click", () => {
-        muted = !muted;
-        writeMuted(store, muted);
+        flip();
         label();
-        if (!muted) play("tick");
       });
-      item.append(toggle);
+      panel.append(toggle);
+    };
+    const nav = document.querySelector("header.site nav ul");
+    if (nav !== null) {
+      const item = document.createElement("li");
+      const gear = document.createElement("button");
+      gear.type = "button";
+      gear.className = "sound-toggle";
+      gear.setAttribute("aria-controls", panel.id);
+      const icon = document.createElement("span");
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "⚙︎ ";
+      gear.append(icon, "Settings");
+      let open = false;
+      const show2 = (on) => {
+        open = on;
+        panel.hidden = !on;
+        gear.setAttribute("aria-expanded", String(on));
+      };
+      show2(false);
+      gear.addEventListener("click", () => {
+        show2(!open);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !open) return;
+        if (item.contains(document.activeElement)) gear.focus();
+        show2(false);
+      });
+      document.addEventListener("click", (event) => {
+        if (event.target instanceof Node && !item.contains(event.target)) show2(false);
+      });
+      item.append(gear, panel);
       nav.append(item);
     }
+    addSetting(
+      () => toggleLabel(muted),
+      () => {
+        muted = !muted;
+        writeMuted(store, muted);
+        if (!muted) play("tick");
+      }
+    );
     const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const host = document.querySelector("[data-host]");
     let tuned = false;
@@ -754,26 +795,16 @@ export const SOUND_JS = `"use strict";
         ended = true;
         pose();
       });
-      if (nav !== null && !reduced) {
-        const item = document.createElement("li");
-        const toggle = document.createElement("button");
-        toggle.type = "button";
-        toggle.className = "sound-toggle";
-        const label = () => {
-          const { text, pressed } = motionLabel(still);
-          toggle.textContent = text;
-          toggle.setAttribute("aria-pressed", pressed);
-        };
-        label();
-        toggle.addEventListener("click", () => {
-          still = !still;
-          writeStill(store, still);
-          label();
-          pose();
-          roll();
-        });
-        item.append(toggle);
-        nav.append(item);
+      if (!reduced) {
+        addSetting(
+          () => motionLabel(still),
+          () => {
+            still = !still;
+            writeStill(store, still);
+            pose();
+            roll();
+          }
+        );
       }
     }
     document.addEventListener("click", (event) => {

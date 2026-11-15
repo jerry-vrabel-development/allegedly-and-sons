@@ -70,13 +70,23 @@ describe("the sound script", () => {
     expect(SOUND_JS.match(/\.setItem\(/g)).toHaveLength(2);
   });
 
+  it("puts the toggles in one Settings panel that closes with Escape or a click outside", () => {
+    expect(SOUND_JS).toContain('id = "settings-panel"');
+    expect(SOUND_JS).toContain('"Settings"');
+    expect(SOUND_JS).toContain("aria-expanded");
+    expect(SOUND_JS).toContain('event.key !== "Escape"');
+    // The gear is decoration for assistive technology; the word is the name.
+    expect(SOUND_JS).toContain('setAttribute("aria-hidden", "true")');
+  });
+
   it("holds a submit button for a beat, so a find's sparkle is heard before the page moves on", () => {
     expect(SOUND_JS).toContain("requestSubmit");
   });
 
   it("carries the sounds and nothing else: no catalog, nothing it doesn't use", () => {
-    // Raised from 15,000 when the host's Motion toggle and the ticker's crawl joined (notes 0013, 0014).
-    expect(SOUND_JS.length).toBeLessThan(16_000);
+    // Raised from 15,000 when the host's Motion toggle and the ticker's crawl joined (notes 0013, 0014),
+    // and from 16,000 when the settings wheel joined (note 0019).
+    expect(SOUND_JS.length).toBeLessThan(17_000);
     for (const name of SOUND_NAMES) expect(SOUND_JS).toMatch(new RegExp(`\\b${name}: `));
     for (const item of CATALOG) expect(SOUND_JS).not.toContain(item.slug);
   });
