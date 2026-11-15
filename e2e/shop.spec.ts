@@ -764,6 +764,82 @@ test("the Courier is a still drawing for the plain group, with no Motion toggle 
   await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
 });
 
+for (const width of [1100, 390]) {
+  test(`Gerald witnesses the certificate at ${String(width)}px, inside its box and clear of the words, and moves with the host`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/items/viking-participation-trophy?fx=on");
+    const gerald = page.locator(".certificate .gerald-figure");
+    await expect(gerald.getByRole("img", { name: /Gerald/ })).toBeVisible();
+    await expect(gerald.locator(".gerald-wobble")).not.toHaveCSS("animation-name", "none");
+    // He sits inside the certificate box, and its words wrap around him.
+    const layout = await page.evaluate(() => {
+      const box = document.querySelector(".certificate")?.getBoundingClientRect();
+      const fig = document.querySelector(".certificate .gerald-figure")?.getBoundingClientRect();
+      if (box === undefined || fig === undefined) return { inside: false, hits: ["no figure"] };
+      const inside =
+        fig.left >= box.left - 1 &&
+        fig.right <= box.right + 1 &&
+        fig.top >= box.top - 1 &&
+        fig.bottom <= box.bottom + 1;
+      const hits: string[] = [];
+      for (const node of document.querySelectorAll(".certificate > h2, .certificate > p")) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const line of range.getClientRects()) {
+          if (
+            line.width > 0 &&
+            line.left < fig.right - 1 &&
+            line.right > fig.left + 1 &&
+            line.top < fig.bottom - 1 &&
+            line.bottom > fig.top + 1
+          ) {
+            hits.push(node.tagName);
+          }
+        }
+      }
+      return { inside, hits };
+    });
+    expect(layout.inside, "Gerald is outside the certificate box").toBe(true);
+    // The certificate's number stays on one line, so it can still be read aloud and copied.
+    const number = await page.evaluate(() => {
+      const paragraph = [...document.querySelectorAll(".certificate > p")].find((p) =>
+        p.textContent.includes("Certificate No."),
+      );
+      if (paragraph === undefined) return { lines: 0 };
+      const range = document.createRange();
+      const text = paragraph.firstChild;
+      const start = (text?.textContent ?? "").indexOf("AS-");
+      if (text === null || start < 0) return { lines: 0 };
+      range.setStart(text, start);
+      range.setEnd(text, start + 7);
+      return { lines: new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size };
+    });
+    expect(number.lines, "the certificate number is split across lines").toBe(1);
+    expect(layout.hits, "text runs under Gerald").toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    // Held still with the Motion toggle, every part stops.
+    await page.getByRole("button", { name: "Motion: on" }).click();
+    for (const part of [".gerald-wobble", ".gerald-stamp", ".gerald-tie"]) {
+      await expect(gerald.locator(part)).toHaveCSS("animation-name", "none");
+    }
+    await expectNoAxeViolations(page);
+  });
+}
+
+test("Gerald is a still drawing for the plain group, with no Motion toggle to hold", async ({
+  page,
+}) => {
+  await page.goto("/items/viking-participation-trophy?fx=off");
+  const gerald = page.locator(".certificate .gerald-figure");
+  await expect(gerald.getByRole("img", { name: /Gerald/ })).toBeVisible();
+  await expect(gerald.locator(".gerald-wobble")).toHaveCSS("animation-name", "none");
+  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+});
+
 test("Loupe is a still drawing for the plain group, with no Motion toggle to hold", async ({
   page,
 }) => {
