@@ -438,6 +438,18 @@ describe("the dossier's Dispatch section", () => {
     expect(html).toContain('<meta name="robots" content="noindex" />');
   });
 
+  it("seats the Courier beside the courier it says was dispatched (note 0016)", async () => {
+    const html = (await text(await route(new Request(`${BASE}/dispatch/sent`), deps(A)))).replace(
+      /\s+/g,
+      " ",
+    );
+    expect(html.match(/data-host/g)).toHaveLength(1);
+    expect(html).toContain('<figure class="courier-figure" data-host>');
+    expect(html).toContain(
+      "<figcaption>Sketch by The Bureau.</figcaption></figure> <h1>Check your inbox</h1>",
+    );
+  });
+
   it("is described in the Fine Print", async () => {
     const html = await text(await route(new Request(`${BASE}/disclaimer`), deps(A)));
     expect(html).toContain("<h3>Correspondence</h3>");

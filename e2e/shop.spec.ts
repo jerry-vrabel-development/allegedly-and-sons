@@ -710,6 +710,60 @@ for (const width of [1100, 390]) {
   });
 }
 
+for (const width of [1100, 390]) {
+  test(`the Courier comes out of the wormhole on the inbox page at ${String(width)}px, clear of the words, and moves with the host`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/dispatch/sent?fx=on");
+    const courier = page.locator(".courier-figure");
+    await expect(courier.getByRole("img", { name: "The Courier" })).toBeVisible();
+    await expect(courier.locator(".courier-satchel")).not.toHaveCSS("animation-name", "none");
+    // The words wrap around the figure: no line of text touches it.
+    const touching = await page.evaluate(() => {
+      const fig = document.querySelector(".courier-figure")?.getBoundingClientRect();
+      if (fig === undefined) return ["no figure"];
+      const hits: string[] = [];
+      for (const node of document.querySelectorAll(".prose > h1, .prose > p")) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const line of range.getClientRects()) {
+          if (
+            line.width > 0 &&
+            line.left < fig.right - 1 &&
+            line.right > fig.left + 1 &&
+            line.top < fig.bottom - 1 &&
+            line.bottom > fig.top + 1
+          ) {
+            hits.push(node.tagName);
+          }
+        }
+      }
+      return hits;
+    });
+    expect(touching, "text runs under the Courier").toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    // Held still with the Motion toggle, every part stops.
+    await page.getByRole("button", { name: "Motion: on" }).click();
+    for (const part of [".courier-rim", ".courier-satchel", ".courier-slip", ".courier-legs"]) {
+      await expect(courier.locator(part)).toHaveCSS("animation-name", "none");
+    }
+    await expectNoAxeViolations(page);
+  });
+}
+
+test("the Courier is a still drawing for the plain group, with no Motion toggle to hold", async ({
+  page,
+}) => {
+  await page.goto("/dispatch/sent?fx=off");
+  const courier = page.locator(".courier-figure");
+  await expect(courier.getByRole("img", { name: "The Courier" })).toBeVisible();
+  await expect(courier.locator(".courier-satchel")).toHaveCSS("animation-name", "none");
+  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+});
+
 test("Loupe is a still drawing for the plain group, with no Motion toggle to hold", async ({
   page,
 }) => {
