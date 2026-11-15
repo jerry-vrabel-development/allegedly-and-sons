@@ -317,7 +317,12 @@ test("finishing a case file earns its card in your dossier", async ({ page, brow
 
 test("finding a hidden contact by keyboard meets them in the Book of Contacts", async ({
   page,
+  browserName,
 }) => {
+  // A find is recorded against the Secure visitor cookie, which WebKit won't
+  // keep on http://localhost, so there it would bounce back as a first visit.
+  // Recording is covered by test/finds-worker.test.ts.
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
   await page.goto("/vault");
   const brick = page.getByRole("button", { name: "Press the loose brick" });
   await brick.focus();
