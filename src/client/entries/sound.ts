@@ -6,13 +6,13 @@
  *   no files, nothing to license, every sound under 3 seconds. Browsers allow
  *   audio only after a click on the page, so sounds follow clicks, never page
  *   loads.
- * - Puts one "Sound: on / off" toggle in the site header, said in words,
- *   remembered in the browser. On by default; the Vault's old setting carries
- *   over.
+ * - Puts one "Settings" button in the site header (note 0019). It opens a small
+ *   panel holding a "Sound: on / off" toggle, said in words, remembered in the
+ *   browser. On by default; the Vault's old setting carries over.
  * - Gives the host's drawing its pose (note 0013) wherever he is: on the
  *   front page's stage and on the Broadcast. His motion starts on its own and
- *   goes on, so those pages also get a "Motion: on / off" toggle beside the
- *   sound one, remembered the same way (the two settings are all it stores).
+ *   goes on, so those pages also get a "Motion: on / off" toggle in the same
+ *   panel, remembered the same way (the two settings are all it stores).
  * - Makes the stage's ticker crawl (note 0014). The same "Motion" toggle
  *   stops it, and it never starts under reduced motion.
  * - Plays the page's sounds: an element with data-sound="<name>" plays on
@@ -146,28 +146,73 @@ function start(): void {
   };
   window.BureauSound = { play, isMuted: () => muted };
 
-  // --- The toggle, in the site header ---------------------------------------
-  const nav = document.querySelector("header.site nav ul");
-  if (nav !== null) {
-    const item = document.createElement("li");
+  // --- The settings wheel, in the site header ---------------------------------
+  // One "Settings" button opens a small panel holding the toggles, each said in
+  // words. It is a disclosure, not a dialog: it closes with Escape (focus goes
+  // back to the button) or a click outside, and Tab moves through it in order.
+  const panel = document.createElement("div");
+  panel.id = "settings-panel";
+  panel.className = "settings-panel";
+  panel.setAttribute("role", "group");
+  panel.setAttribute("aria-label", "Settings");
+  panel.hidden = true;
+  const addSetting = (state: () => ReturnType<typeof toggleLabel>, flip: () => void): void => {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "sound-toggle";
     const label = (): void => {
-      const { text, pressed } = toggleLabel(muted);
+      const { text, pressed } = state();
       toggle.textContent = text;
       toggle.setAttribute("aria-pressed", pressed);
     };
     label();
     toggle.addEventListener("click", () => {
-      muted = !muted;
-      writeMuted(store, muted);
+      flip();
       label();
-      if (!muted) play("tick");
     });
-    item.append(toggle);
+    panel.append(toggle);
+  };
+  const nav = document.querySelector("header.site nav ul");
+  if (nav !== null) {
+    const item = document.createElement("li");
+    const gear = document.createElement("button");
+    gear.type = "button";
+    gear.className = "sound-toggle";
+    gear.setAttribute("aria-controls", panel.id);
+    // The gear is only decoration: the word carries the meaning.
+    const icon = document.createElement("span");
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "⚙︎ ";
+    gear.append(icon, "Settings");
+    let open = false;
+    const show = (on: boolean): void => {
+      open = on;
+      panel.hidden = !on;
+      gear.setAttribute("aria-expanded", String(on));
+    };
+    show(false);
+    gear.addEventListener("click", () => {
+      show(!open);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || !open) return;
+      if (item.contains(document.activeElement)) gear.focus();
+      show(false);
+    });
+    document.addEventListener("click", (event) => {
+      if (event.target instanceof Node && !item.contains(event.target)) show(false);
+    });
+    item.append(gear, panel);
     nav.append(item);
   }
+  addSetting(
+    () => toggleLabel(muted),
+    () => {
+      muted = !muted;
+      writeMuted(store, muted);
+      if (!muted) play("tick");
+    },
+  );
 
   const reduced =
     typeof window.matchMedia === "function" &&
@@ -205,26 +250,16 @@ function start(): void {
       pose();
     });
     // With reduced motion nothing moves, so there is nothing to turn off.
-    if (nav !== null && !reduced) {
-      const item = document.createElement("li");
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "sound-toggle";
-      const label = (): void => {
-        const { text, pressed } = motionLabel(still);
-        toggle.textContent = text;
-        toggle.setAttribute("aria-pressed", pressed);
-      };
-      label();
-      toggle.addEventListener("click", () => {
-        still = !still;
-        writeStill(store, still);
-        label();
-        pose();
-        roll();
-      });
-      item.append(toggle);
-      nav.append(item);
+    if (!reduced) {
+      addSetting(
+        () => motionLabel(still),
+        () => {
+          still = !still;
+          writeStill(store, still);
+          pose();
+          roll();
+        },
+      );
     }
   }
 
