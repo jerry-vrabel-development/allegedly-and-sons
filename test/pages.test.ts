@@ -507,6 +507,22 @@ describe("buying", () => {
     }
   });
 
+  it("seats the Courier on a paid thank-you only, as the page's one drawn host (note 0016)", () => {
+    const item = firstItem();
+    const paid = squish(thanksPage({ kind: "paid", item }));
+    expect(count(paid, /data-host/g)).toBe(1);
+    expect(paid).toContain('<figure class="courier-figure" data-host>');
+    expect(paid).toContain("<figcaption>Sketch by The Bureau.</figcaption></figure> <h1>");
+    // Never beside a payment that hasn't cleared or didn't happen: no shipping flavor there.
+    for (const view of [
+      { kind: "processing", item },
+      { kind: "incomplete", item },
+      { kind: "unchecked" },
+    ] as const) {
+      expect(squish(thanksPage(view)), view.kind).not.toContain("courier-figure");
+    }
+  });
+
   it("says a delayed payment is still processing, without promising it cleared", () => {
     const page = squish(thanksPage({ kind: "processing", item: firstItem() }));
     expect(page).toContain("<h1>Payment processing</h1>");
