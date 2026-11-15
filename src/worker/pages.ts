@@ -6,6 +6,7 @@ import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/ch
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { callersBlock } from "./callers";
 import { courierFigure } from "./courier-art";
+import { geraldFigure } from "./gerald-art";
 import { html, SafeHtml } from "./html";
 import { stageBand } from "./stage";
 import {
@@ -393,6 +394,7 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
           </section>
 
           <section class="certificate" aria-labelledby="certificate-heading">
+            ${geraldFigure()}
             <h2 id="certificate-heading">Bureau Certificate</h2>
             <p>Every acquisition comes with Bureau Certificate No. ${item.exhibit}.</p>
             <p><strong>Authenticity:</strong> Allegedly.</p>
