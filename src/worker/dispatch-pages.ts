@@ -6,6 +6,7 @@
 
 import { maskEmail } from "../core/dispatch";
 import type { Registration } from "./dispatch";
+import { courierFigure } from "./courier-art";
 import { html, type SafeHtml } from "./html";
 import { layout, type Page } from "./pages";
 import {
@@ -109,6 +110,7 @@ export function sentPage(): Page {
     description: "A dispatch from the Bureau is on its way.",
     noindex: true,
     body: html`<div class="prose">
+      ${courierFigure()}
       <h1>Check your inbox</h1>
       <p class="tagline">A courier has been dispatched.</p>
       <p>

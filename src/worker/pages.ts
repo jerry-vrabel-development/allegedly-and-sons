@@ -5,6 +5,7 @@ import { shareLinks } from "../core/share";
 import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/checkout-page";
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { callersBlock } from "./callers";
+import { courierFigure } from "./courier-art";
 import { html, SafeHtml } from "./html";
 import { stageBand } from "./stage";
 import {
@@ -505,6 +506,7 @@ export function thanksPage(view: ReturnView = { kind: "unchecked" }): Page {
         description: "Thank you for your acquisition.",
         noindex: true,
         body: html` <div class="prose">
+          ${courierFigure()}
           <h1>Acquisition recorded</h1>
           <p class="tagline">The Bureau thanks you for your discretion.</p>
           <p>
