@@ -9,6 +9,7 @@
 import type { AnalyticsEvent } from "./analytics";
 import { CATALOG, findItem, fullWings, wingItems, type Wing, type WingId } from "./catalog";
 import { FINDS, isFindAward } from "./finds";
+import { isTipAward } from "./tips";
 import { findVaultCard, VAULT_CARDS } from "./vault";
 
 export interface Badge {
@@ -90,6 +91,7 @@ export function isAward(id: string): boolean {
   if (BADGE_IDS.has(id)) return true;
   if (id.startsWith("vault:")) return findVaultCard(id.slice("vault:".length)) !== undefined;
   if (id.startsWith("find:")) return isFindAward(id);
+  if (id.startsWith("tip:")) return isTipAward(id);
   return id.startsWith("card:") && findItem(id.slice("card:".length)) !== undefined;
 }
 
@@ -116,6 +118,14 @@ export function withWingAwards(stored: Iterable<string>): ReadonlySet<string> {
     }
   }
   return held;
+}
+
+/**
+ * How many of what an agent holds count toward rank. Tips are a record of
+ * what they have been told (note 0020), not something earned, so they don't.
+ */
+export function rankedCount(held: ReadonlySet<string>): number {
+  return [...held].filter((id) => !isTipAward(id)).length;
 }
 
 /**

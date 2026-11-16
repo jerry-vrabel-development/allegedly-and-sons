@@ -27,9 +27,10 @@ async function pullsOf(visitor: string) {
   return results;
 }
 
+/** What the agent holds, bar the pull's tips (note 0020), which tips-worker.test.ts covers. */
 async function awardsOf(visitor: string): Promise<string[]> {
   const { results } = await env.DB.prepare(
-    "SELECT award FROM awards WHERE visitor_id = ? ORDER BY award",
+    "SELECT award FROM awards WHERE visitor_id = ? AND award NOT LIKE 'tip:%' ORDER BY award",
   )
     .bind(visitor)
     .all<{ award: string }>();

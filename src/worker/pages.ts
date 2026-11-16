@@ -25,6 +25,7 @@ import {
   DISCLAIMER_PATH,
   DOSSIER_PATH,
   HOME_PATH,
+  JOB_BOARD_PATH,
   SOUND_SCRIPT_PATH,
   STORY_SCRIPT_PATH,
   STYLESHEET_PATH,
@@ -172,6 +173,7 @@ function shell(
             <p>${SITE_NAME}, Purveyors of Rare Objects. Est. “a long time ago.”</p>
             <p>
               Home of The Bureau of Improbable Acquisitions.
+              <a href="${JOB_BOARD_PATH}">The Job Board</a>.
               <a href="${DISCLAIMER_PATH}">Read the fine print</a>.
             </p>
           </div>

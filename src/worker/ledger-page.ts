@@ -235,18 +235,22 @@ export function ledgerPage(ledger: Ledger, email: string): Page {
         "The hunt",
         html`<table>
           <caption>
-            The hunt: do the hidden contacts get found?
+            The hunt: do the hidden contacts get found, and are the pull tips given?
           </caption>
           <thead>
             <tr>
               <th scope="col" class="num">Agents who found one</th>
               <th scope="col" class="num">Finds</th>
+              <th scope="col" class="num">Agents given a tip</th>
+              <th scope="col" class="num">Tips given</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="num">${String(ledger.finds.finders)}</td>
               <td class="num">${String(ledger.finds.finds)}</td>
+              <td class="num">${String(ledger.tips.told)}</td>
+              <td class="num">${String(ledger.tips.tips)}</td>
             </tr>
           </tbody>
         </table>`,
