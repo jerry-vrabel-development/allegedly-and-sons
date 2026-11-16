@@ -209,7 +209,9 @@ can see which hooks actually hook.
    "clicky things to find" Jerry asked for, and the smallest piece that
    makes the hunt real.
 2. **The Job Board and the pull tip.** The inbound data, the page, one tip on
-   every pull, and the "found a home" state.
+   every pull, and the "found a home" state. Built as
+   [0020](0020-job-board-and-tips.md), using the pending exhibits as "inbound";
+   "found a home" waits on one-of-each (0015).
 3. **Finds on the certificate.** Gerald's stamps, once there are finds to
    show.
 4. **The first guest.** Arrives with the next product, with its brief, its
@@ -220,7 +222,8 @@ can see which hooks actually hook.
 
 - How many drops to start with, and how hidden. Too easy is boring; too hard
   is invisible. The Ledger will say.
-- Whether a tip should be a single line or a small piece of art.
+- Whether a tip should be a single line or a small piece of art. (Decided in
+  0020: a single line, in a contact's voice.)
 - What the first guest is, and which product they arrive with.
 - Whether Nickel speaks the Job Board's ticker in his voice (0016 parks
   speaking for the whole cast).

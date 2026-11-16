@@ -16,6 +16,7 @@ import {
   DISPATCH_PATH,
   DOSSIER_PATH,
   EVENTS_PATH,
+  JOB_BOARD_PATH,
   HOME_PATH,
   SHARE_PREFIX,
   SITEMAP_PATH,
@@ -35,6 +36,7 @@ import { escapeHtml } from "./html";
 export const DISALLOWED: readonly string[] = [
   BUREAU_PATH,
   DOSSIER_PATH,
+  JOB_BOARD_PATH,
   VAULT_PATH,
   THANKS_PATH,
   DISPATCH_PATH,

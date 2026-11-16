@@ -76,6 +76,14 @@ export interface FindsRow {
   readonly finds: number;
 }
 
+/** Tips (note 0020): are the pull's tips being given out? */
+export interface TipsRow {
+  /** Agents given at least one tip in the period. */
+  readonly told: number;
+  /** Tips given in the period, all agents together. */
+  readonly tips: number;
+}
+
 export interface EffectsRow {
   readonly variant: "fx" | "plain";
   /** Visitors who viewed an exhibit, and of them: opened, finished, shared, bought (note 0011). */
@@ -94,6 +102,7 @@ export interface Ledger {
   readonly period: Period;
   readonly vault: VaultRow;
   readonly finds: FindsRow;
+  readonly tips: TipsRow;
   readonly dispatch: DispatchCounts;
   /** Duty streaks right now (not by period: a streak is about today). */
   readonly streaks: StreakSummary;
@@ -254,6 +263,13 @@ function ledgerQueries(db: D1Database, since: number, ownHost: string) {
          FROM awards WHERE award LIKE 'find:%' AND earned_at >= ?`,
       )
       .bind(since),
+    /** Tips given on pulls: how many agents, how many tips. One row. */
+    tips: db
+      .prepare(
+        `SELECT COUNT(DISTINCT visitor_id) AS told, COUNT(*) AS tips
+         FROM awards WHERE award LIKE 'tip:%' AND earned_at >= ?`,
+      )
+      .bind(since),
     /** Dispatch registrations and emails. One row. */
     dispatch: dispatchCountsQuery(db, since),
     /** Streak buy-backs. One row. */
@@ -344,6 +360,7 @@ export async function readLedger(
 
   const vault = one(rows.vault);
   const finds = one(rows.finds);
+  const tips = one(rows.tips);
   const dispatch = one(rows.dispatch);
   const repairs = one(rows.repairs);
   const broadcast = one(rows.broadcast);
@@ -391,6 +408,7 @@ export async function readLedger(
       returners: num(vault["returners"]),
     },
     finds: { finders: num(finds["finders"]), finds: num(finds["finds"]) },
+    tips: { told: num(tips["told"]), tips: num(tips["tips"]) },
     dispatch: {
       registered: num(dispatch["registered"]),
       unsubscribed: num(dispatch["unsubscribed"]),

@@ -153,6 +153,11 @@ footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--mute
 .drop button { min-height: 2rem; font: inherit; font-size: 0.9rem; color: var(--muted); background: transparent; border: 1px dashed var(--muted); border-radius: 4px; padding: 0.25rem 0.75rem; cursor: pointer; }
 .drop button:hover { color: var(--text); border-style: solid; }
 .drop button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+/* The found page: the contact's sketch, posed by the sound script like any host's */
+.prose.find { display: flow-root; }
+.find figure[data-host] { float: none; width: min(13rem, 70%); margin: 0 auto 1.25rem; }
+@media (min-width: 40rem) { .find figure[data-host] { float: right; margin: 0 0 1rem 1.5rem; width: 13rem; } }
+.find figure[data-host] figcaption { margin: 0; padding: 0.2rem 0 0; text-align: center; font-size: 0.75rem; font-style: normal; color: var(--muted); }
 
 /* The vault: rarity and status are in words on every card, never color alone */
 .lever .button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
@@ -193,6 +198,14 @@ table.odds .num { text-align: right; font-variant-numeric: tabular-nums; }
 .sound-toggle { font: inherit; font-size: 0.95rem; background: transparent; color: var(--text); border: 2px solid var(--muted); border-radius: 6px; padding: 0.35rem 0.75rem; min-height: 44px; margin: 0.5rem 0 0; cursor: pointer; }
 .sound-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 header.site .sound-toggle { margin: 0; min-height: 44px; }
+/* The settings wheel (note 0019): a button in the header opens a small panel under it */
+header.site .wrap { position: relative; }
+.settings-panel { position: absolute; right: 1.25rem; top: calc(100% + 0.25rem); z-index: 5; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--surface); border: 2px solid var(--muted); border-radius: 8px; }
+.settings-panel .sound-toggle { width: 100%; text-align: left; white-space: nowrap; }
+/* Tips (note 0020): a contact's line, said in their voice */
+.tip-line { font-style: italic; }
+ul.tips { padding-left: 1.1rem; }
+ul.tips li { margin: 0.4rem 0; }
 /* Tune in and the certificate stamp (note 0011, PR 2): state in words, motion optional */
 button.button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
 button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }

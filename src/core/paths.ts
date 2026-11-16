@@ -56,6 +56,9 @@ export const VAULT_OPENED_LOCATION = "/vault?opened=1#latest-pull";
 
 export const BROADCAST_PATH = "/broadcast";
 
+/** The Job Board (note 0020): what is on the block, and what is on its way. */
+export const JOB_BOARD_PATH = "/board";
+
 /** "Grease the Clerk": the form post that starts a buy-back, and where Stripe returns the buyer. */
 export const REPAIR_PATH = "/streak/repair";
 export const REPAIR_RETURN_PATH = "/streak/restored";

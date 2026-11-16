@@ -12,6 +12,7 @@ const PAGES = [
   { name: "dossier", path: "/dossier" },
   { name: "vault", path: "/vault" },
   { name: "broadcast", path: "/broadcast" },
+  { name: "job board", path: "/board" },
   { name: "dispatch sent", path: "/dispatch/sent" },
   { name: "dispatch confirm link", path: `/dispatch/confirm?t=${"0".repeat(64)}` },
   { name: "dispatch expired link", path: "/dispatch/recover?t=expired" },
@@ -24,6 +25,18 @@ async function expectNoAxeViolations(page: Page): Promise<void> {
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+}
+
+/** The Sound and Motion toggles live in the header's Settings panel (note 0019): open it. */
+async function openSettings(page: Page): Promise<void> {
+  const gear = page.getByRole("button", { name: "Settings" });
+  if ((await gear.getAttribute("aria-expanded")) !== "true") await gear.click();
+}
+
+/** Press one of the Settings panel's toggles, opening the panel first. */
+async function pressSetting(page: Page, name: string): Promise<void> {
+  await openSettings(page);
+  await page.getByRole("button", { name }).click();
 }
 
 for (const { name, path } of PAGES) {
@@ -345,6 +358,75 @@ test("finding a hidden contact by keyboard meets them in the Book of Contacts", 
   await expectNoAxeViolations(page);
 });
 
+for (const width of [1100, 390]) {
+  test(`Loupe turns up on his found page at ${String(width)}px, clear of the words, moving, and still when told`, async ({
+    page,
+    browserName,
+  }) => {
+    // The find needs the Secure visitor cookie, which WebKit drops on http://localhost.
+    test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+    await page.setViewportSize({ width, height: 900 });
+    // With sound on, the press waits a beat for its sparkle and then goes through.
+    await page.goto("/vault?fx=on");
+    await page.getByRole("button", { name: "Press the loose brick" }).click();
+    await expect(page).toHaveURL(/\/find\/loose-brick$/);
+
+    await page.goto("/find/loose-brick?fx=on");
+    const loupe = page.locator(".loupe-figure");
+    await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
+    await expect(loupe.locator(".loupe-lens")).not.toHaveCSS("animation-name", "none");
+    // The words wrap around the sketch: no line of text touches it.
+    const touching = await page.evaluate(() => {
+      const fig = document.querySelector(".find figure[data-host]")?.getBoundingClientRect();
+      if (fig === undefined) return ["no figure"];
+      const hits: string[] = [];
+      for (const node of document.querySelectorAll(".prose.find > h1, .prose.find > p")) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const line of range.getClientRects()) {
+          if (
+            line.width > 0 &&
+            line.left < fig.right - 1 &&
+            line.right > fig.left + 1 &&
+            line.top < fig.bottom - 1 &&
+            line.bottom > fig.top + 1
+          ) {
+            hits.push(node.tagName);
+          }
+        }
+      }
+      return hits;
+    });
+    expect(touching, "text runs under the sketch").toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await pressSetting(page, "Motion: on");
+    await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
+    await expectNoAxeViolations(page);
+
+    // The plain group gets the same sketch, drawn still, and no Motion toggle.
+    await page.goto("/find/loose-brick?fx=off");
+    await expect(page.locator(".loupe-figure").getByRole("img", { name: /Loupe/ })).toBeVisible();
+    await expect(page.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
+    await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
+  });
+}
+
+test("a stage character on a found page moves with the Motion toggle, like on the stage", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName === "webkit", "WebKit drops Secure cookies on http://localhost");
+  await page.goto("/?fx=on");
+  await page.getByRole("button", { name: "Pick up the fallen feather" }).click();
+  await expect(page).toHaveURL(/\/find\/fallen-feather$/);
+  await page.goto("/find/fallen-feather?fx=on");
+  await expect(page.locator(".trixie-sway")).not.toHaveCSS("animation-name", "none");
+  await pressSetting(page, "Motion: on");
+  await expect(page.locator(".trixie-sway")).toHaveCSS("animation-name", "none");
+});
+
 test("pulling the lever spins the reel and lands on the card", async ({ page, browserName }) => {
   // The lever needs the Secure visitor cookie, which WebKit won't keep on
   // http://localhost. Pull rules are covered by test/vault-worker.test.ts.
@@ -383,6 +465,9 @@ test("pulling the lever spins the reel and lands on the card", async ({ page, br
     latest.getByText(/Vault card V-00\d · (Common|Uncommon|Rare) · New to your file/),
   ).toBeVisible();
   await expect(page.getByText("The lever is locked until tomorrow.")).toBeVisible();
+  // Every pull carries a tip about an exhibit on its way, and the Job Board keeps it (note 0020).
+  await expect(latest.getByRole("heading", { name: "A tip" })).toBeVisible();
+  await expect(latest.getByText("A tip is a clue, not a promise.")).toBeVisible();
   const streak = page.getByRole("region", { name: "Duty streak" });
   await expect(streak.getByText("Duty streak: 1 day.")).toBeVisible();
   await expect(streak.getByText("Freezes held: 0 of 2.")).toBeVisible();
@@ -409,10 +494,11 @@ test("with reduced motion the reel skips the spin and the flash", async ({ page,
   ).toBe("none");
 });
 
-test("the sound toggle is in the header, says its state in words and is remembered", async ({
+test("the sound toggle is in the Settings panel, says its state in words and is remembered", async ({
   page,
 }) => {
   await page.goto("/?fx=on");
+  await openSettings(page);
   const toggle = page.getByRole("banner").getByRole("button", { name: "Sound: on" });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await toggle.click();
@@ -422,12 +508,64 @@ test("the sound toggle is in the header, says its state in words and is remember
   );
   // One setting for the whole shop: the Vault remembers it too.
   await page.goto("/vault?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: "Sound: off" })).toBeVisible();
+});
+
+test("the Settings button says so in words and opens a panel with the toggles", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const gear = page.getByRole("banner").getByRole("button", { name: "Settings" });
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  // Closed, the toggles are not on the page.
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toHaveCount(0);
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-expanded", "true");
+  const panel = page.locator("#settings-panel");
+  await expect(panel.getByRole("button", { name: "Sound: on" })).toBeVisible();
+  // Flipping a setting leaves the panel open, so both can be changed.
+  await panel.getByRole("button", { name: "Sound: on" }).click();
+  await expect(panel.getByRole("button", { name: "Sound: off" })).toBeVisible();
+  await expect(panel).toBeVisible();
+  // On a phone as on a desk, the panel is inside the screen and the page doesn't scroll sideways.
+  const box = await panel.boundingBox();
+  const width = page.viewportSize()?.width ?? 0;
+  expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+  expect((box?.x ?? width) + (box?.width ?? width)).toBeLessThanOrEqual(width);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expectNoAxeViolations(page);
+  await gear.click();
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  await expect(panel).toBeHidden();
+});
+
+test("the Settings panel works by keyboard, and closes with Escape or a click outside", async ({
+  page,
+}) => {
+  await page.goto("/?fx=on");
+  const gear = page.getByRole("banner").getByRole("button", { name: "Settings" });
+  await gear.focus();
+  await page.keyboard.press("Enter");
+  await expect(gear).toHaveAttribute("aria-expanded", "true");
+  // Tab goes from the button into the panel, in order.
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /^Sound:/ })).toBeFocused();
+  // Escape closes it and puts focus back where it started.
+  await page.keyboard.press("Escape");
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
+  await expect(gear).toBeFocused();
+  // A click anywhere outside closes it too.
+  await gear.click();
+  await expect(page.locator("#settings-panel")).toBeVisible();
+  await page.getByRole("main").click({ position: { x: 5, y: 5 } });
+  await expect(page.locator("#settings-panel")).toBeHidden();
+  await expect(gear).toHaveAttribute("aria-expanded", "false");
 });
 
 test("the plain group gets no sound script and no toggle", async ({ page }) => {
   await page.goto("/?fx=off");
-  await expect(page.getByRole("button", { name: /^Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
   expect(await page.evaluate(() => "BureauSound" in window)).toBe(false);
 });
 
@@ -480,6 +618,7 @@ for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
     await page.goto(path);
     const host = page.locator("[data-host]");
     await expect(host).toHaveAttribute("data-pose", "waiting");
+    await openSettings(page);
     const toggle = page.getByRole("button", { name: "Motion: on" });
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await toggle.click();
@@ -492,11 +631,12 @@ for (const path of ["/?fx=on", "/broadcast?fx=on"]) {
     await page.evaluate(() => document.dispatchEvent(new Event("bureau:segment-end")));
     await expect(host).not.toHaveAttribute("data-pose", /./);
     await page.reload();
+    await openSettings(page);
     await expect(page.getByRole("button", { name: "Motion: off" })).toBeVisible();
     await expect(page.locator("[data-host]")).not.toHaveAttribute("data-pose", /./);
     // Sound is its own setting, and so is turning motion back on.
     await expect(page.getByRole("button", { name: "Sound: on" })).toBeVisible();
-    await page.getByRole("button", { name: "Motion: off" }).click();
+    await pressSetting(page, "Motion: off");
     await expect(page.locator("[data-host]")).toHaveAttribute("data-pose", "waiting");
     await expectNoAxeViolations(page);
   });
@@ -512,11 +652,11 @@ test("the stage's ticker crawls for the effects group, and the Motion toggle sto
   await expect(ticker.locator("ul")).toHaveCount(2);
   await expect(ticker.locator('ul[aria-hidden="true"]')).toHaveCount(1);
   await expect(ticker.getByRole("listitem").first()).toContainText(/^Fact This segment ends at/);
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(ticker).not.toHaveAttribute("data-rolling", "");
   await expect(ticker.locator("ul")).toHaveCount(1);
   await expectNoAxeViolations(page);
-  await page.getByRole("button", { name: "Motion: off" }).click();
+  await pressSetting(page, "Motion: off");
   await expect(ticker).toHaveAttribute("data-rolling", "");
   await expectNoAxeViolations(page);
 });
@@ -545,10 +685,12 @@ test("the Motion toggle is only on pages with the host, and not under reduced mo
   page,
 }) => {
   await page.goto("/dossier?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?fx=on");
+  await openSettings(page);
   await expect(page.getByRole("button", { name: /^Sound:/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Motion:/ })).toHaveCount(0);
 });
@@ -562,7 +704,7 @@ test("the Archivist sits on the front page's stage and works while the host is m
   await expect(page.locator(".stage [data-host]")).toHaveAttribute("data-pose", "waiting");
   await expect(archivist.locator(".archivist-stamp")).not.toHaveCSS("animation-name", "none");
   // Held still with the Motion toggle, he stops with the host.
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(archivist.locator(".archivist-stamp")).toHaveCSS("animation-name", "none");
   await expect(archivist.locator(".archivist-page")).toHaveCSS("animation-name", "none");
   await expectNoAxeViolations(page);
@@ -590,7 +732,7 @@ test("Trixie stands on a wide stage and moves while the host does", async ({ pag
   expect(her && archivist && her.x + her.width).toBeLessThanOrEqual(archivist?.x ?? 0);
   expect(her && inset && inset.x + inset.width).toBeLessThanOrEqual(her?.x ?? 0);
   // Held still with the Motion toggle, she stops with the host.
-  await page.getByRole("button", { name: "Motion: on" }).click();
+  await pressSetting(page, "Motion: on");
   await expect(trixie.locator(".trixie-arm")).toHaveCSS("animation-name", "none");
   await expect(trixie.locator(".trixie-plumage")).toHaveCSS("animation-name", "none");
   await expectNoAxeViolations(page);
@@ -644,7 +786,7 @@ for (const width of [900, 1100, 1440]) {
       }
     }
     // Held still with the Motion toggle, he stops with the host.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".nickel-bell", ".nickel-tape", ".nickel-arm-l", ".nickel-drawer"]) {
       await expect(nickel.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -726,7 +868,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [
       ".loupe-bob",
       ".loupe-lens",
@@ -776,7 +918,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".courier-rim", ".courier-satchel", ".courier-slip", ".courier-legs"]) {
       await expect(courier.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -791,7 +933,7 @@ test("the Courier is a still drawing for the plain group, with no Motion toggle 
   const courier = page.locator(".courier-figure");
   await expect(courier.getByRole("img", { name: "The Courier" })).toBeVisible();
   await expect(courier.locator(".courier-satchel")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 for (const width of [1100, 390]) {
@@ -852,7 +994,7 @@ for (const width of [1100, 390]) {
       true,
     );
     // Held still with the Motion toggle, every part stops.
-    await page.getByRole("button", { name: "Motion: on" }).click();
+    await pressSetting(page, "Motion: on");
     for (const part of [".gerald-wobble", ".gerald-stamp", ".gerald-tie"]) {
       await expect(gerald.locator(part)).toHaveCSS("animation-name", "none");
     }
@@ -867,7 +1009,7 @@ test("Gerald is a still drawing for the plain group, with no Motion toggle to ho
   const gerald = page.locator(".certificate .gerald-figure");
   await expect(gerald.getByRole("img", { name: /Gerald/ })).toBeVisible();
   await expect(gerald.locator(".gerald-wobble")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("Loupe is a still drawing for the plain group, with no Motion toggle to hold", async ({
@@ -877,13 +1019,13 @@ test("Loupe is a still drawing for the plain group, with no Motion toggle to hol
   const loupe = page.locator(".loupe-figure");
   await expect(loupe.getByRole("img", { name: /Loupe/ })).toBeVisible();
   await expect(loupe.locator(".loupe-lens")).toHaveCSS("animation-name", "none");
-  await expect(page.getByRole("button", { name: /Motion:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("the plain group gets the plain lever", async ({ page }) => {
   await page.goto("/vault?fx=off");
   await expect(page.getByRole("button", { name: "Pull the lever" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
 });
 
 test("without JavaScript the lever still works as a plain form", async ({
@@ -894,11 +1036,35 @@ test("without JavaScript the lever still works as a plain form", async ({
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto("/vault");
-  await expect(page.getByRole("button", { name: /Sound:/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Settings" })).toHaveCount(0);
   await page.getByRole("button", { name: "Pull the lever" }).click();
   await expect(page).toHaveURL(/\/vault\?opened=1#latest-pull$/);
   await expect(page.getByRole("region", { name: "Your latest pull" })).toBeVisible();
+  // The tip it carried is on the Job Board, with no script at all.
+  await page
+    .getByRole("region", { name: "Your latest pull" })
+    .getByRole("link", { name: "Job Board" })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/board$/);
+  await expect(page.getByRole("heading", { name: "The Job Board", level: 1 })).toBeVisible();
+  await expect(page.getByText("Tips: 1 of 2.")).toHaveCount(1);
   await context.close();
+});
+
+test("the Job Board says what is on the block and what is on its way, to anyone", async ({
+  page,
+}) => {
+  await page.goto("/board");
+  await expect(page.getByRole("heading", { name: "On the block" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "On its way" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "The Alien Paperclip" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "The Martian Rubber Band" })).toBeVisible();
+  await expect(page.getByText("A tip is a clue, not a promise", { exact: false })).toBeVisible();
+  // The footer leads here from every page.
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "The Job Board" }).click();
+  await expect(page).toHaveURL(/\/board$/);
 });
 
 test("registering with the Dispatch ends on the same 'check your inbox' page", async ({
