@@ -12,6 +12,7 @@ import { codenameFor } from "../core/dossier";
 import { MILESTONES, milestoneBadges } from "../core/streak";
 import { grantAwards } from "./dossier";
 import { readStreak } from "./streak";
+import { tipAwardsForPull } from "../core/tips";
 import { BONUS_BADGES, cardForRoll, findVaultCard, vaultDay, type VaultCard } from "../core/vault";
 
 export type PullKind = "daily" | "bonus";
@@ -20,6 +21,8 @@ export interface LatestPull {
   readonly card: VaultCard;
   readonly kind: PullKind;
   readonly pulledAt: number;
+  /** Which of the agent's pulls this was, from 1: it decides the tip the pull carries (note 0020). */
+  readonly number: number;
   /** The agent already had this card before this pull. */
   readonly duplicate: boolean;
 }
@@ -62,6 +65,8 @@ export async function readVault(
     db
       .prepare(
         `SELECT p.card, p.kind, p.pulled_at,
+           (SELECT COUNT(*) FROM vault_pulls n
+             WHERE n.visitor_id = p.visitor_id AND n.id <= p.id) AS number,
            EXISTS (SELECT 1 FROM vault_pulls q
                     WHERE q.visitor_id = p.visitor_id AND q.card = p.card AND q.id < p.id) AS duplicate
          FROM vault_pulls p WHERE p.visitor_id = ? ORDER BY p.id DESC LIMIT 1`,
@@ -88,6 +93,7 @@ export async function readVault(
             card: latestCard,
             kind: latestRow["kind"] === "bonus" ? "bonus" : "daily",
             pulledAt: Number(latestRow["pulled_at"]),
+            number: Number(latestRow["number"]),
             duplicate: Number(latestRow["duplicate"]) === 1,
           },
     owned: new Set(owned.map((row) => String(row["card"]))),
@@ -150,6 +156,15 @@ export async function pullLever(
     )
     .bind(visitorId)
     .run();
+  // Every pull carries a tip about an exhibit on its way (note 0020). It is a
+  // record of what the agent was told, so it touches no odds and earns no pull.
+  const [{ pulls }] = (
+    await db
+      .prepare("SELECT COUNT(*) AS pulls FROM vault_pulls WHERE visitor_id = ?")
+      .bind(visitorId)
+      .all<{ pulls: number }>()
+  ).results as [{ pulls: number }];
+  await grantAwards(db, visitorId, tipAwardsForPull(pulls), nowSeconds);
   // A free pull extends the duty streak: grant any milestone it reached
   // (idempotent; each milestone badge is also a bonus pull).
   if (kind === "daily") {

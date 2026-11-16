@@ -12,6 +12,7 @@ const PAGES = [
   { name: "dossier", path: "/dossier" },
   { name: "vault", path: "/vault" },
   { name: "broadcast", path: "/broadcast" },
+  { name: "job board", path: "/board" },
   { name: "dispatch sent", path: "/dispatch/sent" },
   { name: "dispatch confirm link", path: `/dispatch/confirm?t=${"0".repeat(64)}` },
   { name: "dispatch expired link", path: "/dispatch/recover?t=expired" },
@@ -464,6 +465,9 @@ test("pulling the lever spins the reel and lands on the card", async ({ page, br
     latest.getByText(/Vault card V-00\d · (Common|Uncommon|Rare) · New to your file/),
   ).toBeVisible();
   await expect(page.getByText("The lever is locked until tomorrow.")).toBeVisible();
+  // Every pull carries a tip about an exhibit on its way, and the Job Board keeps it (note 0020).
+  await expect(latest.getByRole("heading", { name: "A tip" })).toBeVisible();
+  await expect(latest.getByText("A tip is a clue, not a promise.")).toBeVisible();
   const streak = page.getByRole("region", { name: "Duty streak" });
   await expect(streak.getByText("Duty streak: 1 day.")).toBeVisible();
   await expect(streak.getByText("Freezes held: 0 of 2.")).toBeVisible();
@@ -1036,7 +1040,31 @@ test("without JavaScript the lever still works as a plain form", async ({
   await page.getByRole("button", { name: "Pull the lever" }).click();
   await expect(page).toHaveURL(/\/vault\?opened=1#latest-pull$/);
   await expect(page.getByRole("region", { name: "Your latest pull" })).toBeVisible();
+  // The tip it carried is on the Job Board, with no script at all.
+  await page
+    .getByRole("region", { name: "Your latest pull" })
+    .getByRole("link", { name: "Job Board" })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/board$/);
+  await expect(page.getByRole("heading", { name: "The Job Board", level: 1 })).toBeVisible();
+  await expect(page.getByText("Tips: 1 of 2.")).toHaveCount(1);
   await context.close();
+});
+
+test("the Job Board says what is on the block and what is on its way, to anyone", async ({
+  page,
+}) => {
+  await page.goto("/board");
+  await expect(page.getByRole("heading", { name: "On the block" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "On its way" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "The Alien Paperclip" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "The Martian Rubber Band" })).toBeVisible();
+  await expect(page.getByText("A tip is a clue, not a promise", { exact: false })).toBeVisible();
+  // The footer leads here from every page.
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "The Job Board" }).click();
+  await expect(page).toHaveURL(/\/board$/);
 });
 
 test("registering with the Dispatch ends on the same 'check your inbox' page", async ({

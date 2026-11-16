@@ -20,6 +20,7 @@ import {
   DISPATCH_SENT_PATH,
   DISPATCH_UNSUBSCRIBE_PATH,
   DOSSIER_PATH,
+  JOB_BOARD_PATH,
   EVENTS_PATH,
   HOME_PATH,
   REPAIR_PATH,
@@ -35,6 +36,7 @@ import { parseSharePath } from "../core/share";
 import { accessConfigFrom } from "./access";
 import { recordItemView } from "./analytics";
 import { assetResponse } from "./assets";
+import { boardGet } from "./board-routes";
 import { onAirBanner } from "./broadcast-page";
 import { bureau } from "./bureau-routes";
 import { checkout, embeddedCheckoutPage, embeddedSession, returnPage } from "./checkout-routes";
@@ -124,6 +126,8 @@ async function routeRequest(request: Request, deps: Deps): Promise<Response> {
       return returnPage(url, deps);
     case DOSSIER_PATH:
       return dossierGet(url, deps);
+    case JOB_BOARD_PATH:
+      return boardGet(deps);
     case REPAIR_RETURN_PATH:
       return repairReturn(url, deps);
     case DISPATCH_SENT_PATH:

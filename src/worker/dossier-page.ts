@@ -8,6 +8,7 @@ import { WINGS, wingItems, type Item } from "../core/catalog";
 import {
   BADGES,
   cardId,
+  rankedCount,
   rankFor,
   TOTAL_AWARDS,
   wingAwardId,
@@ -65,7 +66,7 @@ export function dossierPage(
 ): Page {
   // Wing commendations are worked out from the cards held (note 0010).
   const earned = withWingAwards(agent?.awards.map((award) => award.id) ?? []);
-  const count = earned.size;
+  const count = rankedCount(earned);
   const { rank, next } = rankFor(count);
 
   const header =

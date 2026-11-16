@@ -202,6 +202,10 @@ header.site .sound-toggle { margin: 0; min-height: 44px; }
 header.site .wrap { position: relative; }
 .settings-panel { position: absolute; right: 1.25rem; top: calc(100% + 0.25rem); z-index: 5; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--surface); border: 2px solid var(--muted); border-radius: 8px; }
 .settings-panel .sound-toggle { width: 100%; text-align: left; white-space: nowrap; }
+/* Tips (note 0020): a contact's line, said in their voice */
+.tip-line { font-style: italic; }
+ul.tips { padding-left: 1.1rem; }
+ul.tips li { margin: 0.4rem 0; }
 /* Tune in and the certificate stamp (note 0011, PR 2): state in words, motion optional */
 button.button { border: 0; font: inherit; font-weight: bold; cursor: pointer; }
 button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }

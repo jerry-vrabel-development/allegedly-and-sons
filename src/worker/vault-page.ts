@@ -17,9 +17,11 @@ import {
   VAULT_CARDS,
   type VaultCard,
 } from "../core/vault";
+import { tipForPull } from "../core/tips";
 import { dropForm } from "./find-drop";
 import { html, type SafeHtml } from "./html";
 import { layout, type Page } from "./pages";
+import { tipBlock } from "./tip-block";
 import type { VaultState } from "./vault";
 import type { Streak } from "../core/streak";
 import { streakPanel } from "./streak-panel";
@@ -94,6 +96,7 @@ function latestPull(state: VaultState, opened: boolean): SafeHtml {
         }
         <h4>Secret file</h4>
         <p>${card.secretFile}</p>
+        ${tipBlock(tipForPull(latest.number))}
       </div>
     </div>
   </section>`;
