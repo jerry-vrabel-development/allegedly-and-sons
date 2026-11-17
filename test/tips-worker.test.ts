@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import { TOTAL_AWARDS } from "../src/core/dossier";
-import { inboundTips, tipAwardId, type Tip } from "../src/core/tips";
+import { inboundTips, tipAwardId, tipsAbout, type Tip } from "../src/core/tips";
 import { grantAwards } from "../src/worker/dossier";
 import { escapeHtml } from "../src/worker/html";
 import { route, type Deps } from "../src/worker/index";
@@ -128,7 +128,10 @@ describe("the Job Board", () => {
     const page = await text("/board", null);
     expect(page.match(/No tips yet\./g)).toHaveLength(PENDING.length);
     expect(page).not.toContain("File complete.");
-    expect(page.match(/Tips: 0 of 2\./g)).toHaveLength(PENDING.length);
+    for (const item of PENDING) {
+      expect(page, item.slug).toContain(`Tips: 0 of ${String(tipsAbout(item.slug).length)}.`);
+    }
+    expect(page.match(/Tips: 0 of \d+\./g)).toHaveLength(PENDING.length);
   });
 
   it("says plainly that a tip holds nothing and gives no right to buy first", async () => {
