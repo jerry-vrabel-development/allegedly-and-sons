@@ -16,6 +16,7 @@
  */
 
 import { awardsForOrder } from "../core/dossier";
+import { snapshotStamps } from "./certificate-store";
 import { grantAwards } from "./dossier";
 import { isOrderEvent, orderFromCompletedSession, parseStripeEvent } from "../core/orders";
 import { verifyStripeSignature } from "./stripe-signature";
@@ -134,6 +135,10 @@ export async function stripeWebhook(request: Request, deps: WebhookDeps): Promis
         }
       } else if (order.visitorId !== null) {
         buyer = { visitorId: order.visitorId, itemSlug: order.itemSlug };
+        // Gerald's stamps for the paper certificate, in the same transaction
+        // as the order (note 0021). Only tips held by the time it was paid.
+        const stamps = snapshotStamps(deps.db, order.stripeSessionId, order.itemSlug);
+        if (stamps !== undefined) statements.push(stamps);
       }
     } else {
       note = outcome.reason;

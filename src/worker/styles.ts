@@ -281,6 +281,15 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
 .ledger td.num, .ledger th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ledger .period a[aria-current="page"] { font-weight: 700; text-decoration-thickness: 3px; }
 
+/* Certificates to pack (note 0021): on paper, one certificate to a page, nothing but the certificate */
+.packing-slip { margin-bottom: 2.5rem; }
+@media print {
+  header.site, footer.site, .skip-link, .on-air-banner, .no-print, .packing h1 { display: none; }
+  .packing-slip { break-after: page; break-inside: avoid; margin: 0; }
+  .packing-slip:last-child { break-after: auto; }
+  .packing-slip .certificate { margin-top: 0.5rem; }
+}
+
 /* Phones: keep the name, price and call to action on the first screen */
 @media (max-width: 51.99rem) {
   .on-air-banner { font-size: 0.85rem; padding: 0.3rem 0.75rem; line-height: 1.35; }

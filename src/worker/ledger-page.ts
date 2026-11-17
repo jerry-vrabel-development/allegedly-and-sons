@@ -6,7 +6,7 @@
 
 import { formatPrice } from "../core/catalog";
 import { TARGET_PULLERS, TEST_DAYS, type TestStatus } from "../core/effects";
-import { LEDGER_PATH } from "../core/paths";
+import { LEDGER_PATH, PACKING_PATH } from "../core/paths";
 import { clearlyDifferent, describeRate, MIN_VISITORS_TO_RANK, wilson } from "../core/stats";
 import { STREAK_BUCKETS } from "../core/streak";
 import { html, type SafeHtml } from "./html";
@@ -87,6 +87,7 @@ export function ledgerPage(ledger: Ledger, email: string): Page {
     body: html`<div class="ledger">
       <h1>The Ledger</h1>
       <p class="tagline">For the Bureau's eyes only. Signed in as ${email}.</p>
+      <p><a href="${PACKING_PATH}">Certificates to pack</a>, one per order waiting to ship.</p>
 
       <nav class="period" aria-label="Period">
         <p>
