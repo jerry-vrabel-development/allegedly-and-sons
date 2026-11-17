@@ -20,7 +20,7 @@ export interface Tip {
   readonly exhibit: string;
   /** Which of that exhibit's tips this is, from 1. */
   readonly n: number;
-  /** A contact's name, as the Book of Contacts has it (see finds.ts). */
+  /** A contact's name, as the Book of Contacts has it (see finds.ts), or the exhibit's guest (guests.ts). */
   readonly contact: string;
   readonly line: string;
 }
@@ -131,6 +131,11 @@ const SOURCES: readonly {
       [
         "Gerald",
         "I stood very still beside a sunken city once. Someone handed me a cap. It hissed. I am not a notary, and also not a diver.",
+      ],
+      // The exhibit's guest (note 0022).
+      [
+        "Silt Prenderby",
+        "Diving rights to Atlantis? Mine. Signed in ink that floats. The Bureau says the paperwork dissolved. Convenient.",
       ],
     ],
   },

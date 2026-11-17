@@ -1,3 +1,4 @@
+import { GUESTS, guestFor } from "../src/core/guests";
 import { describe, expect, it } from "vitest";
 import { CATALOG } from "../src/core/catalog";
 import { isAward, rankedCount } from "../src/core/dossier";
@@ -18,10 +19,19 @@ const PENDING = CATALOG.filter((item) => item.status === "pending");
 const CONTACTS = FINDS.map((find) => find.contact);
 
 describe("the tips", () => {
-  it("are every one about an exhibit that exists, from a contact in the Book", () => {
+  it("are every one about an exhibit that exists, from a contact in the Book or its own guest", () => {
     for (const tip of ALL_TIPS) {
       expect(tipExhibit(tip).slug).toBe(tip.exhibit);
-      expect(CONTACTS, tip.line).toContain(tip.contact);
+      const speakers = [...CONTACTS, guestFor(tip.exhibit)?.name];
+      expect(speakers, tip.line).toContain(tip.contact);
+    }
+  });
+
+  it("let a guest speak only about the exhibit they arrive with", () => {
+    for (const guest of GUESTS) {
+      const theirs = ALL_TIPS.filter((tip) => tip.contact === guest.name);
+      expect(theirs.length, guest.id).toBeGreaterThan(0);
+      for (const tip of theirs) expect(tip.exhibit).toBe(guest.exhibit);
     }
   });
 

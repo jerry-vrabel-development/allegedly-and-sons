@@ -14,6 +14,7 @@ import { itemPathFor, VAULT_PATH } from "../core/paths";
 import { tipAwardId, tipsAbout } from "../core/tips";
 import { html, type SafeHtml } from "./html";
 import { layout, type Page } from "./pages";
+import { guestBoardLine } from "./guest";
 
 function onTheBlock(): SafeHtml {
   return html`<ul class="items">
@@ -42,6 +43,7 @@ function onItsWay(held: ReadonlySet<string>): SafeHtml {
           <p class="kicker">Exhibit ${item.exhibit} · On its way</p>
           <h3><a href="${itemPathFor(item.slug)}">${item.name}</a></h3>
           <p>${item.tagline}</p>
+          ${guestBoardLine(item)}
           <p>
             <strong>${progress}</strong>${
               heard.length === tips.length ? html` File complete.` : html``
