@@ -9,7 +9,7 @@
  */
 
 import type { Item } from "../core/catalog";
-import type { Tip } from "../core/tips";
+import type { Stamp } from "../core/certificate";
 import { html, type SafeHtml } from "./html";
 
 /** Heading level, so the block sits correctly in either page's outline. */
@@ -19,8 +19,14 @@ function heading(level: Level, id: string, text: string): SafeHtml {
   return level === "h2" ? html`<h2 id="${id}">${text}</h2>` : html`<h3 id="${id}">${text}</h3>`;
 }
 
-export function certificateBlock(item: Item, stamps: readonly Tip[], level: Level): SafeHtml {
-  const id = `certificate-${item.slug}`;
+/** `key` makes the heading's id unique where one exhibit can appear twice (the packing page). */
+export function certificateBlock(
+  item: Item,
+  stamps: readonly Stamp[],
+  level: Level,
+  key: string = item.slug,
+): SafeHtml {
+  const id = `certificate-${key}`;
   return html`<section class="certificate" aria-labelledby="${id}">
     ${heading(level, id, `Bureau Certificate No. ${item.exhibit}`)}
     <p>${item.name}. <strong>Authenticity:</strong> Allegedly.</p>

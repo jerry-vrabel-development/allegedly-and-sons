@@ -1,7 +1,7 @@
 # 0018 — The black-market loop: closing the gap between the game and the shop
 
-- **Status:** Building. Steps 1 and 2 are built, and step 3 is half built
-  (0021). This note sets the direction and the build order
+- **Status:** Building. Steps 1 to 3 are built (0021 is step 3). This note
+  sets the direction and the build order
 - **Date:** 2026-11-15
 - **Author:** Jerry Vrabel
 
