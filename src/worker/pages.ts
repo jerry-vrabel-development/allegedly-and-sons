@@ -10,6 +10,7 @@ import { certificateBlock } from "./certificate";
 import { courierFigure } from "./courier-art";
 import { dropForm } from "./find-drop";
 import { geraldFigure } from "./gerald-art";
+import { guestSection } from "./guest";
 import { html, SafeHtml } from "./html";
 import { stageBand } from "./stage";
 import {
@@ -374,6 +375,8 @@ export function itemPage(item: Item, origin: string, offer: Offer = regularOffer
             }
             <p class="byline">Recorded by ${story.author.name}, ${story.author.title}</p>
           </section>
+
+          ${guestSection(item)}
 
           <section aria-labelledby="share-heading">
             <h2 id="share-heading">Share this exhibit</h2>

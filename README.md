@@ -58,6 +58,10 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
   The webhook copies the stamps onto the order at purchase, and
   `/bureau/packing` (behind Access) prints one certificate per order waiting
   to ship.
+- **The guest cast** ([0022](docs/design/0022-the-first-guest.md)): visitors
+  with a stake in one exhibit, who arrive with it. The first is Silt
+  Prenderby, a corrupt deep-sea broker, on the Atlantean Bottle Cap's page,
+  its Job Board card and its third tip.
 - **The Bureau Dispatch** ([0007](docs/design/0007-dispatch.md)): agents can
   register an email (double opt-in) to keep their file and open it on any
   device. It is built and tested, but closed on the live site until the
@@ -250,10 +254,11 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0015 — One of each, per run](docs/design/0015-one-per-run.md) (proposed)
 - [0016 — The cast](docs/design/0016-the-cast.md) (draft; briefs in words, only the host is built)
 - [0017 — How writers and artists submit work](docs/design/0017-submissions.md) (proposed; nothing is open)
-- [0018 — The black-market loop](docs/design/0018-the-black-market-loop.md) (steps 1 to 3 built)
+- [0018 — The black-market loop](docs/design/0018-the-black-market-loop.md) (steps 1 to 4 built)
 - [0019 — The settings wheel](docs/design/0019-settings-wheel.md) (built)
 - [0020 — The Job Board and the pull tip](docs/design/0020-job-board-and-tips.md) (built)
 - [0021 — Finds on the certificate](docs/design/0021-finds-on-the-certificate.md) (built)
+- [0022 — The first guest: Silt Prenderby](docs/design/0022-the-first-guest.md) (built)
 
 ## Branch flow
 

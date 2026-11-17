@@ -10,6 +10,7 @@ import { ARCHIVIST_CSS } from "./archivist-art";
 import { HOST_CSS } from "./host-art";
 import { COURIER_CSS } from "./courier-art";
 import { GERALD_CSS } from "./gerald-art";
+import { SILT_CSS } from "./silt-art";
 import { LOUPE_CSS } from "./loupe-art";
 import { NICKEL_CSS } from "./nickel-art";
 import { CALLERS_CSS } from "./callers";
@@ -281,6 +282,10 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
 .ledger td.num, .ledger th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ledger .period a[aria-current="page"] { font-weight: 700; text-decoration-thickness: 3px; }
 
+/* A guest of the show (note 0022): their lines in quotes, the plain line after */
+.guest-line { font-style: italic; }
+.guest-board { color: var(--muted); }
+
 /* Certificates to pack (note 0021): on paper, one certificate to a page, nothing but the certificate */
 .packing-slip { margin-bottom: 2.5rem; }
 @media print {
@@ -313,7 +318,7 @@ button.button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3
 @media (min-width: 52rem) {
   .exhibit { grid-template-columns: 1.15fr 1fr; gap: 2rem; }
 }
-${HOST_CSS}${ARCHIVIST_CSS}${TRIXIE_CSS}${NICKEL_CSS}${LOUPE_CSS}${COURIER_CSS}${GERALD_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
+${HOST_CSS}${ARCHIVIST_CSS}${TRIXIE_CSS}${NICKEL_CSS}${LOUPE_CSS}${COURIER_CSS}${GERALD_CSS}${SILT_CSS}${STAGE_CSS}${TICKER_CSS}${CALLERS_CSS}@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 `;

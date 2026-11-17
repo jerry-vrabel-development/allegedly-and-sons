@@ -1,7 +1,7 @@
 # 0018 — The black-market loop: closing the gap between the game and the shop
 
-- **Status:** Building. Steps 1 to 3 are built (0021 is step 3). This note
-  sets the direction and the build order
+- **Status:** Building. Steps 1 to 4 are built (0021 is step 3, 0022 is
+  step 4). This note sets the direction and the build order
 - **Date:** 2026-11-15
 - **Author:** Jerry Vrabel
 
@@ -217,6 +217,8 @@ can see which hooks actually hook.
    tips, on screen first, then on the paper certificate.
 4. **The first guest.** Arrives with the next product, with its brief, its
    art, its exhibit page and its place on the Job Board.
+   Built as [0022](0022-the-first-guest.md): Silt Prenderby, a corrupt
+   broker, with the Atlantean Bottle Cap.
 5. **The early look,** if the numbers say the earlier steps are working.
 
 ## Open questions
