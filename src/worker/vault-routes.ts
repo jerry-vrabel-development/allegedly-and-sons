@@ -1,12 +1,13 @@
 /** The Vault and the dossier: the two pages an agent's file lives on, and the lever. */
 
+import { findItem } from "../core/catalog";
 import { effectsOn } from "../core/effects";
 import { VAULT_OPENED_LOCATION, VAULT_PATH } from "../core/paths";
 import { rollFrom } from "../core/vault";
 import type { Deps } from "./deps";
 import { readRegistration } from "./dispatch";
 import { dispatchNoticeFrom } from "./dispatch-pages";
-import { readDossier } from "./dossier";
+import { readAcquisitions, readDossier } from "./dossier";
 import { dossierPage } from "./dossier-page";
 import { forbidden, fromOwnSite, json, page, returningVisitor, seeOther } from "./http";
 import { readStreak } from "./streak";
@@ -56,10 +57,11 @@ export async function vaultGet(url: URL, deps: Deps): Promise<Response> {
 /** The dossier page, GET /dossier. */
 export async function dossierGet(url: URL, deps: Deps): Promise<Response> {
   const now = deps.nowSeconds();
-  const [agent, registration, streak] = await Promise.all([
+  const [agent, registration, streak, acquired] = await Promise.all([
     readDossier(deps.db, deps.visitorId),
     readRegistration(deps.db, deps.visitorId),
     readStreak(deps.db, deps.visitorId, now),
+    readAcquisitions(deps.db, deps.visitorId),
   ]);
   return page(
     dossierPage(
@@ -72,6 +74,7 @@ export async function dossierGet(url: URL, deps: Deps): Promise<Response> {
       streak,
       now,
       deps.stripeKey !== undefined,
+      acquired.flatMap((slug) => findItem(slug) ?? []),
     ),
   );
 }

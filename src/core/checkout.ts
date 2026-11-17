@@ -10,6 +10,7 @@ import { THANKS_PATH, itemPathFor } from "./paths";
 import type { Item } from "./catalog";
 import type { Offer } from "./broadcast";
 import { isRecord, SLUG } from "./guards";
+import { VISITOR_ID } from "./analytics";
 
 /** An item at its regular price, off air. */
 export function regularOffer(item: Item): Offer {
@@ -55,6 +56,17 @@ export function returnOutcome(session: unknown): ReturnOutcome {
   }
   if (status === "open" || status === "expired") return { kind: "incomplete", slug };
   return { kind: "unchecked" };
+}
+
+/**
+ * The visitor who started a Checkout Session (its client_reference_id, set
+ * from the visitor cookie), or undefined when it is missing or malformed. The
+ * return page shows a buyer's certificate stamps only to that same visitor.
+ */
+export function sessionBuyer(session: unknown): string | undefined {
+  if (!isRecord(session)) return undefined;
+  const { client_reference_id: id } = session;
+  return typeof id === "string" && VISITOR_ID.test(id) ? id : undefined;
 }
 
 /** Countries the shop ships to. The founder fulfills orders himself, so US only for now. */

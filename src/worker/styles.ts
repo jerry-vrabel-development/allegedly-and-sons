@@ -141,7 +141,12 @@ dl.specs { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1
 dl.specs dt { font-weight: bold; }
 dl.specs dd { margin: 0; }
 .certificate { border: 3px double var(--rule); padding: 1rem 1.5rem; border-radius: 8px; background: var(--surface); margin-top: 2rem; }
-.certificate h2 { margin-top: 0.5rem; }
+.certificate h2, .certificate h3 { margin-top: 0.5rem; }
+/* Gerald's stamps (note 0021): the word "Witnessed" carries it; the ink and tilt are decoration */
+.stamps { list-style: none; padding: 0; }
+.stamps li { margin: 0 0 0.75rem; }
+.stamp { display: inline-block; transform: rotate(-3deg); border: 2px solid var(--accent); border-radius: 4px; padding: 0 0.35rem; color: var(--accent); font-size: 0.8rem; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; }
+.stamp-note { font-style: italic; color: var(--muted); }
 footer.site { border-top-width: 1px; padding: 1.5rem 0 2.5rem; color: var(--muted); font-size: 1rem; }
 
 /* The dossier: sealed cards are dashed and say "Sealed" in words, never color alone */

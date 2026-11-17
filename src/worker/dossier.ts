@@ -91,3 +91,22 @@ export async function readDossier(
     })),
   };
 }
+
+/**
+ * The exhibits a visitor has acquired and kept, oldest first, each once: the
+ * certificates in their Dossier (note 0021). Refunded orders don't count.
+ */
+export async function readAcquisitions(
+  db: D1Database,
+  visitorId: string | null,
+): Promise<readonly string[]> {
+  if (visitorId === null) return [];
+  const { results } = await db
+    .prepare(
+      `SELECT item_slug FROM orders WHERE visitor_id = ? AND status != 'refunded'
+       GROUP BY item_slug ORDER BY MIN(paid_at), item_slug`,
+    )
+    .bind(visitorId)
+    .all();
+  return results.map((row) => String(row["item_slug"]));
+}

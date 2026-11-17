@@ -11,9 +11,12 @@ import {
   embeddedCheckoutSessionForm,
   returnOutcome,
   SESSION_ID,
+  sessionBuyer,
 } from "../core/checkout";
+import { certificateStamps } from "../core/certificate";
 import { recordCheckoutStarted } from "./analytics";
 import type { Deps } from "./deps";
+import { readDossier } from "./dossier";
 import { json, page, PRIVATE_PAGE_CACHE, TEXT } from "./http";
 import {
   checkoutClosedPage,
@@ -104,13 +107,20 @@ export async function returnPage(url: URL, deps: Deps): Promise<Response> {
     const lookup = await retrieveCheckoutSession(deps.stripeKey, id, deps.fetch);
     if (lookup.ok) {
       const outcome = returnOutcome(lookup.session);
+      const item =
+        outcome.kind === "unchecked" || outcome.slug === undefined
+          ? undefined
+          : findItem(outcome.slug);
       view =
         outcome.kind === "unchecked"
           ? outcome
-          : {
-              kind: outcome.kind,
-              item: outcome.slug === undefined ? undefined : findItem(outcome.slug),
-            };
+          : outcome.kind === "paid"
+            ? {
+                kind: "paid",
+                item,
+                stamps: await buyerStamps(lookup.session, item?.slug, deps),
+              }
+            : { kind: outcome.kind, item };
     } else {
       console.error(`return page: ${lookup.reason}`);
     }
@@ -120,6 +130,22 @@ export async function returnPage(url: URL, deps: Deps): Promise<Response> {
   // The answer is about one buyer's session; never cache or share it.
   response.headers.set("Cache-Control", PRIVATE_PAGE_CACHE);
   return response;
+}
+
+/**
+ * Gerald's stamps for a paid session's certificate (note 0021), or undefined
+ * when the person looking isn't the buyer: the stamps come from the buyer's
+ * own file, so only the visitor who started the session sees them.
+ */
+async function buyerStamps(
+  session: unknown,
+  slug: string | undefined,
+  deps: Deps,
+): Promise<ReturnType<typeof certificateStamps> | undefined> {
+  const buyer = sessionBuyer(session);
+  if (slug === undefined || buyer === undefined || buyer !== deps.visitorId) return undefined;
+  const agent = await readDossier(deps.db, buyer);
+  return certificateStamps(slug, new Set(agent?.awards.map((award) => award.id) ?? []));
 }
 
 /** The embedded checkout page, GET /checkout/<slug>, or undefined for any other path. */
