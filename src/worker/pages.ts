@@ -2,9 +2,11 @@ import { CATALOG, formatPrice, isAvailable, type Item } from "../core/catalog";
 import { checkoutPath, checkoutSessionPath, regularOffer } from "../core/checkout";
 import { chicagoTime, segmentAt, type Offer } from "../core/broadcast";
 import { shareLinks } from "../core/share";
+import type { Tip } from "../core/tips";
 import { CHECKOUT_MOUNT_ID, CHECKOUT_STATUS_ID, STRIPE_JS_URL } from "../core/checkout-page";
 import { CASE_CLOSED_ID, STORY_END_ID } from "../core/story";
 import { callersBlock } from "./callers";
+import { certificateBlock } from "./certificate";
 import { courierFigure } from "./courier-art";
 import { dropForm } from "./find-drop";
 import { geraldFigure } from "./gerald-art";
@@ -494,7 +496,13 @@ export function notFoundPage(): Page {
 
 /** What the return page says, decided by asking Stripe (see returnOutcome). */
 export type ReturnView =
-  | { readonly kind: "paid" | "processing" | "incomplete"; readonly item: Item | undefined }
+  | {
+      readonly kind: "paid";
+      readonly item: Item | undefined;
+      /** Gerald's stamps, only when the visitor is the buyer (note 0021); otherwise no certificate. */
+      readonly stamps?: readonly Tip[] | undefined;
+    }
+  | { readonly kind: "processing" | "incomplete"; readonly item: Item | undefined }
   | { readonly kind: "unchecked" };
 
 /**
@@ -521,6 +529,11 @@ export function thanksPage(view: ReturnView = { kind: "unchecked" }): Page {
             email your receipt. Your exhibit will be packed with its Bureau Certificate and shipped
             to the address you gave at checkout.
           </p>
+          ${
+            item === undefined || view.stamps === undefined
+              ? html``
+              : certificateBlock(item, view.stamps, "h2")
+          }
           ${
             // The sound module (note 0011) adds "Stamp your certificate" here for the fx group.
             item === undefined

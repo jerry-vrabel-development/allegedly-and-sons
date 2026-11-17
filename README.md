@@ -52,6 +52,9 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
 - Pulling on consecutive days builds a duty streak, with freezes and milestone
   badges. A streak that just died can be bought back for $2.99 ("Grease the
   Clerk"), recorded by the same verified webhook.
+- **Certificates** ([0021](docs/design/0021-finds-on-the-certificate.md)): a
+  buyer's certificate, on the return page and in their Dossier, carries the
+  tips they heard about that exhibit before buying it, stamped by Gerald.
 - **The Bureau Dispatch** ([0007](docs/design/0007-dispatch.md)): agents can
   register an email (double opt-in) to keep their file and open it on any
   device. It is built and tested, but closed on the live site until the
@@ -244,6 +247,10 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0015 — One of each, per run](docs/design/0015-one-per-run.md) (proposed)
 - [0016 — The cast](docs/design/0016-the-cast.md) (draft; briefs in words, only the host is built)
 - [0017 — How writers and artists submit work](docs/design/0017-submissions.md) (proposed; nothing is open)
+- [0018 — The black-market loop](docs/design/0018-the-black-market-loop.md) (steps 1 to 3 built)
+- [0019 — The settings wheel](docs/design/0019-settings-wheel.md) (built)
+- [0020 — The Job Board and the pull tip](docs/design/0020-job-board-and-tips.md) (built)
+- [0021 — Finds on the certificate](docs/design/0021-finds-on-the-certificate.md) (on screen built; paper next)
 
 ## Branch flow
 
