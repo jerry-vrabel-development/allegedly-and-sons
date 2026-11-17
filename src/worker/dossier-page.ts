@@ -15,9 +15,11 @@ import {
   wingCommendations,
   withWingAwards,
 } from "../core/dossier";
+import { certificateStamps } from "../core/certificate";
 import { FINDS, findAwardId } from "../core/finds";
 import { VAULT_CARDS, vaultAwardId } from "../core/vault";
 import type { Agent } from "./dossier";
+import { certificateBlock } from "./certificate";
 import { dropForm } from "./find-drop";
 import { dispatchSection, type DispatchView } from "./dispatch-pages";
 import type { Streak } from "../core/streak";
@@ -63,6 +65,7 @@ export function dossierPage(
   streak: Streak,
   nowSeconds: number,
   repairOpen: boolean,
+  acquired: readonly Item[],
 ): Page {
   // Wing commendations are worked out from the cards held (note 0010).
   const earned = withWingAwards(agent?.awards.map((award) => award.id) ?? []);
@@ -110,6 +113,18 @@ export function dossierPage(
               </ul>`,
         )}
       </section>
+
+      ${
+        acquired.length === 0
+          ? html``
+          : html`<section aria-labelledby="certificates-heading">
+              <h2 id="certificates-heading">Certificates</h2>
+              <p>One for each exhibit you acquired.</p>
+              ${acquired.map((item) =>
+                certificateBlock(item, certificateStamps(item.slug, earned), "h3"),
+              )}
+            </section>`
+      }
 
       <section class="prose" aria-labelledby="vault-heading">
         <h2 id="vault-heading">Vault cards</h2>

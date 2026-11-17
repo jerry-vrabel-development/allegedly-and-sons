@@ -1,7 +1,7 @@
 # 0018 — The black-market loop: closing the gap between the game and the shop
 
-- **Status:** Draft. Nothing here is built; this note sets the direction and
-  the build order
+- **Status:** Building. Steps 1 and 2 are built, and step 3 is half built
+  (0021). This note sets the direction and the build order
 - **Date:** 2026-11-15
 - **Author:** Jerry Vrabel
 
@@ -213,7 +213,8 @@ can see which hooks actually hook.
    [0020](0020-job-board-and-tips.md), using the pending exhibits as "inbound";
    "found a home" waits on one-of-each (0015).
 3. **Finds on the certificate.** Gerald's stamps, once there are finds to
-   show.
+   show. Built as [0021](0021-finds-on-the-certificate.md): the exhibit's
+   tips, on screen first, then on the paper certificate.
 4. **The first guest.** Arrives with the next product, with its brief, its
    art, its exhibit page and its place on the Job Board.
 5. **The early look,** if the numbers say the earlier steps are working.
