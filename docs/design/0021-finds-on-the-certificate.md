@@ -1,6 +1,6 @@
 # 0021 — Finds on the certificate
 
-- **Status:** Part 1 (on screen) built; part 2 (paper) next
+- **Status:** Built (part 1 on screen, part 2 on paper)
 - **Date:** 2026-11-17
 - **Author:** Jerry Vrabel
 
@@ -33,13 +33,27 @@ Two things in the code change what "finds about that exhibit" can mean:
      Certificates section: one per exhibit kept, oldest first. Refunded
      orders don't count. Stamps are read live from the agent's awards, which
      are never removed, so they can't drift.
-  2. **On paper** (next). Copy the stamps onto the order when the webhook
-     records it, so the certificate packed with the exhibit is fixed at the
-     moment of purchase. Add a print view behind Access, for fulfillment.
-     This needs a migration.
+  2. **On paper** (built). When the webhook records an order, the same
+     transaction copies the buyer's stamps into `order_stamps`
+     (migration 0011), worded as they were. Only tips earned at or before
+     the order's `paid_at` count, so a late or redelivered webhook stamps
+     the same thing. `/bureau/packing`, behind Access like the Ledger and
+     linked from it, lists every order waiting to ship, oldest first, with
+     its certificate. The browser's print puts one certificate on each page,
+     without the site's header and footer. Buy-backs ship nothing, so they
+     are left out. An order whose exhibit Stripe didn't name says so instead
+     of printing a certificate.
 - **No figure in the block.** The return page already has the Courier as its
   one `data-host`, and the Dossier has none. Gerald stays drawn on the
   exhibit page's certificate box.
+
+## Two sources, on purpose
+
+The screen reads stamps live from the agent's awards. Paper reads the copy
+taken at purchase. They agree, because tips are only told about exhibits on
+their way, so nobody can hear a new tip about something they already bought.
+If that ever changes (an exhibit goes back to pending), the paper copy is the
+record of what was true at purchase.
 
 ## What would change our mind
 

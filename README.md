@@ -55,6 +55,9 @@ in **Stripe's sandbox** (test cards only; no real money moves yet).
 - **Certificates** ([0021](docs/design/0021-finds-on-the-certificate.md)): a
   buyer's certificate, on the return page and in their Dossier, carries the
   tips they heard about that exhibit before buying it, stamped by Gerald.
+  The webhook copies the stamps onto the order at purchase, and
+  `/bureau/packing` (behind Access) prints one certificate per order waiting
+  to ship.
 - **The Bureau Dispatch** ([0007](docs/design/0007-dispatch.md)): agents can
   register an email (double opt-in) to keep their file and open it on any
   device. It is built and tested, but closed on the live site until the
@@ -250,7 +253,7 @@ Before your first `npm run test:e2e`, install the browsers once:
 - [0018 — The black-market loop](docs/design/0018-the-black-market-loop.md) (steps 1 to 3 built)
 - [0019 — The settings wheel](docs/design/0019-settings-wheel.md) (built)
 - [0020 — The Job Board and the pull tip](docs/design/0020-job-board-and-tips.md) (built)
-- [0021 — Finds on the certificate](docs/design/0021-finds-on-the-certificate.md) (on screen built; paper next)
+- [0021 — Finds on the certificate](docs/design/0021-finds-on-the-certificate.md) (built)
 
 ## Branch flow
 

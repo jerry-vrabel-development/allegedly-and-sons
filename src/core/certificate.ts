@@ -11,6 +11,12 @@
 
 import { tipAwardId, tipsAbout, type Tip } from "./tips";
 
+/** What a stamp shows: who said it, and what they said. A Tip is one; so is a stored stamp. */
+export interface Stamp {
+  readonly contact: string;
+  readonly line: string;
+}
+
 /** The tips about `exhibit` that this agent holds, in the order they are told: Gerald's stamps. */
 export function certificateStamps(exhibit: string, held: ReadonlySet<string>): readonly Tip[] {
   return tipsAbout(exhibit).filter((tip) => held.has(tipAwardId(tip)));

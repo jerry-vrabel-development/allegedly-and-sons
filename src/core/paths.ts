@@ -77,6 +77,8 @@ export const WEBHOOK_PATH = "/webhooks/stripe";
 /** Everything private to the Bureau sits under here, behind Cloudflare Access. */
 export const BUREAU_PATH = "/bureau";
 export const LEDGER_PATH = "/bureau/ledger";
+/** Certificates to print for orders waiting to ship (note 0021). */
+export const PACKING_PATH = "/bureau/packing";
 
 /**
  * Where paths with a slug or a sub-path begin, for the places that can only name
